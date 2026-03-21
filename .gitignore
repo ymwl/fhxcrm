@@ -39,3 +39,9 @@ crm_uniapp/unpackage/
 
 # AI 项目指引
 CODEBUDDY.md
+
+# 自动提交脚本（可选排除）
+auto-commit.bat
+auto-commit-watcher.ps1
+
+git.md
