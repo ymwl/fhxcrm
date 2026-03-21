@@ -1,0 +1,8 @@
+if (!-e $request_filename) {
+  location ~ ^/(upload|static)/.*\.(php|php5|jsp)$ {
+        deny all;return 404;
+  	}
+   rewrite  ^(.*)$  /index.php?s=/$1  last;
+   break;
+}
+

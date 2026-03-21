@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{$system['name']}后台管理</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/layui-v2.9/css/layui.css" media="all" />
+    <link rel="stylesheet" href="__MY_PUBLIC__/static/admin/css/global.css" media="all">
+
+    <style>
+        .layui-form-pane .layui-form-label {
+            width: 110px;
+            padding: 8px 15px;
+            height: 38px;
+            line-height: 20px;
+            border-width: 0;
+            border-style: none;
+            border-radius: 2px 0 0 2px;
+            text-align: center;
+            background-color: #FBFBFB;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+    </style>
+    <link rel="shortcut icon" href="{:attrUrl($system['favicon'])}" />
+</head>
+<body >
+<div class="admin-main layui-anim layui-anim-upbit" ng-app="hd" ng-controller="ctrl">
+    <form class="layui-form layui-form-pane">
+        <input type="hidden" id="id" name="id" lay-verify="required" value="{$result.id}" class="layui-input">
+        <input type="hidden" name="audit_management_id" lay-verify="required" value="{:input('audit_management_id')}" class="layui-input">
+        <div class="layui-form-item">
+            <label class="layui-form-label">邮箱地址</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" value="{$result.email}" readonly>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Order number')}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" value="{$result.orderno}" readonly>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client name')}</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input" value="{$result.cname}" readonly>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client Principal')}</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input" value="{$result.pr_user}" readonly>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('amount')}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" value="{$result.money}" readonly>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Freight')}</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input"  value="{$result.freight}" readonly>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">处理动作</label>
+            <div class="layui-input-block">
+                <input type="radio" name="status" value="1" title="同意删除" checked>
+                <input type="radio" name="status" value="-1" title="不同意删除">
+
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">处理说明</label>
+            <div class="layui-input-block">
+                <textarea placeholder="请填写处理说明" class="layui-textarea" name="result_mess"></textarea>
+            </div>
+        </div>
+
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn"  lay-submit="" lay-filter="submit">提交处理</button>
+
+            </div>
+        </div>
+
+    </form>
+</div>
+{include file="common/foot"/}
+
+<script>
+
+
+        layui.use(['form', 'layer'], function () {
+            var form = layui.form, layer = layui.layer,$= layui.jquery;
+
+            //监听提交
+            form.on('submit(submit)', function(data){
+
+                $.post('',data.field,function (res) {
+                    if (res.code == 0){
+                        layer.msg(res.msg,{time:1000},function (){
+                            window.parent.location.reload();
+                        });
+                    }else {
+                        layer.msg(res.msg,{time:2000});
+                    }
+                },'json')
+                return false;
+            });
+        });
+</script>
+</body>
+</html>

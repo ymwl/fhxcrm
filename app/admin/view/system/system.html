@@ -1,0 +1,242 @@
+{include file="common/head"/}
+<?php
+$lang=\think\facade\Lang::getLangSet();
+if($lang=='en-us'){
+$ue_l='en';
+ }else{
+$ue_l='zh-cn';
+} ?>
+<script src="__MY_PUBLIC__/static/ueditor/ueditor.config.js" type="text/javascript"></script>
+<script src="__MY_PUBLIC__/static/ueditor/ueditor.all.min.js" type="text/javascript"></script>
+<div class="admin-main layui-anim layui-anim-upbit">
+    <fieldset class="layui-elem-field layui-field-title">
+        <legend>{:lang('systemSet')}</legend>
+    </fieldset>
+    <div class="layui-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">{:fy('Base settings')}</li>
+        </ul>
+        <div class="layui-tab-content">
+            <div class="layui-tab-item layui-show">
+                <form class="layui-form layui-form-pane" lay-filter="form-system">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:fy('Site')}LOGO</label>
+                        <input type="hidden" name="logo" id="logo">
+                        <div class="layui-input-block">
+                            <div class="layui-upload">
+                                <button type="button" class="layui-btn layui-btn-primary" id="logoBtn"><i class="icon icon-upload3"></i>{:fy('Click Upload')}</button>
+                                <div class="layui-upload-list">
+                                    <img class="layui-upload-img" id="cltLogo" style="background-color: #eee;">
+                                    <p id="demoText"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:fy('Site')}{:fy('Name')}</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="name" lay-verify="required" placeholder="{:lang('Please enter')}{:lang('websiteName')}" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:fy('Site')}{:fy('abbreviation')}</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="site_abbr" lay-verify="required" placeholder="请填写网站简称" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:fy('Resource Address')}</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="domain" lay-verify="url" placeholder="{:lang('Please enter')}{:lang('WebsiteUrl')}" class="layui-input">
+                            <tip>{:fy('Must be filled in correctly, otherwise the image resource cannot be loaded')}</tip>
+                        </div>
+                    </div>
+
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:lang('recordNum')}</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="bah" placeholder="{:lang('Please enter')}{:lang('recordNum')}" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Copyright</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="copyright" placeholder="{:lang('Please enter')}Copyright" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:lang('companyAddress')}</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="ads" placeholder="{:lang('Please enter')}{:lang('companyAddress')}" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:lang('tel')}</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="tel" placeholder="{:lang('Please enter')}{:lang('tel')}" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:lang('email')}</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="email" placeholder="{:lang('Please enter')}{:lang('email')}" class="layui-input">
+                        </div>
+                    </div>
+
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:fy('Number of pages')}</label>
+                        <div class="layui-input-inline" style="width: auto;">
+                            <input type="number" style="width:60px;display: inline-block;" class="layui-input" name="admin_pagesize" value="<?php echo htmlentities((isset($system['admin_pagesize']) && ($system['admin_pagesize'] !== '')?$system['admin_pagesize']:'100')); ?>">
+                        </div>
+                        <div class="layui-form-mid layui-word-aux">{:fy('The number of data paginations')}</div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:fy('Captcha')}</label>
+                        <div class="layui-input-block">
+                            <input type="radio" name="code" value="open" title="{:fy('Open')}">
+                            <input type="radio" name="code" value="close" title="{:fy('Close')}">
+                        </div>
+                    </div>
+
+                    <div class="layui-form-item layui-form-text">
+                        <label class="layui-form-label">{:fy('Notice')}</label>
+                        <div class="layui-input-block">
+                            <textarea name="notice" id="notice" lay-verify="required" placeholder="{:lang('Please enter')}{:fy('Notice')}" class="layui-textarea" >{$system['notice']|default=''}</textarea>
+                        </div>
+                    </div>
+
+
+
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="button" class="layui-btn" lay-submit="" lay-filter="sys">{:lang('submit')}</button>
+                            <button type="reset" class="layui-btn layui-btn-primary">{:lang('Reset')}</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="layui-tab-item">
+                <form class="layui-form layui-form-pane" lay-filter="form-system">
+
+
+
+                    <div class="layui-form-item">
+                        <label class="layui-form-label" style="width: 130px;">{:fy('Client payback cycle')}</label>
+                        <div class="layui-input-inline" style="width: auto;">
+                            <input type="number" style="width:60px;display: inline-block;" class="layui-input" name="more[kfrecycleday]" value="{$system['more']['kfrecycleday']|default='0'}"> {:fy('day is not followed, it will be recycled')}
+                        </div>
+                        <div class="layui-form-mid layui-word-aux">{:fy('Fill in 0 to indicate no recovery')}</div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label" style="width: 130px;">{:fy('Maximum number of client grabs')}</label>
+                        <div class="layui-input-block">
+                            <div class="layui-input-inline" style="width: 80px;margin-right: 0.5em;">
+                                <select name="more[customer_limit_condition]">
+                                    <?php foreach($cycleList as $k=>$v){ ?>
+                                    <option value="{$k}" <?php if(isset($system['more']['customer_limit_condition']) && $system['more']['customer_limit_condition']==$k)echo 'selected="selected"'; ?> >{:fy($v)}</option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline" style="width: auto;">
+                                {:fy('Restrictions on collection')} <input type="number" style="width:60px;display: inline-block;" class="layui-input" name="more[customer_limit_counts]" value="{$system['more']['customer_limit_counts']|default=''}"> {:fy('frequency')}
+                            </div>
+                            <div class="layui-form-mid layui-word-aux">{:fy('Fill in 0 means no restriction')}</div>
+                        </div>
+                    </div>
+               <!--     <div class="layui-form-item">
+                        <label class="layui-form-label">手机端</label>
+                        <div class="layui-input-block">
+                            <input type="radio" name="mobile" value="open" title="开启">
+                            <input type="radio" name="mobile" value="close" title="关闭">
+                        </div>
+                    </div>-->
+                    
+
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="button" class="layui-btn" lay-submit="" lay-filter="sys">{:lang('submit')}</button>
+                            <button type="reset" class="layui-btn layui-btn-primary">{:lang('Reset')}</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{include file="common/foot"/}
+<script>
+    layui.use(['form', 'layer','upload','element','layedit'], function () {
+
+        var form = layui.form,layer = layui.layer,upload = layui.upload,$ = layui.jquery,element = layui.element, layedit = layui.layedit;
+
+        var editorOption = {
+            UEDITOR_HOME_URL: "__MY_PUBLIC__/static/ueditor/",
+            UEDITOR_ROOT_URL: "__MY_PUBLIC__/static/ueditor/",
+            // serverUrl: "{:url('upload/ueditor')}",
+            lang: "{$ue_l}",
+            toolbars: [["source","undo", "redo", "|", "bold", "italic", "underline", "fontborder", "strikethrough", "superscript", "subscript", "removeformat", "formatmatch", "autotypeset", "blockquote",  "|", "forecolor", "backcolor", "selectall", "cleardoc", "|", "lineheight", "|",   "fontfamily", "fontsize", "|", "link", "unlink", "emotion"]],
+            initialContent: "",
+            pageBreakTag: "_ueditor_page_break_tag_",
+            initialFrameWidth: "100%",
+            initialFrameHeight: "200",
+            initialStyle: "body{font-size:14px}",
+            autoFloatEnabled: false,
+            allowDivTransToP: true,
+            autoHeightEnabled: false,
+            charset: "utf-8",
+        };
+        var DomUe = UE.getEditor("notice", editorOption)
+
+        var seytem = {$system1|raw};
+        form.val("form-system", seytem);
+        $('#cltLogo').attr('src',"{:attrUrl($system['logo'])}");
+
+        //普通图片上传
+        var uploadInst = upload.render({
+            elem: '#logoBtn'
+            ,url: '{:url("ajax/upload")}'
+            ,before: function(obj){
+                //预读本地文件示例，不支持ie8
+                obj.preview(function(index, file, result){
+                    $('#cltLogo').attr('src', result); //图片链接（base64）
+                });
+            }
+            ,done: function(res){
+                //上传成功
+                if(res.code>0){
+                    $('#logo').val(res.data.url);
+                    $('#demoText').html('');
+                    layer.msg('上传成功');
+                }else{
+
+                    return layer.msg('{:fy("Upload failed")}');
+                }
+            }
+            ,error: function(){
+                //演示失败状态，并实现重传
+                var demoText = $('#demoText');
+                demoText.html('<span style="color: #FF5722;">{:fy("Upload failed")}</span> <a class="layui-btn layui-btn-mini demo-reload">{:fy("Retry")}</a>');
+                demoText.find('.demo-reload').on('click', function(){
+                    uploadInst.upload();
+                });
+            }
+        });
+        //提交监听
+        form.on('submit(sys)', function (data) {
+            loading =layer.load(1, {shade: [0.1,'#fff']});
+            $.post("{:url('system/system')}",data.field,function(res){
+                layer.close(loading);
+                if(res.code > 0){
+                    layer.msg(res.msg,{icon: 1, time: 1000},function(){
+                        location.href = res.url;
+                    });
+                }else{
+                    layer.msg(res.msg,{icon: 2, time: 1000});
+                }
+            });
+        })
+    })
+</script>
+</body>
+</html>

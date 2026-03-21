@@ -1,0 +1,5 @@
+恭喜您，提交成功页面
+http://localhost:8080/h5/#/pages/apply/success/success
+
+个人信息修改
+/pages/more/personalDetails

@@ -1,0 +1,108 @@
+<style>
+    #table-pro tr td input{min-width: 70px;}
+    [v-cloak]{display: none;}
+</style>
+<div class="layuimini-container" id="app" v-cloak>
+    <form id="app-form" class="layui-form layuimini-form">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">客户</label>
+            <div class="layui-input-block">
+                <input type="text" name="business[customer_id]" data-toggle="selectPage" class="layui-input" data-source="{:url('crm.customer/selectpage')}"  data-field="name"  data-format-item="{name}"  data-primary-key="id"  placeholder="{:fy('Please select')}商机对应客户" data-params='{"custom[status]":1,"custom[pr_user]":"{$admin.username}"}'  lay-verify="required" value="{$row.customer_id|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Opportunity Name')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="business[name]" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')} {:fy('Opportunity Name')}" value="{$row.name|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"> {:fy('Budget amount')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="business[money]" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')} {:fy('Budget amount')}" value="{$row.money|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"> {:fy('Next follow-up time')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="business[next_time]" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')} {:fy('Next follow-up time')}" data-date="yyyy-MM-dd HH:mm" value="<?php if($row['next_time']){echo date('Y-m-d H:i',$row['next_time']);}?>" >
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Estimated transaction date')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="business[deal_time]" class="layui-input"  placeholder="{:fy('Please enter')} {:fy('Estimated transaction date')}" data-date="yyyy-MM-dd HH:mm" value="<?php if($row['deal_time']){echo date('Y-m-d H:i',$row['deal_time']);}?>">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Status')}</label>
+            <div class="layui-input-block">
+                {foreach $getIsEndList as $k=>$v}
+                <input type="radio" name="business[is_end]" value="{$k}" title="{$v}" {in name="k" value="$row.is_end"}checked{/in}>
+                {/foreach}
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">{:fy('Remark')}</label>
+            <div class="layui-input-block">
+                <textarea name="business[remark]" class="layui-textarea"  placeholder="{:fy('Please enter')}备注" style="min-height:50px;">{$row.remark|raw|default=''}</textarea>
+            </div>
+        </div>
+<div style="padding:9px 15px;">
+   <div  class="clear">
+       产品明细
+       <a class="layui-btn layui-btn-normal layui-btn-sm" style="float: right;" href="javascript:void(0);" id="select-pro"><i class="fa fa-plus"></i>新增产品</a>
+   </div>
+    <table class="layui-table" id="table-pro" data-business_id="{$row.id}">
+        <thead>
+        <tr>
+            <th>序号</th>
+            <th>{:fy('Product name')}</th>
+            <th>{:fy('Specifications')}</th>
+            <th>{:fy('Model')}</th>
+            <th>成本</th>
+            <th>售价</th>
+            <th style="width: 90px;">数量</th>
+            <th style="width: 90px;">折扣</th>
+            <th>销售金额</th>
+            <th>{:fy('Remark')}</th>
+            <th>录入时间</th>
+            <th>管理</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="(item,index) in pro_list" :key="index+1">
+            <td>
+                {{index+1}}
+                <input type="hidden" :value="item.product_id" :name="'product['+(index+1)+'][product_id]'">
+                <input type="hidden" :value="item.id" :name="'product['+(index+1)+'][id]'">
+
+            </td>
+            <td><input type="hidden" :value="item.name" :name="'product['+(index+1)+'][product_extend][name]'">{{item.name}}</td>
+            <td><input type="hidden" :value="item.specification" :name="'product['+(index+1)+'][product_extend][specification]'">{{item.specification}}</td>
+            <td><input type="hidden" :value="item.model" :name="'product['+(index+1)+'][product_extend][model]'">{{item.model}}</td>
+            <td><input type="hidden" :value="item.cost_price" :name="'product['+(index+1)+'][product_extend][cost_price]'">{{item.cost_price}}</td>
+            <td><input class="layui-input" :name="'product['+(index+1)+'][sale_price]'"  type="text" v-model="item.sale_price"></td>
+            <td><input class="layui-input" :name="'product['+(index+1)+'][nums]'"  type="text" v-model="item.nums"></td>
+            <td><input class="layui-input" :name="'product['+(index+1)+'][discount]'"  type="text" v-model="item.discount"></td>
+            <td>{{item.sale_price*item.nums-item.discount}}</td>
+            <td><input  class="layui-input" :name="'product['+(index+1)+'][remark]'" type="text" v-model="item.remark"></td>
+            <td>{{entryTime(index)}}</td>
+            <td><a class="layui-btn layui-btn-danger layui-btn-xs" @click="removePro(index,item.id)">{:fy('Delete')}</a></td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="total-pro" style="text-align: center">
+        {:fy('Total cost')}：<span class="red">{{getTotal.cost_sum}}</span>  {:fy('Total price')}：<span class="red">{{getTotal.sale_sum}}</span>  {:fy('Total quantity')}：<span class="red">{{getTotal.nums_sum}}</span>  {:fy('Total discount')}：<span class="red">{{getTotal.discount_sum}}</span>  {:fy('Final total amount')}：<span class="red">{{getTotal.real_sale_sum}}</span>
+    </div>
+</div>
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

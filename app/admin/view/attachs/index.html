@@ -1,0 +1,20 @@
+<div class="layuimini-container" id="app">
+  <table class="layui-table" id="table-pro">
+    <thead>
+    <tr>
+      <th>{:fy('Attachment')} {:fy('Name')}</th>
+      <th>{:fy('Upload time')}</th>
+      <th>{:fy('file type')}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <?php foreach($list as $v){ ?>
+    <tr>
+      <td><a href="{:attrUrl($v['url'])}" target="_blank">{$v['original_name']}</a></td>
+      <td>{:date('Y-m-d H:i',$v['create_time'])}</td>
+      <td>{$v['file_ext']}</td>
+    </tr>
+    <?php } ?>
+    </tbody>
+  </table>
+</div>

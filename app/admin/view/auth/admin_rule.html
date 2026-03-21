@@ -1,0 +1,40 @@
+<link rel="stylesheet" href="__MY_PUBLIC__/static/admin/css/global.css" media="all">
+<div class="admin-main layui-anim layui-anim-upbit">
+    <fieldset class="layui-elem-field layui-field-title">
+        <legend>菜单管理</legend>
+    </fieldset>
+    <blockquote class="layui-elem-quote" style="color:#FFB800; ">
+        {:fy('Non professionals are not allowed to operate this page, otherwise the background page menu may not be displayed')}. <span class="red">{:fy('Note: Actions such as deletion, editing, modification, etc. are operation buttons, no right navigation display, no need to open the menu status')}</span>
+    </blockquote>
+    <blockquote class="layui-elem-quote">
+        <button class="layui-btn layui-btn-sm layuimini-btn-primary" data-treetable-refresh><i class="fa fa-refresh"></i> </button>
+        <a  class="layui-btn layui-btn-sm" data-open="{:url('ruleAdd')}" data-title="{:lang('add')}{:lang('node')}" >{:lang('add')}{:lang('node')}</a>
+        <a class="layui-btn layui-btn-sm layui-btn-danger" data-request="{:url('clear')}" data-title="确定要清除不存在父级节点的节点吗？">{:fy('Clear the node')}</a>
+        <a class="layui-btn layui-btn-normal layui-btn-sm" id="openAll">{:fy('Expand or collapse all')}</a>
+    </blockquote>
+    <table class="layui-table" id="treeTable" lay-filter="treeTable">
+
+    </table>
+
+
+</div>
+<script type="text/html" id="auth">
+    <input type="checkbox" name="authopen" value="{{d.id}}" lay-skin="switch" lay-text="{:fy('yes')}|{:fy('no')}" lay-filter="authopen" {{ d.authopen == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="status">
+    <input type="checkbox" name="menustatus" value="{{d.id}}" lay-skin="switch" lay-text="是|否" lay-filter="menustatus" {{ d.menustatus == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="order">
+    <input name="{{d.id}}" data-id="{{d.id}}" class="list_order layui-input" value=" {{d.sort}}" size="10"/>
+</script>
+<script type="text/html" id="icon">
+    <span class="icon {{d.icon}}"></span>
+</script>
+<script type="text/html" id="action">
+    <a class="layui-btn layui-btn-xs layui-btn-normal" data-open="{:url('ruleAdd')}?id={{d.id}}" data-title="{:lang('Add child nodes')}">{:lang('Add child nodes')}</a>
+    <a class="layui-btn layui-btn-xs" data-open="{:url('ruleEdit')}?id={{d.id}}" data-title={:lang('Edit')}>{:lang('Edit')}</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">{:lang('del')}</a>
+</script>
+<script type="text/html" id="topBtn">
+   <a href="{:url('ruleAdd')}" class="layui-btn layui-btn-sm">{:lang('add')} {:fy('Permissions')}</a>
+</script>

@@ -1,0 +1,83 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <input type="hidden" id="id" name="id" lay-verify="required" value="{$result.id}" class="layui-input">
+
+        <input type="hidden" name="audit_management_id" lay-verify="required" value="{:input('audit_management_id')}" class="layui-input">
+        <div class="form-readonly">
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client mobile number')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="cphone" name="cphone" lay-verify="required"  value="{$result.cphone}" readonly  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Order number')}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" value="{$result.orderno}" readonly>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client name')}</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input" value="{$result.cname}" readonly>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client Principal')}</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input" value="{$result.pr_user}" readonly>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('amount')}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" value="{$result.money}" readonly>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Freight')}</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input"  value="{$result.freight}" readonly>
+            </div>
+        </div>
+
+        <div class="layui-row">
+        {$fields_str|raw}
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Order Remarks")}</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input"  value="{$result.remark}" readonly>
+            </div>
+        </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Operation action")}</label>
+            <div class="layui-input-block">
+                <input type="radio" name="status" value="1" title="{:fy('Pass')}" checked>
+                <input type="radio" name="status" value="-1" title="{:fy('not pass')}">
+
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Operating instructions')}</label>
+            <div class="layui-input-block">
+                <textarea placeholder="{:fy('Please enter')} {:fy('Operating instructions')}" class="layui-textarea" name="result_mess"></textarea>
+                <tip>{:fy("If the review fails, it is recommended to fill in the operation instructions to facilitate the submitter to complete the submission information")}</tip>
+            </div>
+
+        </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn"  lay-submit lay-filter="submit">{:fy("Save")}</button>
+
+            </div>
+        </div>
+
+    </form>
+</div>

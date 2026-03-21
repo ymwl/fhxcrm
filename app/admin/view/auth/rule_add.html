@@ -1,0 +1,104 @@
+{include file="common/head"/}
+<div style="margin: 15px;" class="fadeInUp animated">
+    <fieldset class="layui-elem-field layui-field-title">
+        <legend>{:fy('Add')} {:fy('Permissions')}</legend>
+    </fieldset>
+    <form class="layui-form layui-form-pane">
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Parent')}</label>
+            <div class="layui-input-block">
+                <select name="pid" lay-verify="required" lay-filter="pid" >
+                    <option value="0">{:fy('Default Top Level')}</option>
+                    <?php
+$id=isset($_GET['id'])?$_GET['id']:0;
+?>
+                    {volist name="admin_rule" id="vo"}
+                        <option value="{$vo.id}" <?php if($id==$vo['id'])echo 'selected'; ?> >{$vo.lefthtml}{:fy($vo['title'])}</option>
+                    {/volist}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Menu name')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="title" lay-verify="required" placeholder="{:lang('Please enter')} {:fy('Menu name')}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Controller")}/{:fy("Method")}</label>
+            <div class="layui-input-block">
+                <input type="text" name="href" placeholder="{:lang('Please enter')}{:fy("Controller")}/{:fy("Method")}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Icon")}</label>
+            <div class="layui-input-block">
+                <input type="text" name="icon" placeholder="{:lang('Please enter')}{:fy('Icon')}" class="layui-input hide" lay-filter="icon" id="icon">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Link Open Method')}</label>
+            <div class="layui-input-block">
+                {foreach ['_self'=>'当前窗口打开','_blank'=>'新窗口打开','_parent'=>'父窗口打开','_top'=>'顶端打开窗口'] as $key=>$vo}
+                <input type="radio" name="target" value="{$key}" title="{:fy($vo)}" {if $key=='_self'}checked=""{/if}>
+                {/foreach}
+
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">是否菜单</label>
+            <div class="layui-input-block">
+                <input type="radio" name="menustatus" lay-filter="menustatus" checked value="1" title="是">
+                <input type="radio" name="menustatus" lay-filter="menustatus" value="0" title="否">
+
+            </div>  <div class="layui-form-mid layui-word-aux">注意：添加，删除，编辑等按钮类不属于菜单，请勿设置“是”。</div>
+
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Sort')}</label>
+            <div class="layui-input-2">
+                <input type="text" name="sort" value="50" placeholder="{:lang('Please enter')}{:fy('Sort number')}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn" lay-submit="" lay-filter="auth">{:fy('Save')}</button>
+            </div>
+        </div>
+    </form>
+</div>
+{include file="common/foot"/}
+<script>
+    layui.use(['form', 'layer','iconPickerFa'], function () {
+        var form = layui.form,layer = layui.layer,$= layui.jquery,iconPickerFa = layui.iconPickerFa;
+        iconPickerFa.render({
+            // 选择器，推荐使用input
+            elem: '#icon',
+            // fa 图标接口
+            url: "__MY_PUBLIC__/static/plugs/font-awesome-4.7.0/less/variables.less",
+            // 是否开启搜索：true/false，默认true
+            search: true,
+            // 是否开启分页：true/false，默认true
+            page: true,
+            // 每页显示数量，默认12
+            limit: 300,
+            // 点击回调
+            click: function (data) {
+                $('#icon').val('fa ' + data.icon);
+            }
+
+        });
+        form.on('submit(auth)', function (data) {
+            // 提交到方法 默认为本身
+            $.post("{:url('ruleAdd')}",data.field,function(res){
+                if(res.code > 0){
+                    layer.msg(res.msg,{time:2000,icon:1},function(){
+                        window.parent.location.reload();
+                    });
+                }else{
+                    layer.msg(res.msg,{time:2000,icon:2});
+                }
+            });
+        })
+    });
+</script>

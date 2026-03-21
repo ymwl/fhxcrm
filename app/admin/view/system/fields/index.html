@@ -1,0 +1,20 @@
+<script>
+    var parameter = '{$parameter}';
+</script>
+<div class="layuimini-container">
+
+    <div class="layuimini-main">
+        <blockquote class="layui-elem-quote">
+           宽度指的是对应列表字段的宽度，单位为px，不可编辑指的是字段在数据编辑状态是无法编辑的。
+        </blockquote>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('system.fields/add')}"
+               data-auth-edit="{:auth('system.fields/edit')}"
+               data-auth-delete="{:auth('system.fields/delete')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>
+<script type="text/html" id="toolbar">
+    <button class="layui-btn layui-btn-sm layuimini-btn-primary" data-treetable-refresh><i class="fa fa-refresh"></i> </button>
+</script>

@@ -1,0 +1,105 @@
+<div class="layuimini-container">
+    <style>
+        .layui-elem-quote p{display:none;}
+    </style>
+    <form id="app-form" class="layui-form layuimini-form layui-form-pane">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">模板名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" class="layui-input" lay-verify="required" placeholder="请输入模板名称" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">归属类型</label>
+            <div class="layui-input-block">
+                {foreach $getTypeList as $k=>$v}
+                <input type="radio" name="type" value="{$k}" title="{$v}" lay-filter="type">
+                {/foreach}
+            </div>
+        </div>
+        <blockquote class="layui-elem-quote" style="color:#a29c9c; ">
+            模板标题和模板内容支持的变量：<br>
+
+            <?php
+            $prefix=getDataBaseConfig('prefix');
+            $customer_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `addinput` is not null AND `field`!="id" AND `field`!="remark"  order BY `sort` ASC,id ASC');
+            $contacts_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" AND `addinput` is not null AND `field`!="id" AND `field`!="customer_id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+            $client_order_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+               $client_order_fields=array_merge((new \app\admin\model\CrmClientOrder())->defaultField(),$client_order_fields);
+
+            $contract_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+            $contract_fields=array_merge((new \app\admin\model\CrmContract())->defaultField(),$contract_fields);
+
+            ?>
+            <p class="user_fields"><strong>操作用户字段：</strong><br>
+                {literal}联系姓名:{$user_realname}，联系电话:{$user_phone}，联系邮箱:{$user_email}，联系微信:{$user_wechat}{/literal}
+            </p>
+            <p class="customer_fields"><strong>客户字段：</strong><br>
+                <?php foreach($customer_fields as $k=>$v){
+                if($v['field']=='id' || $v['field']=='remark') continue;
+                $name=empty($v['xsname'])?$v['name']:$v['xsname'];
+                echo $name.':'.'{$'.'customer_'.$v['field'].'}，';}
+                ?>
+            </p>
+
+            <p class="customer_contacts_fields"><strong>客户联系人字段：</strong><br>
+                <?php foreach($contacts_fields as $k=>$v){
+                if($v['field']=='id' || $v['field']=='remark') continue;
+                $name=empty($v['xsname'])?$v['name']:$v['xsname'];
+                echo $name.':'.'{$'.'contacts_'.$v['field'].'}，';}
+                ?>
+            </p>
+            <p class="client_order_fields"><strong>客户订单字段：</strong><br>
+                <?php foreach($client_order_fields as $k=>$v){
+                if($v['field']=='id' || $v['field']=='remark') continue;
+                $name=empty($v['xsname'])?$v['name']:$v['xsname'];
+                echo $name.':'.'{$'.'order_'.$v['field'].'}，';}
+                ?>
+            </p>
+            <p class="contract_fields"><strong>客户合同字段：</strong><br>
+                <?php foreach($contract_fields as $k=>$v){
+                if($v['field']=='id' || $v['field']=='remark') continue;
+                $name=empty($v['xsname'])?$v['name']:$v['xsname'];
+                echo $name.':'.'{$'.'contract_'.$v['field'].'}，';}
+                ?>
+            </p>
+
+
+        </blockquote>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">模板标题</label>
+            <div class="layui-input-block">
+                <input type="text" name="tpl_title" class="layui-input" lay-verify="required" placeholder="请输入模板标题" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">模板内容</label>
+            <div class="layui-input-block">
+                <textarea name="tpl_content" rows="20" class="layui-textarea editor" placeholder="请输入模板内容"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                {foreach $getStatusList as $k=>$v}
+                <input type="radio" name="status" value="{$k}" title="{$v}" {in name="k" value="1"}checked=""{/in}>
+                {/foreach}
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">排序</label>
+            <div class="layui-input-block">
+                <input type="text" name="sort" class="layui-input" lay-verify="required" placeholder="请输入排序" value="0">
+            </div>
+        </div>
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+                        <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

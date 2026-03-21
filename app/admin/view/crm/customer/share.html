@@ -1,0 +1,26 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="ids" disabled data-toggle="selectPage" class="layui-input" data-source='<?php echo json_encode([$cus_lst],256); ?>'  data-field="name"  data-format-item="{name}"  data-multiple="true"    data-primary-key="id"   value="{$ids}" >
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Share with colleagues')}</label>
+            <div class="layui-input-block" >
+                <input type="text" name="share_admin_ids" data-toggle="selectPage" class="layui-input" data-source='<?php echo json_encode($adminResult,256); ?>'  data-field="username"  data-format-item="{username}"  data-multiple="true"    data-primary-key="admin_id" value="{$cus_lst['share_admin_ids']}">
+
+            </div>
+        </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>
+

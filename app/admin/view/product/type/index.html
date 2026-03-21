@@ -1,0 +1,16 @@
+<link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/treetable-lay/treetable.css" media="all">
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('product.type/add')}"
+               data-auth-edit="{:auth('product.type/edit')}"
+               data-auth-delete="{:auth('product.type/delete')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>
+<script type="text/html" id="toolbar">
+    <button class="layui-btn layui-btn-sm layuimini-btn-primary" data-treetable-refresh><i class="fa fa-refresh"></i> </button>
+    <button class="layui-btn layui-btn-normal layui-btn-sm " data-open="product.type/add" data-title="{:fy('Add')}"><i class="fa fa-plus"></i> {:fy('Add')}</button>
+    <button class="layui-btn layui-btn-sm layui-btn-danger " data-url="product.type/del" data-treetable-delete="currentTableRenderId"><i class="fa fa-trash-o"></i> {:fy('Delete')}</button>
+</script>

@@ -1,0 +1,193 @@
+<?php
+
+    /**
+     * 获取网站根目录
+     * @return string 网站根目录
+     */
+    function web_get_root()
+    {
+        $root = request()->root();
+        $root = str_replace("//", '/', $root);
+        $root = str_replace('/index.php', '', $root);
+        if (defined('APP_NAMESPACE') && APP_NAMESPACE == 'api') {
+            $root = preg_replace('/\/api(.php)$/', '', $root);
+        }
+
+        $root = rtrim($root, '/');
+
+        return $root;
+    }
+
+function sp_testwrite($d)
+{
+    $tfile = "_test.txt";
+    $fp = @fopen($d . "/" . $tfile, "w");
+    if (!$fp) {
+        return false;
+    }
+    fclose($fp);
+    $rs = @unlink($d . "/" . $tfile);
+    if ($rs) {
+        return true;
+    }
+    return false;
+}
+
+function sp_dir_create($path, $mode = 0777)
+{
+    if (is_dir($path))
+        return true;
+    $ftp_enable = 0;
+    $path = sp_dir_path($path);
+    $temp = explode('/', $path);
+    $cur_dir = '';
+    $max = count($temp) - 1;
+    for ($i = 0; $i < $max; $i++) {
+        $cur_dir .= $temp[$i] . '/';
+        if (@is_dir($cur_dir))
+            continue;
+        @mkdir($cur_dir, 0777, true);
+        @chmod($cur_dir, 0777);
+    }
+    return is_dir($path);
+}
+
+function sp_dir_path($path)
+{
+    $path = str_replace('\\', '/', $path);
+    if (substr($path, -1) != '/')
+        $path = $path . '/';
+    return $path;
+}
+
+function sp_execute_sql($db, $sql)
+{
+    $sql = trim($sql);
+    preg_match('/CREATE TABLE .+ `([^ ]*)`/', $sql, $matches);
+    if ($matches) {
+        $table_name = $matches[1];
+        $msg = "创建数据表{$table_name}";
+        try {
+            $db->execute($sql);
+            return [
+                'error' => 0,
+                'message' => $msg . ' 成功！'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'error' => 1,
+                'message' => $msg . ' 失败！',
+                'exception' => $e->getTraceAsString()
+            ];
+        }
+
+    } else {
+        try {
+            $db->execute($sql);
+            return [
+                'error' => 0,
+                'message' => 'SQL执行成功!'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'error' => 1,
+                'message' => 'SQL执行失败！',
+                'exception' => $e->getTraceAsString()
+            ];
+        }
+    }
+}
+
+/**
+ * 显示提示信息
+ * @param string $msg 提示信息
+ */
+function sp_show_msg($msg, $class = '')
+{
+    echo "<script type=\"text/javascript\">showmsg(\"{$msg}\", \"{$class}\")</script>";
+    flush();
+    ob_flush();
+}
+
+/**
+ * 判断网站是否安装
+ * @return bool
+ */
+function web_is_installed()
+{
+    static $cmfIsInstalled;
+    if (empty($cmfIsInstalled)) {
+        $cmfIsInstalled = file_exists(app()->getRootPath() . 'config/' . 'install.lock');
+    }
+    return $cmfIsInstalled;
+}
+
+
+
+function sp_create_db_config($config)
+{
+    if (is_array($config)) {
+        //读取配置内容
+        $conf = file_get_contents(__DIR__ . '/data/database.php');
+
+        //替换配置项
+        foreach ($config as $key => $value) {
+            $conf = str_replace("#{$key}#", $value, $conf);
+        }
+
+        $confDir = app()->getRootPath() . 'config/';
+
+
+        try {
+
+            if (!file_exists($confDir)) {
+                mkdir($confDir, 0777, true);
+            }
+            $result=file_put_contents($confDir . 'database.php', $conf);
+            if ($result === false) {
+                return false;
+            }
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($confDir . 'database.php', true);
+            }
+           $conf = file_get_contents($confDir . 'version.php');
+           $conf = str_replace("#secret#", rand_string(18), $conf);
+            file_put_contents($confDir . 'version.php', $conf);
+        } catch (\Exception $e) {
+
+            return false;
+
+        }
+
+        return true;
+
+    }
+}
+
+/**
+ * 切分SQL文件成多个可以单独执行的sql语句
+ * @param        $file            string sql文件路径
+ * @param        $tablePre        string 表前缀
+ * @param string $charset 字符集
+ * @param string $defaultTablePre 默认表前缀
+ * @param string $defaultCharset 默认字符集
+ * @return array
+ */
+function web_split_sql($file, $tablePre, $charset = 'utf8mb4', $defaultTablePre = 'ymwl_', $defaultCharset = 'utf8mb4')
+{
+    if (file_exists($file)) {
+        //读取SQL文件
+        $sql = file_get_contents($file);
+        $sql = str_replace("\r", "\n", $sql);
+        $sql = str_replace("BEGIN;\n", '', $sql);//兼容 navicat 导出的 insert 语句
+        $sql = str_replace("COMMIT;\n", '', $sql);//兼容 navicat 导出的 insert 语句
+        $sql = str_replace($defaultCharset, $charset, $sql);
+        $sql = trim($sql);
+        //替换表前缀
+        $sql = str_replace(" `{$defaultTablePre}", " `{$tablePre}", $sql);
+        $sqls = explode(";\n", $sql);
+        return $sqls;
+    }
+
+    return [];
+}

@@ -1,0 +1,148 @@
+define(["jquery", "easy-admin", "treetable", "iconPickerFa", "autocomplete"], function ($, ea) {
+
+    var table = layui.table,
+        treetable = layui.treetable,
+        iconPickerFa = layui.iconPickerFa,
+        colorpicker = layui.colorpicker,
+        laydate = layui.laydate,
+        autocomplete = layui.autocomplete,
+        tree = layui.tree;
+
+    var init = {
+        table_elem: '#currentTable',
+        table_render_id: 'currentTableRenderId',
+        index_url: '{{ClassHref}}/index'+parameter,
+        add_url: '{{ClassHref}}/add'+parameter,
+        delete_url: '{{ClassHref}}/delete',
+        edit_url: '{{ClassHref}}/edit',
+        modify_url: '{{ClassHref}}/modify',
+        export_url: '{{ClassHref}}/export',
+    };
+    var newmaowenke = new Newmaowenke(tree,ea,iconPickerFa,colorpicker,autocomplete,treetable,laydate);
+        console.log(newmaowenke)
+    var Controller = {
+        index: function () {
+
+            ea.table.render({
+                init: init,
+                cellMinWidth:100,
+                limits:[15,20,30,40,50,60,70,80,90,100],
+                {{totalRow}}
+                toolbar:['refresh',[
+                    {{ToolBar}}
+                ],{{DefaultToolBar}}
+                ],
+                cols: [[
+                    {type: "checkbox"},
+                    {{Centent}}
+                    {{right_button}}
+                ]],
+            });
+
+            // renderTable();
+
+            $('body').on('click', '[data-treetable-refresh]', function () {
+                renderTable();
+            });
+
+            $('body').on('click', '[data-treetable-delete]', function () {
+                var tableId = $(this).attr('data-treetable-delete'),
+                    url = $(this).attr('data-url');
+                tableId = tableId || init.table_render_id;
+                url = url != undefined ? ea.url(url) : window.location.href;
+                var checkStatus = table.checkStatus(tableId),
+                    data = checkStatus.data;
+                if (data.length <= 0) {
+                    ea.msg.error('请勾选需要删除的数据');
+                    return false;
+                }
+                var ids = [];
+                $.each(data, function (i, v) {
+                    ids.push(v.id);
+                });
+                ea.msg.confirm('确定删除？', function () {
+                    ea.request.post({
+                        url: url,
+                        data: {
+                            id: ids
+                        },
+                    }, function (res) {
+                        ea.msg.success(res.msg, function () {
+                            renderTable();
+                        });
+                    });
+                });
+                return false;
+            });
+            ea.table.listenSwitch({filter: 'status', url: init.modify_url});
+            {{SWITHCH}}
+            ea.table.listenEdit(init, 'currentTable', init.table_render_id, true);
+
+            ea.listen();
+        },
+        add: function () {
+        newmaowenke.treemore();
+        newmaowenke.aselect();
+        newmaowenke.AddJson();
+        newmaowenke.AddIcon();
+        newmaowenke.AddColor();
+        newmaowenke.AddDateTime();
+        newmaowenke.AddDate();
+        newmaowenke.AddTime();
+            ea.listen(function (data) {
+            console.log(data)
+                return data;
+            }, function (res) {
+                console.log(res);
+                ea.msg.success(res.msg, function () {
+                    var index = parent.layer.getFrameIndex(window.name);
+                    parent.layer.close(index);
+                    parent.$('[data-treetable-refresh]').trigger("click");
+                });
+            });
+        },
+        edit: function () {
+                newmaowenke.treemore();
+                newmaowenke.aselect();
+                newmaowenke.AddJson();
+                newmaowenke.AddIcon();
+                newmaowenke.AddColor();
+                newmaowenke.AddDateTime();
+                newmaowenke.AddDate();
+                newmaowenke.AddTime();
+            ea.listen(function (data) {
+            console.log(data)
+                return data;
+            }, function (res) {
+                console.log(res);
+                ea.msg.success(res.msg, function () {
+                    var index = parent.layer.getFrameIndex(window.name);
+                    parent.layer.close(index);
+                    parent.$('[data-treetable-refresh]').trigger("click");
+                });
+            });
+        },
+        details:function(){
+                newmaowenke.treemore();
+                newmaowenke.aselect();
+                newmaowenke.AddJson();
+                newmaowenke.AddIcon();
+                newmaowenke.AddColor();
+                newmaowenke.AddDateTime();
+                newmaowenke.AddDate();
+                newmaowenke.AddTime();
+                    ea.listen(function (data) {
+                    console.log(data)
+                        return data;
+                    }, function (res) {
+                        console.log(res);
+                        ea.msg.success(res.msg, function () {
+                            var index = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(index);
+                            parent.$('[data-treetable-refresh]').trigger("click");
+                        });
+                    });
+        }
+    };
+    return Controller;
+});

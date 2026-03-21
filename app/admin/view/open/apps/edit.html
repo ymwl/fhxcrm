@@ -1,0 +1,47 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" class="layui-input" lay-verify="required" placeholder="请输入名称" value="{$row.name|default=''}">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">通讯秘钥</label>
+            <div class="layui-input-block">
+                <div class="layuimini-upload">
+                    <input type="text" name="token" id="token" class="layui-input layui-col-xs6" lay-verify="required" placeholder="请输入通讯秘钥" value="{$row.token|default=''}">
+                    <div class="layuimini-upload-btn">
+                        <span><a class="layui-btn random-char" data-length="32" data-target="#token">生成</a></span>
+                    </div>
+                </div>
+
+                <tip>更新通讯秘钥后，需要重新获取通讯API地址</tip>
+            </div>
+        </div>
+
+     <!--   <div class="layui-form-item">
+            <label class="layui-form-label">对应数据表</label>
+            <div class="layui-input-block">
+                <input type="text" name="table" class="layui-input" lay-verify="required" placeholder="请输入对应数据表" value="{$row.table|default=''}">
+            </div>
+        </div>-->
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                {foreach $getStatusList as $k=>$v}
+                <input type="radio" name="status" value="{$k}" title="{$v}" {in name="k" value="$row.status"}checked=""{/in}>
+                {/foreach}
+            </div>
+        </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>确认</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">重置</button>
+        </div>
+
+    </form>
+</div>

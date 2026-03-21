@@ -1,0 +1,36 @@
+<?php
+namespace {{nameSpaceName}};
+use app\common\controller\AdminController;
+
+use app\admin\model\publicuse\PublicUse;
+use think\App;
+use think\facade\Cache;
+/**
+ * @ControllerAnnotation(title="{{titleName}}")
+ * Class {{calss}}
+ */
+class {{calss}} extends AdminController
+{
+
+     protected $allowModifyFields = [
+{{allowModifyFields}}    ];
+    protected $noExportFields = [
+{{noExportFields}}    ];
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+        $this->model = new \app\admin\model\{{ModelName}}();
+        if(empty($cache)){
+            $array = PublicUse::getConfigDir(__CLASS__);
+            if(is_file(__DIR__.DIRECTORY_SEPARATOR.'field'.DIRECTORY_SEPARATOR.$array['class'].'.txt')){
+               $cache = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'field'.DIRECTORY_SEPARATOR.$array['class'].'.txt'),true);
+               Cache::set(__CLASS__,$cache);
+            }
+            if(is_file(__DIR__.DIRECTORY_SEPARATOR.'field'.DIRECTORY_SEPARATOR.$array['class'].'.json')){
+               $cache = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'field'.DIRECTORY_SEPARATOR.$array['class'].'.json'),true);
+               Cache::set(__CLASS__,$cache);
+            }
+        }
+       $this->AllData = $cache;
+    }
+}

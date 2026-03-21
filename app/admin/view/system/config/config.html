@@ -1,0 +1,33 @@
+<div class="layuimini-container">
+  <div class="layuimini-main" id="app">
+
+    <div class="layui-tab" lay-filter="configGroup">
+      <ul class="layui-tab-title">
+        <?php $groupList=\think\facade\Db::name('system_config_group')->where('status','=',1)->order('sort ASC,id ASC')->column('name','identification');
+          $n=0;
+        foreach($groupList as $k=>$v){
+        ?>
+        <li class="<?php if($n==0)echo 'layui-this'; ?>" data-identification="{$k}">{:fy($v)}</li>
+<?php
+$n++;
+} ?>
+      </ul>
+      <div class="layui-tab-content">
+
+                <form id="app-form" class="layui-form layuimini-form">
+<div class="input-list">
+    <div class="layui-row">
+        {$fields_str|raw}
+        </div>
+</div>
+
+                <div class="hr-line"></div>
+                <div class="layui-form-item text-center">
+                    <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+                    <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+                </div>
+            </form>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,97 @@
+
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <div class="layui-row form-readonly">
+
+            <input type="hidden" name="audit_management_id" value="{:input('audit_management_id')}">
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">客户名称</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" value="{$row['crmCustomer']['name']|default=''}" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">合同名称</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input"
+                        value="{$row['crmContract']['name']|default=''}" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">回款编号</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" value="{$row.numbering|default=''}" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">回款日期</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" value="{$row.return_time|default=''}" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">回款金额</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" value="{$row.money|default=''}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">负责人</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" value="{$row.ownerAdmin.username|default=''}">
+                    </div>
+                </div>
+            </div>
+            {$fields_str|raw}
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">备注</label>
+                    <div class="layui-input-block">
+                        <textarea class="layui-textarea  textarea"  placeholder="请输入备注" disabled>{$row.remark|raw|default=''}</textarea>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">操作动作</label>
+            <div class="layui-input-block">
+                <input type="radio" name="status" value="1" title="通过" checked>
+                <input type="radio" name="status" value="-1" title="不通过">
+
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">操作说明</label>
+            <div class="layui-input-block">
+                <textarea placeholder="请填写 操作说明" class="layui-textarea" name="result_mess"></textarea>
+                <tip>审核不通过，建议填写操作说明以便于提交者完善提交信息</tip>
+            </div>
+
+        </div>
+
+
+
+
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'Notice'       => '公告',
+    'Base settings'       => '基础设置',
+    'CRM settings'       => 'CRM设置',
+    'Number of pages'       => '分页条数',
+    'The number of data paginations'       => '后台数据分页条数',
+    'Client payback cycle'       => '客户回收周期',
+    'day is not followed, it will be recycled'       => '客户回收周期',
+    'Fill in 0 to indicate no recovery'       => '填写0表示不执行回收机制',
+    'Maximum number of client grabs'       => '最大领客户数',
+    'Fill in 0 means no restriction'       => '填写0表示不限制',
+    'frequency'       => '次',
+    'Restrictions on collection'       => '内限制领取',
+    'same day'       => '当天',
+    'The week'       => '当周',
+    'The month'       => '当月',
+    'Port'       => '端口',
+    'Sender'       => '发件人',
+    'Sending email address'       => '发件邮箱',
+    "Sender's email address"     => '发信人邮件地址',
+    "Authentication code"     => '身份验证码',
+    "Test mailbox"     => '测试邮箱',
+    "Test receiving email address"     => '测试接收邮件地址',
+    "Mail test content"     => '邮件测试内容',
+    "Test sending"     => '测试发送',
+];

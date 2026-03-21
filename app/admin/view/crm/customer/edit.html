@@ -1,0 +1,53 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <div class="layui-row">
+        {$fields_str|raw}
+        </div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+            <a class="layui-btn layui-btn-primary layui-btn-sm" data-open="crm.record/dialogue?id={$id}" data-title="{:fy('Write follow-up')}" data-full="true"><i class="fa fa-plus "></i> 写跟进</a>
+        </div>
+
+    </form>
+
+    <div class="layuimini-main">
+
+
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" lay-id="1">联系人</li>
+                <li data-open="{:myurl('crm.order/index',['customer_id'=>$row['id']])}" data-title="关于客户【{$row['name']}】订单">订单</li>
+                <li data-open="{:myurl('crm.business/index',['customer_id'=>$row['id']])}" data-title="关于客户【{$row['name']}】商机">商机</li>
+                <li data-open="{:myurl('crm.contract/index',['customer_id'=>$row['id']])}" data-title="关于客户【{$row['name']}】合同">合同</li>
+
+            </ul>
+
+            <div class="layui-tab-content">
+                <div class="layui-tab-item layui-show">
+                    <table id="currentTable" class="layui-table layui-hide"
+                           data-auth-add="{:auth('crm.customer_contacts/add')}"
+                           data-auth-edit="{:auth('crm.customer_contacts/edit')}"
+                           data-auth-delete="{:auth('crm.customer_contacts/delete')}"
+                           data-auth-dialogue="{:auth('crm.record/dialogue')}"
+                           data-auth-record_index="{:auth('crm.record/index')}"
+                           data-auth-sendEmail="{:auth('crm.customer_contacts/sendEmail')}"
+                           lay-filter="currentTable">
+                    </table>
+                </div>
+
+                <div class="layui-tab-item">
+                </div>
+                <div class="layui-tab-item">
+                </div>
+                <div class="layui-tab-item">
+                </div>
+
+             </div>
+
+        </div>
+
+    </div>
+
+</div>
+

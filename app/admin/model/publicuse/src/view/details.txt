@@ -1,0 +1,20 @@
+<style>
+    .layui-iconpicker-body.layui-iconpicker-body-page .hide {
+        display: none;
+    }
+    .select_a {
+            color: #009688;
+            padding: 2px;
+            margin: 2px;
+            border: #009688 1px dashed;
+        }
+</style>
+<link rel="stylesheet" href="/static/plugs/lay-module/autocomplete/autocomplete.css?v={$version}" media="all">
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        {{FormContent}}
+    </form>
+</div>
+<script>
+    var parameter = '{$parameter|raw|default=""}';
+</script>

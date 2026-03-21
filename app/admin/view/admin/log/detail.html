@@ -1,0 +1,45 @@
+<div class="layuimini-container">
+    
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Operator')}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" lay-verify="required"  value="{$row.realname|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Action page")}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" lay-verify="required"  value="{$row.url|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Log title")}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" lay-verify="required"  value="{$row.title|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Content")}</label>
+            <div class="layui-input-block">
+                <textarea rows="5" class="layui-textarea editor" >{$row.content|raw|default=''}</textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">IP</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input"   value="{$row.ip|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">User-Agent</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" lay-verify="required"  value="{$row.useragent|default=''}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Operation time")}</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" lay-verify="required"  value="{$row.create_time|default=''}">
+            </div>
+        </div>
+</div>

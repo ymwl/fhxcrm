@@ -1,0 +1,23 @@
+<link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/treetable-lay/treetable.css?v={:time()}" media="all">
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <blockquote class="layui-elem-quote" style="color:#FFB800; ">
+           非专业人员请勿操作此页面，否则有可能造成系统奔溃，甚至数据丢失风险（技术驱动QQ3623820285）
+        </blockquote>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('system.models/add')}"
+               data-auth-edit="{:auth('system.models/edit')}"
+               data-auth-delete="{:auth('system.models/delete')}"
+               data-auth-update="{:auth('system.models/update_all_table')}"
+               data-auth-clears="{:auth('system.models/clieartable')}"
+               data-auth-field="{:auth('system.fields/index')}"
+               data-auth-isdev="{$config.IS_DEV}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>
+<script type="text/html" id="toolbar">
+    <button class="layui-btn layui-btn-sm layuimini-btn-primary" data-treetable-refresh><i class="fa fa-refresh"></i> </button>
+    <button class="layui-btn layui-btn-normal layui-btn-sm {if !auth('system.models/add')}layui-hide{/if}" data-open="system.models/edit" data-title="修改" data-full="true"><i class="fa fa-plus"></i> 修改</button>
+    <button class="layui-btn layui-btn-sm layui-btn-danger {if !auth('system.models/del')}layui-hide{/if}" data-url="system.models/del" data-treetable-delete="currentTableRenderId"><i class="fa fa-trash-o"></i> 删除</button>
+</script>

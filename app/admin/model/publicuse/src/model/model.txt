@@ -1,0 +1,16 @@
+<?php
+namespace app\admin\model;
+use think\Model;
+use think\model\concern\SoftDelete;
+class {{ModelName}} extends Model
+{
+    use SoftDelete;
+    protected $name = "{{tableName}}";
+    protected $pk = "{{ID}}";
+    protected $deleteTime = "delete_time";
+    protected $defaultSoftDelete = 0;
+    protected $json = {{JSON}};
+    protected $jsonAssoc = true;
+    protected $connection = "{{CONNECTION}}";
+    {{WITH}}
+}

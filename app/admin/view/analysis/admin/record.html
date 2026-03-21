@@ -1,0 +1,53 @@
+<div class="layuimini-container">
+  <div class="layuimini-main">
+    <div class="layui-card">
+      <div class="layui-card-header">跟进趋势</div>
+      <div class="layui-card-body">
+        <div  class="layui-form-item">
+          <div class="layui-input-inline">
+            <input type="text" name="owner_admin_id" data-toggle="selectPage" class="layui-input" data-source="{:myurl('admin/selectpage')}"  data-field="username"  data-format-item="{username}"  data-primary-key="admin_id"  placeholder="查看指定业务员" data-params='{"custom[is_open]":"1"}'  lay-verify="required" id="owner_admin_id">
+          </div>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter" data-value="last7Days">最近7天</a>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter" data-value="last30Days">最近30天</a>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter" data-value="lastMonth">上月</a>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter" data-value="thisMonth">本月</a>
+
+          <div class="layui-input-inline" style="width: 300px;">
+            <input value="" placeholder="指定日期" class="layui-input form-control input-inline datetimerange" autocomplete="off" id="datetimerange" data-url="{:myurl('analysis.admin/record',['ajax'=>1])}" data-admin_id="0" data-charttype="record">
+          </div>
+        </div>
+        <div id="record-echart" class="btn-refresh" style="height:200px;width:100%;">
+
+        </div>
+      </div>
+    </div>
+    <div class="layui-card">
+      <div class="layui-card-header">跟进方式</div>
+      <div class="layui-card-body">
+        <div  class="layui-form-item">
+          <div class="layui-input-inline">
+            <input type="text" name="owner_admin_id" data-toggle="selectPage" class="layui-input" data-source="{:myurl('admin/selectpage')}"  data-field="username"  data-format-item="{username}"  data-primary-key="admin_id"  placeholder="查看指定业务员" data-params='{"custom[is_open]":"1"}'  lay-verify="required" id="owner_admin_id1">
+          </div>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter1" data-value="last7Days">最近7天</a>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter1" data-value="last30Days">最近30天</a>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter1" data-value="lastMonth">上月</a>
+          <a href="javascript:;" class="layui-btn  layui-btn-success btn-filter1" data-value="thisMonth">本月</a>
+
+          <div class="layui-input-inline" style="width: 300px;">
+            <input value="" placeholder="指定日期" class="layui-input form-control input-inline datetimerange" autocomplete="off" id="datetimerange1" data-url="{:myurl('analysis.admin/record',['ajax'=>2])}" data-admin_id="0" data-charttype="record_type">
+          </div>
+        </div>
+        <div id="record_type-echart" class="btn-refresh" style="height:200px;width:100%;">
+
+        </div>
+      </div>
+    </div>
+    <div class="layui-row" >
+      <div class="layui-col-lg12">
+        <table id="currentTable" class="layui-table layui-hide"
+               lay-filter="currentTable">
+        </table>
+      </div>
+
+  </div>
+</div>

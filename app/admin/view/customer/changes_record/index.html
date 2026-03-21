@@ -1,0 +1,13 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <blockquote class="layui-elem-quote" >
+            针对客户的变更记录，需要记录变动的值请在【系统管理】》【网站配置】》【系统设置】》【CRM】》找到客户记录字段,勾选对客户信息操作时需要记录的字段
+        </blockquote>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="0"
+               data-auth-edit="0"
+               data-auth-delete="{:auth('customer.changes_record/delete')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>

@@ -1,0 +1,50 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <input type="hidden" name="id" class="layui-input" value="{$row.id|default=''}">
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Parent')}</label>
+            <div class="layui-input-block">
+                <?php
+                $authGroup = \think\facade\Db::name('auth_group')->field('id,pid,title')->order('pid asc,id asc')->select();
+                $nav = new \clt\Leftnav();
+                $authGroupTree = $nav->menu($authGroup);
+                ?>
+                <select name="pid" lay-verify="required" lay-filter="pid" >
+                    {volist name="authGroupTree" id="vo"}
+                    <option value="{$vo.id}" <?php if($vo['id']==$row['pid'])echo 'selected'; ?>>{$vo.lefthtml}{:fy($vo['title'])}</option>
+                    {/volist}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Group Name')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="title" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}{:fy('Group Name')}" value="{$row.title|default=''}">
+            </div>
+        </div>
+<!--        <div class="layui-form-item">
+            <label class="layui-form-label">规则</label>
+            <div class="layui-input-block">
+                <input type="text" name="rules" class="layui-input"  placeholder="{:fy('Please enter')}规则" value="{$row.rules|default=''}">
+            </div>
+        </div>-->
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Maximum number of customers')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="max_customers_num" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}{:fy('Maximum number of customers')}" value="{$row.max_customers_num|default=''}">
+            </div>
+        </div>
+  <!--      <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Status')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="status" class="layui-input"  placeholder="{:fy('Please enter')}{:fy('Status')}" value="{$row.status|default=''}">
+            </div>
+        </div>-->
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

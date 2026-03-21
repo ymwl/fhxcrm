@@ -1,0 +1,17 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" data-value="mine" data-field="scope">我的</li>
+                <li data-value="team" data-field="scope">团队的</li>
+                <li data-value="all" data-field="scope">全部</li>
+            </ul>
+        </div>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('email.log/add')}"
+               data-auth-edit="{:auth('email.log/edit')}"
+               data-auth-delete="{:auth('email.log/delete')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>

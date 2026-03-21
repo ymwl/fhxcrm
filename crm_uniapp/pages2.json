@@ -1,0 +1,106 @@
+{
+	"easycom": {
+		"^u-(.*)": "@/uview-ui/components/u-$1/u-$1.vue"
+	},
+	"pages": [
+		{
+			"path" : "pages/more/index",
+			"style" :
+			{
+				"navigationBarTitleText": "功能列表",
+				"enablePullDownRefresh": false
+			}
+		},
+
+		{
+			"path" : "pages/login/apply",
+			"style" :
+			{
+				"navigationBarTitleText": "登录",
+				"enablePullDownRefresh": false
+			}
+		},
+
+		{
+			"path" : "pages/login/index",
+			"style" : {
+				"navigationBarTitleText": "登录",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path" : "pages/more/personalDetails",
+			"style" :
+			{
+				"navigationBarTitleText": "个人信息",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path" : "pages/violation/index",
+			"style" :
+			{
+				"navigationBarTitleText": "违章记录",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": false
+			}
+		},{
+			"path" : "pages/violation/more",
+			"style" :
+			{
+				"navigationBarTitleText": "更多违章记录",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": false
+			}
+		},{
+			"path" : "pages/violation/add",
+			"style" :
+			{
+				"navigationBarTitleText": "提交违章",
+				"enablePullDownRefresh": false
+			}
+		},{
+			"path" : "pages/violation/filter",
+			"style" :
+			{
+				"navigationBarTitleText": "违章筛选",
+				"enablePullDownRefresh": false
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "CRM",
+		"navigationBarBackgroundColor": "#336699",
+		"backgroundColor": "#FFFFFF"
+	},
+	"tabBar": {
+		"list": [
+			{
+				"pagePath": "pages/index/index"
+			},
+			{
+				"pagePath": "pages/client/index"
+			},
+			{
+				"pagePath": "pages/business/index"
+			},
+			{
+				"pagePath": "pages/clues/list"
+			},
+			{
+				"pagePath": "pages/presentation/index"
+			}
+		]
+	},
+	"condition" : {
+		"current": 0,
+		"list": [
+			{
+				"name": "",
+				"path": "",
+				"query": ""
+			}
+		]
+	}
+}

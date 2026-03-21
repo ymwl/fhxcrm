@@ -1,0 +1,23 @@
+<?php
+
+namespace {{controllerNamespace}};
+
+use app\common\controller\AdminController;
+
+use think\App;
+
+
+class {{controllerName}} extends AdminController
+{
+
+
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+
+        $this->model = new {{modelFilename}}();
+        {{selectList}}
+    }
+
+    {{indexMethod}}
+}

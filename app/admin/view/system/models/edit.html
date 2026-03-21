@@ -1,0 +1,102 @@
+<style>
+    .layui-iconpicker-body.layui-iconpicker-body-page .hide {
+        display: none;
+    }
+</style>
+<link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/autocomplete/autocomplete.css" media="all">
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">模型名</label>
+            <div class="layui-input-block">
+                <input type="text" id="name" name="name" class="layui-input" lay-reqtext="{:fy('Please enter')}模型名" placeholder="{:fy('Please enter')}模型名" value="{$row.name}">
+                <tip>填写模型名。</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">表名</label>
+            <div class="layui-input-block">
+                <input type="text" id="table" name="table" class="layui-input" lay-reqtext="{:fy('Please enter')}表名" placeholder="{:fy('Please enter')}表名" value="{$row.table}">
+                <tip>填写表名。</tip>
+            </div>
+        </div>
+<!--        <div class="layui-form-item">-->
+<!--            <label class="layui-form-label">所属应用</label>-->
+<!--            <div class="layui-input-block">-->
+<!--                {foreach $app as $key=>$value}-->
+<!--                {if $row.app==$value['identification']}-->
+<!--                <input name="app" value="{$value['identification']}" type="radio" title="{$value['name']}" checked="">-->
+<!--                {else}-->
+<!--                <input name="app" value="{$value['identification']}" type="radio" title="{$value['name']}">-->
+<!--                {/if}-->
+<!--                {/foreach}-->
+<!--                <tip>填写所属应用</tip>-->
+<!--            </div>-->
+<!--        </div>-->
+        <div class="layui-form-item  layui-row layui-col-xs12">
+            <label class="layui-form-label required">引擎</label>
+            <div class="layui-input-block">
+                <select name="engine" class="layui-select">
+                    {foreach $getEngineList as $key=>$vo}
+                    {if $key==$row.engine}
+                    <option value="{$key}" selected>{$vo|raw}</option>
+                    {else}
+                    <option value="{$key}">{$vo|raw}</option>
+                    {/if}
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item  layui-row layui-col-xs12">
+            <label class="layui-form-label required">表格类型</label>
+            <div class="layui-input-block">
+                <select name="tabletype" class="layui-select">
+                    {foreach $getTabletypeList as $key=>$vo}
+                    {if $row.tabletype==$key}
+                    <option value="{$key}" selected>{$vo|raw}</option>
+                    {else}
+                    <option value="{$key}">{$vo|raw}</option>
+                    {/if}
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Sort')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="sort" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Sort')}" placeholder="{:fy('Please enter')}{:fy('Sort')}" value="{$row.sort}">
+                <tip>填写{:fy('Sort')}。</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">分页</label>
+            <div class="layui-input-block">
+                {if $row.is_page==1}
+                <input type="checkbox" name="is_page" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                {else}
+                <input type="checkbox" name="is_page" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                {/if}
+                <!--<tip>填写{:fy('Sort')}。</tip>-->
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Status')}</label>
+            <div class="layui-input-block">
+                {if $row.is_page==1}
+                <input type="checkbox" name="status" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                {else}
+                <input type="checkbox" name="status" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                {/if}
+                <!--<tip>填写{:fy('Sort')}。</tip>-->
+            </div>
+        </div>
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

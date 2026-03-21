@@ -1,0 +1,182 @@
+{include file="common/head"/}
+<div class="admin-main layui-anim layui-anim-upbit">
+    <form class="layui-form layui-form-pane" lay-filter="form">
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:lang('username')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="username" lay-verify="required"  placeholder="{:lang('Please enter')}{:lang('username')}" class="layui-input" <?php if(!empty($info_raw['username']))echo 'readonly'; ?>>
+                <tip>{:fy("The username is between 2 and 25 characters. (Please confirm the user name at one time, and changing the user name at will may cause the data associated with the user name to be unable to be associated)")}</tip>
+            </div>
+
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Real name")}</label>
+            <div class="layui-input-block">
+                <input type="text" name="realname"   placeholder="{:fy('Please enter')}{:fy('Real name')}" class="layui-input" >
+            </div>
+
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">部门岗位</label>
+            <div class="layui-input-block">
+                <?php
+                $authGroup = \think\facade\Db::name('auth_group')->field('id,pid,title')->order('pid asc,id asc')->select();
+                $nav = new \clt\Leftnav();
+                if($admin['group_id']==1){
+                    $group_id=0;
+                }else{
+                    $group_id=\think\facade\Db::name('auth_group')->where('id','=',$admin['group_id'])->value('pid');
+
+                }
+                $authGroupTree = $nav->menu($authGroup,'|—',$group_id);
+                ?>
+
+                <select name="group_id" lay-verify="required">
+                    <option value="">{:fy('Please select')}{:fy("Group")}</option>
+                    {volist name="authGroupTree" id="vo"}
+                    <option value="{$vo.id}" <?php if(!empty($info_raw['group_id']) && $info_raw['group_id']==$vo['id'])echo 'selected'; ?>>{$vo.lefthtml}{:fy($vo['title'])}</option>
+                    {/volist}
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">角色</label>
+            <div class="layui-input-block">
+                <?php
+                $authRole = \think\facade\Db::name('auth_role')->field('id,name')->order('sort asc,id asc')->select();
+
+?>
+                <select name="role_id" lay-verify="required">
+                    <option value="">请选择角色</option>
+                    {volist name="authRole" id="vo"}
+                    <option value="{$vo.id}" <?php if(!empty($info_raw['role_id']) && $info_raw['role_id']==$vo['id'])echo 'selected'; ?>>{$vo['name']}</option>
+                    {/volist}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">直属上级</label>
+            <div class="layui-input-block">
+                <?php
+                $where=[];
+                if(!empty($info_raw['admin_id'])){
+                    $where[]=['admin_id','<>',$info_raw['admin_id']];
+                }
+                $where[]=['is_open','=',1];
+                $adminLst = \think\facade\Db::name('admin')->field('admin_id,username')->where($where)->order('admin_id asc')->select();
+
+                ?>
+                <select name="parent_id" lay-search>
+                    <option value="0">无</option>
+                    {volist name="adminLst" id="vo"}
+                    <option value="{$vo.admin_id}" <?php if(!empty($info_raw['parent_id']) && $info_raw['parent_id']==$vo['admin_id'])echo 'selected'; ?>>{$vo['username']}</option>
+                    {/volist}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Month target')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="mubiao"  placeholder="{:fy('Performance monthly target amount')}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Commission point')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="ticheng"  class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:lang('pwd')}</label>
+            <div class="layui-input-block">
+                <input type="password" name="pwd" placeholder="{:lang('Please enter')} {:fy('Login password')}" {if condition="ACTION eq 'adminadd'"}lay-verify="required"{/if} class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy("Avatar")}</label>
+            <input type="hidden" name="avatar" id="avatar">
+            <input type="hidden" name="admin_id" id="admin_id">
+            <div class="layui-input-block">
+                <div class="layui-upload">
+                    <button type="button" class="layui-btn layui-btn-primary" id="adBtn"><i class="icon icon-upload3"></i>{:fy('Click Upload')}</button>
+                    <div class="layui-upload-list">
+                        <img class="layui-upload-img" id="adPic">
+                        <p id="demoText"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:lang('email')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="email" placeholder="{:lang('Please enter')} {:fy('Username')} {:fy('email')}" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:lang('tel')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="phone" lay-verify="required" value="" placeholder="{:lang('Please enter')} {:fy('phone number')}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+            </div>
+        </div>
+    </form>
+</div>
+{include file="common/foot"/}
+<script>
+    layui.use(['form', 'layer','upload'], function () {
+        var form = layui.form, layer = layui.layer,$= layui.jquery,upload = layui.upload;
+        var info = {$info|raw};
+        form.val("form", info);
+        if(info){
+            $('#adPic').attr('src',"{:attrUrl($info_raw?$info_raw['avatar']:'')}");
+        }
+        form.render();
+        form.on('submit(submit)', function (data) {
+            loading =layer.load(1, {shade: [0.1,'#fff']});
+            $.post("", data.field, function (res) {
+                layer.close(loading);
+                if (res.code > 0) {
+                    layer.msg(res.msg, {time: 2800, icon: 1}, function () {
+                            window.parent.location.reload();
+                    });
+                } else {
+                    layer.msg(res.msg, {time: 2800, icon: 2});
+                }
+            });
+        });
+        //普通图片上传
+        var uploadInst = upload.render({
+            elem: '#adBtn'
+            ,url: '{:url("ajax/upload")}'
+            ,before: function(obj){
+                //预读本地文件示例，不支持ie8
+                obj.preview(function(index, file, result){
+                    $('#adPic').attr('src', result); //图片链接（base64）
+                });
+            },
+            done: function(res){
+                if(res.code>0){
+                    $('#avatar').val(res.data.url);
+                    $('#demoText').hide();
+                }else{
+                    return layer.msg(res.msg);
+                }
+            }
+            ,error: function(){
+                //演示失败状态，并实现重传
+                var demoText = $('#demoText');
+                demoText.html('<span style="color: #FF5722;">{:fy("Upload failed")}</span> <a class="layui-btn layui-btn-mini demo-reload">{:fy("Retry")}</a>');
+                demoText.find('.demo-reload').on('click', function(){
+                    uploadInst.upload();
+                });
+            }
+        });
+    });
+</script>

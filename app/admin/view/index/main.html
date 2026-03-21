@@ -1,0 +1,322 @@
+<link rel="stylesheet" type="text/css" href="__MY_PUBLIC__/static/admin/css/admin.css" />
+<style>
+    .layuimini-notice:hover {background:#f6f6f6;}
+    .layuimini-notice {clear:both;font-size:12px !important;cursor:pointer;position:relative;transition:background 0.2s ease-in-out;}
+    .layuimini-notice-title,.layuimini-notice-label {
+        padding-right: 70px !important;text-overflow:ellipsis!important;overflow:hidden!important;white-space:nowrap!important;}
+    .layuimini-notice-title {line-height:28px;font-size:14px;}
+    .layuimini-notice-extra {position:absolute;top:50%;margin-top:-8px;right:16px;display:inline-block;height:16px;color:#999;}
+    #jxphb tbody tr:nth-child(2){background:#ffcc99;}
+    #jxphb tbody tr:nth-child(3){background:#ccccff;}
+    #jxphb tbody tr:nth-child(4){background:#ffcccc;}
+</style>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+    <div class="layui-row layui-col-space15">
+        <?php if (!extension_loaded('fileinfo')) { ?>
+        <div class="layui-col-md12">
+            <div class="layui-bg-orange layui-text" style="padding:10px 15px;line-height:1;white-space:nowrap;">
+                <i class="layui-icon layui-icon-tips"></i>
+                <span style="margin-left:6px;">fileinfo 扩展必须安装，否则无法上传文件！<a href="https://www.baidu.com/s?wd=开启PHP fileinfo扩展" target="_blank" style="color: #fff;">
+                            <i class="fa fa-question-circle question"></i>
+                        </a></span>
+            </div>
+        </div>
+        <?php } ?>
+        <div class="layui-col-md8">
+            <div class="layui-row layui-col-space15">
+               <!-- <div class="layui-col-xs12 layui-col-sm6 layui-col-md6 layui-col-lg6">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">
+                            我的线索数
+                            &lt;!&ndash; <span class="layui-badge layui-bg-blue layuiadmin-badge">周</span> &ndash;&gt;
+                        </div>
+                        <div class="layui-card-body layuiadmin-card-list">
+                            <p class="layuiadmin-big-font">{$cluesCount_week}</p>
+                            <p>
+                                总线索
+                                <span class="layuiadmin-span-color">{$cluesCount} 条</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>-->
+
+                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">
+                            {:fy('client pool')}
+                        </div>
+                        <div class="layui-card-body layuiadmin-card-list">
+
+                            <p class="layuiadmin-big-font">{$liberumCount}</p>
+                            <p>
+                                {:fy('Total data')}
+                                <span class="layuiadmin-span-color">{$liberumCount}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">
+                            {:fy('My clients')}
+                        </div>
+                        <div class="layui-card-body layuiadmin-card-list">
+                            <p class="layuiadmin-big-font">{$clientCount_month}</p>
+                            <p>
+                                {:fy('Total clients')}
+                                <span class="layuiadmin-span-color">{$clientCount}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">
+                            {:fy('My Business Opportunities')}
+                        </div>
+                        <div class="layui-card-body layuiadmin-card-list">
+                            <?php
+
+
+                            $business_total=\think\facade\Db::name('crm_business')->count();
+                            $business_my_total=\think\facade\Db::name('crm_business')->where('owner_admin_id','=',$admin['admin_id'])->count();
+                            ?>
+                            <p class="layuiadmin-big-font">{$business_my_total}</p>
+                            <p>
+                                {:fy('Total opportunities')}
+                                <span class="layuiadmin-span-color">{$business_total}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
+                    <div class="layui-card layui-panel">
+                        <?php
+
+//只记录审核通过的
+                            $total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->count();
+                        $my_total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->where('owner_admin_id','=',$admin['admin_id'])->count();
+                        ?>
+                        <div class="layui-card-header">
+                            我的合同                        </div>
+                        <div class="layui-card-body layuiadmin-card-list">
+                            <p class="layuiadmin-big-font">{$my_total}</p>
+                            <p>
+                                总合同                                <span class="layuiadmin-span-color">{$total}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">{:fy('Performance Monthly Ranking')} <a href="javascript:;" style="float: right;" layuimini-content-href="{:myurl('crm.performance/analytics')}" data-title="{:fy('Performance statistics')}" data-icon="fa fa-university">{:fy('More')}>></a></div>
+                        <div class="layui-card-body" style="overflow-y: scroll;">
+                            <table class="layui-table" id="jxphb">
+                                <tbody>
+                                <tr>
+                                    <td>月排名</td>
+                                    <td>{:fy('Salesman')}</td>
+                                    <td>{:fy('Month target')}</td>
+                                    <td>{:fy('Dealed')}（{:fy('amount')}）</td>
+                                                <td>{:fy('Freight')}</td>
+                                    <td>{:fy('Completion rate')}（%）</td>
+                                    <td>{:fy('Dealed')}（{:fy('Order volume')}）</td>
+                                    <td>{:fy('Commission')}（%）</td>
+                                    <td>签订合同金额</td>
+                                    <td>回款金额</td>
+                                </tr>
+                                {volist name='userlist' id='vo' key="k" }
+                                <tr >
+                                    <?php
+if($vo['money_month']){
+if(!empty($vo['mubiao'])){
+$vo['wanchenglv']=round($vo['money_month']/$vo['mubiao']*100,2);
+}else{
+$vo['wanchenglv']='';
+}
+
+}else{
+$vo['wanchenglv']=$vo['money_month']='';
+}
+?>
+                                    <td>{$k}</td>
+                                    <td>{$vo['username']}</td>
+                                    <td>{$vo['mubiao']}</td>
+                                    <td>{$vo['money_month']}</td>
+                                                <td>{$vo['freight_month']|default=0}</td>
+                                    <td>{$vo['wanchenglv']}</td>
+                                    <td>{$vo['number_month']|default=0}</td>
+                                    <td><?php echo empty($vo['ticheng'])?'':$vo['ticheng'].'%'; ?></td>
+                                    <td>{$vo['ht_money_month']}</td>
+                                    <td>{$vo['hk_money_month']}</td>
+                                </tr>
+                                {/volist}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">{:fy('Reminder information')} <a href="javascript:;" style="float: right;" layuimini-content-href="{:myurl('process.audit/index')}" data-title="{:fy('Reminder information')}" data-icon="fa fa-commenting">{:fy('More')}>></a></div>
+                        <div class="layui-card-body">
+                            <?php
+$aid=$admin['admin_id'];
+
+$group_id=\think\facade\Db::name('admin')->where('admin_id',$aid)->cache('group_id_'.$aid)->value('group_id');
+$todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t.event,t.show_auth_group_id,t.show_auth_admin_id,a.username,t.is_finish,t.url,t.id,t.title,t.result,t.createtime')->join('admin a','t.admin_id=a.admin_id','left')->whereRaw('t.`admin_id` = :aid OR FIND_IN_SET(:group_id,t.`show_auth_group_id`) OR FIND_IN_SET(:admin_id,t.`show_auth_admin_id`)',['aid'=>$aid,'group_id'=>$group_id,'admin_id'=>$aid])->order(\think\facade\Db::raw("FIELD(t.`result`,'0','-1','1') ASC,t.createtime DESC"))->limit(10)->select();
+                            foreach($todoLst as $v){
+                            $v['title']=fy($v['title']);
+                                if(empty($v['mess'])){
+                                     $v['mess']=$v['username'].' '.fy($v['event']);
+                                }
+
+                            ?>
+                            <div class="layuimini-notice" <?php if((strpos(','.$v['show_auth_group_id'].',',','.$group_id.',')!==false || strpos(','.$v['show_auth_admin_id'].',',','.$aid.',')!==false) && $v['is_finish']==0){ ?>data-open="{$v['url']}&audit_management_id={$v['id']}" <?php } ?> data-title="{$v['title']}">
+                            <div class="layuimini-notice-title">【{$v['title']}】{$v['mess']} <span style="color: blue;">{:fy($v['result'])}</span></div>
+                            <div class="layuimini-notice-extra">{:date('Y-m-d H:i',$v['createtime'])}</div>
+                        </div>
+                        <?php } ?>
+
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                <div class="layui-card layui-panel">
+                    <div class="layui-card-header">{:fy('Dynamic')}</div>
+                    <div class="layui-card-body">
+                        <dl class="layuiadmin-card-status">
+                            {volist name='result' id='vo'}
+                            <dd>
+                                <div class="layui-status-img"><a href="javascript:;">
+                                    <img src="{$vo.avatar}"></a>
+                                </div>
+                                <div>
+                                    <p>{$vo.username} <em style="color: red;margin-right: 5px">{:fy('follow up')}</em>  <a href="javascript:;" data-open="crm.record/dialogue?id={$vo.id}" data-title="{:fy('Recent follow-up records')}" data-full="true" > {$vo.name}</a> </p>
+                                    <p><strong style="color: burlywood;margin-right: 5px">{:fy('Follow up on records')}: </strong>{$vo.content}</p>
+                                    <span>{:fy('Follow-up time')}：{$vo.create_time|date='Y-m-d H:i:s'}</span>
+                                </div>
+                            </dd>
+                            {/volist}
+
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+
+            </div>
+
+        </div>
+
+        <div class="layui-col-md4">
+            <div class="layui-row layui-col-space15">
+
+                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">
+                            {:fy('Notice')}
+                        </div>
+                        <div class="layui-card-body layuiadmin-card-list">
+
+                            <p>
+                                {$system['notice']|raw}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">{:fy('Need to be dealt with')}</div>
+                        <div class="layui-card-body layui-text">
+                            <table class="layui-table">
+                                <tbody>
+                                <tr>
+                                    <td>{:fy('Followed up with customers today')}</td>
+                                    <td>
+                                        {$today_followed_count}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>{:fy('Number of customers not followed up')}</td>
+                                    <td>
+                                        {$not_followed_count}
+                                    </td>
+                                </tr>
+                                <?php
+ $today_business_record_count = \think\facade\Db::name('crm_business_record')->where('create_admin_id','=',$admin['admin_id'])->whereTime('create_time','today')->count('DISTINCT business_id');
+
+                                //        没有跟进的列表
+                                $today_business_tiixng = \think\facade\Db::name('crm_business')->field('`id`,`owner_username`,`customer_id`,`name`,`next_time`')->where('is_end','=',0)->where('owner_admin_id','=',$admin['admin_id'])->whereNotNull('next_time')->where('next_time','<>',0)->whereTime('next_time','<=','tomorrow -1second')->order('next_time ASC')->limit(10)->select()->toArray();
+                                //        待跟进数
+                                $not_followed_business_count=\think\facade\Db::name('crm_business')->where('is_end','=',0)->where('owner_admin_id','=',$admin['admin_id'])->whereNotNull('next_time')->where('next_time','<>',0)->whereTime('next_time','<=','tomorrow -1second')->count();
+?>
+                                <tr>
+                                    <td>{:fy('Opportunities have been followed today')}</td>
+                                    <td>
+                                        {$today_business_record_count}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>{:fy('Opportunities are not followed up')}</td>
+                                    <td>
+                                        {$not_followed_business_count}
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">{:fy('Clients to be followed')}</div>
+                        <div class="layui-card-body">
+                            <dl class="layuiadmin-card-status">
+                                {volist name='today_tiixng' id='vo'}
+                                <dd>
+                                    <div>
+                                        <p>{$vo.pr_user} <em style="color: red;margin-right: 5px">{:fy('Follow up')}</em>  <a href="javascript:;" data-open="crm.record/dialogue?id={$vo.id}" data-title="{:fy('Clients to be followed')}" data-full="true" > {$vo.name}</a> </p>
+                                        <span>{:fy('Follow-up time')}：{$vo.next_time|date='Y-m-d H:i:s'}</span>
+                                    </div>
+                                </dd>
+                                {/volist}
+
+                            </dl>
+                        </div>
+                    </div>
+
+                    <div class="layui-card layui-panel">
+                        <div class="layui-card-header">{:fy('Wait for the opportunity to be followed up')}</div>
+                        <div class="layui-card-body">
+                            <dl class="layuiadmin-card-status">
+                                {volist name='today_business_tiixng' id='vo'}
+                                <dd>
+                                    <div>
+                                        <p>{$vo.owner_username} <em style="color: red;margin-right: 5px">{:fy('Follow up')}</em>  <a href="javascript:;" data-open="crm.business_record/add?business_id={$vo.id}&customer_id={$vo.customer_id}" data-title="{:fy('Wait for the opportunity to be followed up')}" data-full="true" > {$vo.name}</a> </p>
+                                        <span>{:fy('Follow-up time')}：{$vo.next_time|date='Y-m-d H:i:s'}</span>
+                                    </div>
+                                </dd>
+                                {/volist}
+
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+</div>
+</div>

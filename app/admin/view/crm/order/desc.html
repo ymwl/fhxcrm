@@ -1,0 +1,160 @@
+<div class="layuimini-container">
+    <form class="layui-form layui-form-pane form-readonly">
+
+        <div class="layui-row">
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+        <div class="layui-form-item">
+            <label class="layui-form-label">客户名称</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" value="{$result.cname}" readonly>
+            </div>
+        </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client mobile number')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="cphone" name="cphone" lay-verify="required" placeholder="{:fy('Please enter')}{:fy('Client mobile number')}" class="layui-input" value="{$result.cphone}" readonly>
+            </div>
+        </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Order number')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="orderno" name="orderno" lay-verify="required|orderno_unqiue"  placeholder="{:fy('Please enter')}{:fy('Order number')}" class="layui-input" value="{$result.orderno}" readonly>
+            </div>
+        </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client Principal')}</label>
+            <div class="layui-input-block">
+                <input type="text" readonly id="pr_user" name="pr_user" lay-verify="required" value="{$result.pr_user}" class="layui-input">
+            </div>
+        </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('amount')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="money" name="money"  placeholder="{:fy('Please enter')}金额" class="layui-input" value="{$result.money}">
+            </div>
+        </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Freight')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="freight" name="freight"  placeholder="{:fy('Please enter')}{:fy('Freight')}" class="layui-input" value="{$result.freight}">
+            </div>
+        </div>
+        </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:fy('Remark')}</label>
+                    <div class="layui-input-block">
+                        <textarea placeholder="{:fy('Please enter')}备注信息" class="layui-textarea" name="remark">{$result.remark}</textarea>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+            <div class="layui-row">
+            {$fields_str|raw}
+            </div>
+
+
+    </form>
+    <div class="layui-tab layui-tab-card" style="margin:0; background-color:#fff;" lay-filter="contract" id="contractTab">
+        <ul class="layui-tab-title">
+            <li class="layui-this" data-load="true">审批信息</li>
+        </ul>
+        <div class="layui-tab-content" style="padding:0;">
+            <div class="layui-tab-item layui-show" style="padding-top:12px; background-color:#fff;">
+                <div id="checkBox" data-status="2" data-id="1000" data-checkflowid="12" class="px-3 pb-3">
+                    <form class="layui-form">
+                        <table class="layui-table layui-table-form">
+                            <tbody>
+                            <tr>
+                                <td class="layui-td-gray-2" style="width: 60px;">审批状态</td>
+                                <td colspan="5">
+                                    <?php
+                                    $audit_feedback='';
+                                    if(trim($result['audit_feedback'])!==''){
+                                $audit_feedback='【'.$result['audit_feedback'].'】';
+                            }
+if($result['status']==0){
+    echo $statusList[$result['status']].$audit_feedback;
+}elseif($result['status']==1){
+    echo '<span class="green">'.$statusList[$result['status']].$audit_feedback.'</span>';
+}else{
+    echo '<span class="red">'.$statusList[$result['status']].$audit_feedback.'</span>';
+}
+?></td>
+                            </tr>
+                            <tr>
+                                <td class="layui-td-gray-2">审批记录</td>
+                                <td colspan="5">
+                                    <ul class="layui-timeline flow-record pt-2">
+<?php
+$list=\think\facade\Db::name('audit_management')->field('m.mess,m.createtime,m.audittime
+                                        ,m.result,m.result_mess,m.reviewer')->alias('m')->where('m.table_id',$result['id'])->where('m.table_name','crm_client_order')->order('m.id desc')->select();
+                                       foreach($list as $v){
+
+?>
+
+                                        <li class="layui-timeline-item">								<i class="layui-icon layui-timeline-axis"></i>								<p style="padding-left:24px">{:date("Y-m-d H:i",$v['createtime'])} <span class="black ml-2">{$v['mess']}</span></li>
+
+
+<?php
+if($v['audittime']){
+
+$audit_feedback = trim($v['result_mess']) !== '' ? '审批意见：' . $v['result_mess'] : '';
+
+if ($v['result'] == 'To be reviewed') {
+    $audit_msg ='『'.fy($v['result']).'』了此申请。' . $audit_feedback;
+} elseif ($v['result'] == 'Approved') {
+    $audit_msg='<span class="green">『'. fy($v['result']) .'』了此申请。'. $audit_feedback . '</span>';
+                                        } else {
+                                        $audit_msg='<span class="red">『' .fy($v['result']) .'』了此申请。'. $audit_feedback . '</span>';
+                                        }
+?>
+                                        <li class="layui-timeline-item">								<i class="layui-icon layui-timeline-axis"></i>								<p style="padding-left:24px">{:date("Y-m-d H:i",$v['audittime'])} <span class="black ml-2">{$v['reviewer']}{$audit_msg|raw}</span></li>
+<?php
+}
+
+
+}
+if($list->isEmpty()){
+echo '暂无数据';
+                                        }
+?>
+
+
+                                    </ul></td></tr>
+
+
+                            </tbody></table>
+                        <div class="pt-3">
+                            <input type="hidden" name="check_role" value="0">
+
+
+
+
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

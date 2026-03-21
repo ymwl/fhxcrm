@@ -1,0 +1,61 @@
+<div class="layuimini-container">
+    <form class="layui-form layui-form-pane">
+        <input type="hidden" value="{$result.id}" name="id">
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('customer')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="customer_id" data-toggle="selectPage" class="layui-input" data-source="{:url('crm.customer/selectpage')}"  data-field="name"  data-format-item="{name}"  data-primary-key="id"  placeholder="{:fy('Please select')}订单对应客户" data-params='{"custom[status]":1,"custom[pr_user]":"{$admin.username}"}'  lay-verify="required" value="{$result.customer_id}" >
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <label class="" id="checklabel"></label>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Order number')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="orderno" name="orderno"  placeholder="{:fy('Please enter')}{:fy('Order number')}" class="layui-input" value="{$result.orderno}" readonly>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client Principal')}</label>
+            <div class="layui-input-block">
+                <input type="text" readonly id="pr_user" name="pr_user" lay-verify="required" value="{$result.pr_user}" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('amount')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="money" name="money"  placeholder="{:fy('Please enter')}金额" class="layui-input" value="{$result.money}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Freight')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="freight" name="freight"  placeholder="{:fy('Please enter')}{:fy('Freight')}" class="layui-input" value="{$result.freight}">
+            </div>
+        </div>
+        <div class="layui-row">
+        {$fields_str|raw}
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Remark')}</label>
+            <div class="layui-input-block">
+                <textarea placeholder="{:fy('Please enter')}{:fy('note information')}" class="layui-textarea" name="remark">{$result.remark}</textarea>
+            </div>
+        </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn"  lay-submit lay-filter="submit">提交审核</button>
+
+            </div>
+        </div>
+
+    </form>
+</div>

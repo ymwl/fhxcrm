@@ -1,0 +1,170 @@
+<div class="layuimini-main layui-row layui-col-space15">
+
+    <div class="layui-col-xs12 layui-col-sm6 layui-col-md6 layui-col-lg6">
+        <div class="layui-card layui-panel">
+            <div class="layui-card-header" >
+                {:fy('Basic information')}
+                    <a class="layui-btn layui-btn-xs layui-btn-success" data-open="crm.business/edit?id={$business_id}" data-title="{:fy('Edit')}" data-full="true" style="float: right;margin-top: 10px;">{:fy('Modify')}</a>
+            </div>
+            <div class="layui-card-body layuiadmin-card-list">
+<?php
+$businessInfo=think\facade\Db::name('crm_business')->where('id','=',$business_id)->find();
+?>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:fy('Opportunity Name')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="business[name]" class="layui-input" readonly value="{$businessInfo.name|default=''}">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label"> {:fy('Budget amount')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="business[money]" class="layui-input" readonly  value="{$businessInfo.money|default=''}">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:fy('Estimated transaction date')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="business[deal_time]" class="layui-input" readonly  value="<?php if($businessInfo['deal_time']){echo date('Y-m-d H:i',$businessInfo['deal_time']);}?>">
+                    </div>
+                </div>
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label">{:fy('Remark')}</label>
+                    <div class="layui-input-block">
+                        <textarea  class="layui-textarea" readonly  style="min-height:50px;">{$businessInfo.remark|raw|default=''}</textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-col-xs12 layui-col-sm6 layui-col-md6 layui-col-lg6">
+        <div class="layui-card layui-panel">
+            <div class="layui-card-header" >
+                {:fy('Follow up actions')}
+            </div>
+            <div class="layui-card-body layuiadmin-card-list layui-form">
+                <div class="layui-form-item layui-form-text">
+
+                    <div class="layui-input-block" style="margin-left:0;">
+                        <textarea name="content" id="content"  required lay-verify="required" placeholder="{:fy('Follow up frequently and sign more')}"  class="layui-textarea fly-editor" style="height: 150px;"></textarea>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:fy('Attachment')}</label>
+                    <div class="layui-input-block layuimini-upload">
+                        <input name="attachs" class="layui-input layui-col-xs6" placeholder="{:fy('Please upload')} {:fy('Attachment')}" value="">
+                        <div class="layuimini-upload-btn">
+                            <span><a class="layui-btn" data-upload="attachs" data-upload-number="5" ><i class="fa fa-upload"></i> {:fy('Upload')}</a></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label"> {:fy('Follow up type')}:</label>
+                    <div class="layui-input-inline">
+                        <select name="record_type" required lay-verify="required" lay-reqtext="{:fy('Please select')} {:fy('Follow up type')}">
+                            <option value="">{:fy('Please select')} {:fy('Follow up type')}</option>
+                            <?php
+$typeList=think\facade\Db::name('crm_record_type')->field('`id`,`name`')->where('status','=',1)->order('sort ASC,id DESC')->select();
+                            foreach($typeList as $v){
+                            ?>
+                            <option value="{$v['name']}">{$v['name']}</option>
+                            <?php } ?>
+
+
+                        </select>
+
+
+                    </div>
+                </div>
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label"> {:fy('Next follow-up time')}:</label>
+                    <div class="layui-input-inline">
+                        <input type="text" class="layui-input" autocomplete="off" name="next_time"  placeholder="{:fy('Please enter')}{:fy('Next follow-up time')}" data-date="yyyy-MM-dd HH:mm" value="{:date('Y-m-d H:i',strtotime('+1 day'))}">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <input type="hidden" name="business_id" value="{$business_id}">
+                    <button class="layui-btn" lay-filter="btn_comment" lay-submit="{:url('add')}">{:fy('Save')}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+    <div class="layui-tab" lay-filter="tabDemo">
+        <ul class="layui-tab-title">
+            <li class="layui-this" lay-id="1">{:fy('Follow up record')}</li>
+            <li lay-id="2">{:fy('Client Information')}</li>
+            <li lay-id="3">{:fy('Intent Product')}</li>
+        </ul>
+        <div class="layui-tab-content">
+            <div class="layui-tab-item layui-show">
+                <div class="layuimini-container">
+                    <div class="layuimini-main">
+                        <table id="currentTable" class="layui-table layui-hide"
+                               data-auth-add="{:auth('crm.business_record/add')}"
+                               data-auth-delete="{:auth('crm.business_record/delete')}"
+                               lay-filter="currentTable">
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            <div class="layui-tab-item layui-row form-readonly">
+
+                <div class="layui-row">
+                    {$fields_str|raw}
+                </div>
+            </div>
+            <div class="layui-tab-item" id="app">
+
+                <table class="layui-table" id="table-pro" data-business_id="{$business_id}">
+                    <thead>
+                    <tr>
+                        <th>NO.</th>
+                        <th>{:fy('Product name')}</th>
+                        <th>{:fy('Specifications')}</th>
+                        <th>{:fy('Model')}</th>
+                        <th>{:fy('Cost price')}</th>
+                        <th>{:fy('Sale price')}</th>
+                        <th style="width: 90px;">{:fy('Quantity')}</th>
+                        <th style="width: 90px;">{:fy('Discount')}</th>
+                        <th>{:fy('Sales amount')}</th>
+                        <th>{:fy('Remark')}</th>
+                        <th>{:fy('Entry time')}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="(item,index) in pro_list" :key="index+1">
+                        <td>
+                            {{index+1}}
+                            <input type="hidden" :value="item.product_id" :name="'product['+(index+1)+'][product_id]'">
+                            <input type="hidden" :value="item.id" :name="'product['+(index+1)+'][id]'">
+
+                        </td>
+                        <td><input type="hidden" :value="item.name" :name="'product['+(index+1)+'][product_extend][name]'">{{item.name}}</td>
+                        <td><input type="hidden" :value="item.specification" :name="'product['+(index+1)+'][product_extend][specification]'">{{item.specification}}</td>
+                        <td><input type="hidden" :value="item.model" :name="'product['+(index+1)+'][product_extend][model]'">{{item.model}}</td>
+                        <td><input type="hidden" :value="item.cost_price" :name="'product['+(index+1)+'][product_extend][cost_price]'">{{item.cost_price}}</td>
+                        <td><input class="layui-input" :name="'product['+(index+1)+'][sale_price]'"  type="text" v-model="item.sale_price" readonly></td>
+                        <td><input class="layui-input" :name="'product['+(index+1)+'][nums]'"  type="text" v-model="item.nums" readonly></td>
+                        <td><input class="layui-input" :name="'product['+(index+1)+'][discount]'"  type="text" v-model="item.discount" readonly></td>
+                        <td>{{item.sale_price*item.nums-item.discount}}</td>
+                        <td><input  class="layui-input" :name="'product['+(index+1)+'][remark]'" type="text" v-model="item.remark" readonly></td>
+                        <td>{{entryTime(index)}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="total-pro" style="text-align: center">
+                    {:fy('Total cost')}：<span class="red">{{getTotal.cost_sum}}</span>  {:fy('Total price')}：<span class="red">{{getTotal.sale_sum}}</span>  {:fy('Total quantity')}：<span class="red">{{getTotal.nums_sum}}</span>  {:fy('Total discount')}：<span class="red">{{getTotal.discount_sum}}</span>  {:fy('Final total amount')}：<span class="red">{{getTotal.real_sale_sum}}</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+</div>

@@ -1,0 +1,76 @@
+<div class="layuimini-container">
+    <blockquote class="layui-elem-quote">
+    </blockquote>
+        <form id="app-form" class="layui-form layuimini-form">
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:fy('customer')}</label>
+                <div class="layui-input-block">
+                    <input type="text" name="customer_id" data-toggle="selectPage" class="layui-input" data-source="{:url('crm.customer/selectpage')}"  data-field="name"  data-format-item="{name}"  data-primary-key="id"  placeholder="{:fy('Please select')}订单对应客户" data-params='{"custom[status]":1,"custom[pr_user]":"{$admin.username}"}'  lay-verify="required" value="{$customer_id}" >
+                </div>
+            </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Order number')}</label>
+            <div class="layui-input-block layuimini-upload">
+                <input type="text" id="orderno" name="orderno"  placeholder="{:fy('Please enter')}{:fy('Order number')}" class="layui-input" value="{$orderno}" >
+                <div class="layuimini-upload-btn">
+                    <span class="layui-btn" id="create_orderno">生成</span>
+                </div>
+            </div>
+        </div>
+
+
+        {if $admin['admin_id'] == 1}
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client Principal')}</label>
+            <div class="layui-input-block">
+                <select name="owner_admin_id" id="owner_admin_id">
+                    <option value="">{:fy('Please select')}{:fy('Client Principal')}</option>
+                    {volist name='userlist' id='vo'}
+                    <option value="{$vo.admin_id}">{$vo.username}</option>
+                    {/volist}
+
+                </select>
+            </div>
+        </div>
+        {else /}
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Client Principal')}</label>
+            <div class="layui-input-block">
+                <input type="hidden" name="owner_admin_id" value="{$admin['admin_id']}">
+                <input type="text" readonly name="pr_user" lay-verify="required" value="{$admin['username']}" class="layui-input">
+            </div>
+        </div>
+        {/if}
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('amount')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="money" name="money"  placeholder="{:fy('Please enter')}{:fy('amount')}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Freight')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="freight" name="freight"  placeholder="{:fy('Please enter')}{:fy('Freight')}" class="layui-input">
+            </div>
+        </div>
+            <div class="layui-row">
+        {$fields_str|raw}
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Remark')}</label>
+            <div class="layui-input-block">
+                <textarea placeholder="{:fy('Please enter')}{:fy('Order Remarks')}" class="layui-textarea" name="remark"></textarea>
+            </div>
+        </div>
+
+            <div class="hr-line"></div>
+            <div class="layui-form-item text-center">
+                <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Save')}</button>
+                <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+            </div>
+
+    </form>
+</div>

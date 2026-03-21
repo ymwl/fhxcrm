@@ -1,0 +1,201 @@
+<style>
+    pre {
+        border: 1px solid #e4e4e4;
+        background: #f9fafa;
+        border-radius: 1px;
+        font-family: monaco, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        padding: 16px;
+        overflow: auto;
+        line-height: 1.45;
+    }
+    h2 {
+         font-size: 28px;
+         font-weight: 500;
+         clean: both;
+
+     }
+    h2,h3,h4{
+        font-family: "Segoe UI Light", "Segoe UI","Microsoft Jhenghei", "Microsoft Yahei", arial, sans-serif;
+    }
+    h3 {
+        font-size: 22px;
+        font-weight: 450;
+    }
+    h4 {
+        font-size: 20px;
+        font-weight: 450;
+    }
+    th,td {
+        font-family: "Segoe UI Light", "Segoe UI","Microsoft Jhenghei", "Microsoft Yahei", arial, sans-serif;
+        font-size: 16px;
+        border: 1px solid #e0e0e0;
+        padding: 3px 12px; text-align: left;
+    }
+
+</style>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <h2>接口1：获取数据</h2>
+        通过api get查询哪个账号哪一天有多少数据量和数据内容列表
+        <pre>GET {:request()->domain()}/open/index/id/{$row['id']}/token/{$row['token']} </pre>
+        <h3>请求参数</h3>
+
+        <table>
+            <thead>
+            <tr>
+
+                <th>参数名称</th>
+                <th>类型</th>
+                <th>必须</th>
+                <th>描述</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>account</td>
+                <td>string</td>
+                <td>是</td>
+                <td>查询哪个账号负责人下的数据</td>
+            </tr>
+            <tr>
+                <td>create_time</td>
+                <td>string</td>
+                <td>是</td>
+                <td>查询哪一天的数据,格式类似：2024-02-18</td>
+            </tr>
+            <tr>
+                <td>page</td>
+                <td>string</td>
+                <td>否</td>
+                <td>查询哪一页的数据,默认返回第一页，每一页返回10条，根据客户信息创建时间降序排列</td>
+            </tr>
+            </tbody>
+        </table>
+        <h3>返回参数</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>名称</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>code</td>
+                <td>int</td>
+                <td>状态 0 获取失败 1 获取成功 </td>
+            </tr>
+            <tr>
+                <td>msg</td>
+                <td>string</td>
+                <td>返回提示信息</td>
+            </tr>
+            <tr>
+                <td>count</td>
+                <td>int</td>
+                <td>查询结果总数据量</td>
+            </tr>
+            <tr>
+                <td>data</td>
+                <td>json</td>
+                <td>查询结果数据集合(详见如下data数据集说明，返回的是列表展示字段数据集合)</td>
+            </tr>
+            </tbody>
+        </table>
+        <h4>data数据集说明</h4>
+        <table>
+            <thead>
+            <tr>
+                <th>名称</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php
+$prefix=getDataBaseConfig('prefix');
+            $fields=\think\facade\Db::query("SELECT  `name`,`xsname`,`field`,`type`,`show` FROM `".$prefix."system_field` WHERE `table`='crm_customer' AND `show`=1 order BY `sort` ASC,id ASC");
+
+            foreach($fields as $k=>$v){
+            $name=!empty($v['xsname'])?$v['xsname']:$v['name'];
+?>
+            <tr>
+                <td>{$v['field']}</td>
+                <td>
+                    <?php echo strpos($v['type'], 'int') !== false?'int':'string' ?>
+                </td>
+                <td>{$name}</td>
+            </tr>
+            <?php } ?>
+            </tbody>
+        </table>
+    </div>
+    <div class="layuimini-main">
+
+        <h2>接口2：客户数据插入</h2>
+        通过api POST提交客户数据
+        <pre>POST {:request()->domain()}/open/index/id/{$row['id']}/token/{$row['token']} </pre>
+        <h3>POST参数</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>参数名称</th>
+                <th>类型</th>
+                <th>必须</th>
+                <th>描述</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>account</td>
+                <td>string</td>
+                <td>否</td>
+                <td>客户信息负责人（必须是后台存在的账号，不存在或不填写则进入公海）</td>
+            </tr>
+
+
+            <?php
+$prefix=getDataBaseConfig('prefix');
+            $fields=\think\facade\Db::query("SELECT  `name`,`xsname`,`field`,`type`,`rule` FROM `".$prefix."system_field` WHERE `edit`=1 AND `table`='crm_customer' AND `addinput` is not null AND field<>'id' order BY `sort` ASC,id ASC");
+
+            foreach($fields as $k=>$v){
+            $name=!empty($v['xsname'])?$v['xsname']:$v['name'];
+            ?>
+            <tr>
+                <td>{$v['field']}</td>
+                <td>
+                    <?php echo strpos($v['type'], 'int') !== false?'int':'string' ?>
+                </td>
+                <td><?php echo strpos($v['rule'], 'require') !== false?'是':'否' ?></td>
+                <td>{$name}</td>
+            </tr>
+            <?php } ?>
+
+            </tbody>
+        </table>
+        <h3>返回参数</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>类型</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>code</td>
+                <td>int</td>
+                <td>状态 0 录入失败 1 录入成功 </td>
+            </tr>
+            <tr>
+                <td>msg</td>
+                <td>string</td>
+                <td>返回提示信息</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

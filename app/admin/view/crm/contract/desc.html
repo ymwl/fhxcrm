@@ -1,0 +1,263 @@
+<style>
+    #table-pro tr td input{min-width: 70px;}
+    [v-cloak]{display: none;}
+
+
+    iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: transparent;
+    }
+</style>
+<div class="layuimini-container" id="app" v-cloak>
+    <form id="app-form" class="layui-form layuimini-form">
+        <div class="layui-row form-readonly">
+
+            <div class=" layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">合同名称</label>
+                    <div class="layui-input-block">
+                        <input type="text"  class="layui-input"  placeholder="{:fy('Please enter')}合同名称" value="{$row.name|default=''}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="audit_management_id" value="{:input('audit_management_id')}">
+
+            <div class=" layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">合同编号</label>
+                    <div class="layui-input-block layuimini-upload">
+                        <input type="text" class="layui-input"  placeholder="{:fy('Please enter')}合同编号" value="{$row.numbering|default=''}" readonly >
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">关联客户</label>
+                    <div class="layui-input-block">
+                       <a href="javascript:void(0)" class="layui-input">{$row['crmCustomer']['name']}</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">客户签约人</label>
+                    <div class="layui-input-block">
+
+                        <input type="text" class="layui-input" value="{$row['customer_signer']}"  readonly>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">关联商机</label>
+                    <div class="layui-input-block">
+                        <input type="text"  value="{$row['business']['name']|default=''}" class="layui-input" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">签约时间</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input"  value="{:date('Y-m-d',$row['sign_time'])}" readonly>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="layui-form-item layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <label class="layui-form-label">合同金额</label>
+                <div class="layui-input-block">
+                    <input type="text"  class="layui-input"  value="{$row['money']}" readonly>
+                </div>
+            </div>
+
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">公司签约人</label>
+                    <div class="layui-input-block">
+                        <input type="text" value="{$row['company_signer']}" class="layui-input" readonly>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="layui-form-item layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="">
+                    <label class="layui-form-label">合同生效时间</label>
+                    <div class="layui-input-block">
+                        <input type="text"  class="layui-input"   value="{:date('Y-m-d H:i',$row['start_time'])}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">合同到期时间</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" value="{:date('Y-m-d H:i',$row['end_time'])}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            {$fields_str|raw}
+
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label">{:fy('Remark')}</label>
+                    <div class="layui-input-block">
+                        <textarea class="layui-textarea">{$row['remark']}</textarea>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+
+
+    </form>
+
+    <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+
+
+
+        <div class="layui-tab" lay-filter="tabMore">
+            <ul class="layui-tab-title">
+                <li class="layui-this">产品明细</li>
+                <li data-value="contract_receivables" data-open="{:myurl('crm.contract_receivables/index',['contract_id'=>$row['id']])}" data-title="关于客户【{$crmCustomer['name']}】合同【{$row['name']}】收款">合同收款</li>
+                <li>审批信息</li>
+            </ul>
+            <div class="layui-tab-content">
+                <div class="layui-tab-item layui-show">
+                    <table class="layui-table" id="table-pro" data-id="{$row['id']}">
+                        <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>{:fy('Product name')}</th>
+                            <th>{:fy('Specifications')}</th>
+                            <th>{:fy('Model')}</th>
+                            <th style="width: 100px;">成本</th>
+                            <th style="width: 90px;">售价</th>
+                            <th style="width: 90px;">数量</th>
+                            <th style="width: 90px;">折扣</th>
+                            <th>销售金额</th>
+                            <th>{:fy('Remark')}</th>
+                            <th>录入时间</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr v-for="(item,index) in pro_list" :key="index+1">
+                            <td>{{index+1}}<input type="hidden" :value="item.product_id" ></td>
+                            <td><input type="hidden" :value="item.name" >{{item.name}}</td>
+                            <td><input type="hidden" :value="item.specification" >{{item.specification}}</td>
+                            <td><input type="hidden" :value="item.model">{{item.model}}</td>
+                            <td><input type="hidden" :value="item.cost_price">{{item.cost_price}}</td>
+                            <td><input class="layui-input" type="text" v-model="item.sale_price" readonly></td>
+                            <td><input class="layui-input"  type="text" v-model="item.nums" readonly></td>
+                            <td><input class="layui-input" type="text" v-model="item.discount" readonly></td>
+                            <td>{{item.sale_price*item.nums-item.discount}}</td>
+                            <td><input  class="layui-input" type="text" v-model="item.remark" readonly></td>
+                            <td>{{entryTime(index)}}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <div class="total-pro" style="text-align: center">
+                        {:fy('Total cost')}：<span class="red">{{getTotal.cost_sum}}</span>  {:fy('Total price')}：<span class="red">{{getTotal.sale_sum}}</span>  {:fy('Total quantity')}：<span class="red">{{getTotal.nums_sum}}</span>  {:fy('Total discount')}：<span class="red">{{getTotal.discount_sum}}</span>  {:fy('Final total amount')}：<span class="red">{{getTotal.real_sale_sum}}</span>
+                    </div>
+                </div>
+                <div class="layui-tab-item">
+
+                   <!-- <iframe id="myFrame" src="{:myurl('crm.contract_receivables/index',['contract_id'=>$row['id']])}" width="100%" height="300" loading="lazy"></iframe>
+                    <script>
+                        const iframe = document.getElementById('myFrame');
+                        iframe.onload = () => {
+                            // 同源策略下可直接获取内容高度
+                            iframe.style.height = iframe.contentDocument.body.scrollHeight + 'px';
+                        };
+                    </script>-->
+
+                </div>
+                <div class="layui-tab-item">
+                    <table class="layui-table layui-table-form">
+                        <tbody>
+                        <tr>
+                            <td class="layui-td-gray-2" style="width: 60px;">审批状态</td>
+                            <td colspan="5">
+                                <?php
+                                    $audit_feedback='';
+                                    if(trim($row['audit_feedback'])!==''){
+                                $audit_feedback='【'.$row['audit_feedback'].'】';
+                            }
+if($row['check_status']==0){
+    echo $getCheckStatus[$row['check_status']].$audit_feedback;
+}elseif($row['check_status']==3){
+    echo '<span class="green">'.$getCheckStatus[$row['check_status']].$audit_feedback.'</span>';
+                                }else{
+                                echo '<span class="red">'.$getCheckStatus[$row['check_status']].$audit_feedback.'</span>';
+                                }
+                                ?></td>
+                        </tr>
+                        <tr>
+                            <td class="layui-td-gray-2">审批记录</td>
+                            <td colspan="5">
+                                <ul class="layui-timeline flow-record pt-2">
+                                    <?php
+$list=\think\facade\Db::name('audit_management')->field('m.mess,m.createtime,m.audittime
+                                    ,m.result,m.result_mess,m.reviewer')->alias('m')->where('m.table_id',$row['id'])->where('m.table_name','crm_contract_receivables')->order('m.id desc')->select();
+                                    foreach($list as $v){
+
+                                    ?>
+
+                                    <li class="layui-timeline-item">								<i class="layui-icon layui-timeline-axis"></i>								<p style="padding-left:24px">{:date("Y-m-d H:i",$v['createtime'])} <span class="black ml-2">{$v['mess']}</span></li>
+
+
+                                    <?php
+if($v['audittime']){
+
+$audit_feedback = trim($v['result_mess']) !== '' ? '审批意见：' . $v['result_mess'] : '';
+
+if ($v['result'] == 'To be reviewed') {
+    $audit_msg ='『'.fy($v['result']).'』了此申请。' . $audit_feedback;
+} elseif ($v['result'] == 'Approved') {
+    $audit_msg='<span class="green">『'. fy($v['result']) .'』了此申请。'. $audit_feedback . '</span>';
+                                    } else {
+                                    $audit_msg='<span class="red">『' .fy($v['result']) .'』了此申请。'. $audit_feedback . '</span>';
+                                    }
+                                    ?>
+                                    <li class="layui-timeline-item">								<i class="layui-icon layui-timeline-axis"></i>								<p style="padding-left:24px">{:date("Y-m-d H:i",$v['audittime'])} <span class="black ml-2">{$v['reviewer']}{$audit_msg|raw}</span></li>
+                                    <?php
+}
+
+
+}
+if($list->isEmpty()){
+                                    echo '暂无数据';
+                                    }
+                                    ?>
+
+
+                                </ul></td></tr>
+
+
+                        </tbody></table>
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,21 @@
+<?php
+return [
+    'require' => '必填',
+    'unique' => '唯一',
+    'number'   => '纯数字',
+    'integer'   => '整数',
+    'float'   => '浮点数',
+    'alpha'  => '字母',
+    'email'    => '邮箱',
+    'url'      => '网址',
+    'idCard'   => '身份证',
+    'mobile'   => '手机号',
+    'zip'  => '邮编',
+    'chinese'  => '中文',
+    'letters'  => '字母',
+    'date'     => '日期',
+    'time'     => '时间',
+    'qq'       => 'QQ号',
+    'tel'      => '座机电话',
+    'username' => '用户名',
+];

@@ -1,0 +1,24 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <?php if(empty($config['customer_id'])){ ?>
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" data-value="1" data-field="scope">{:fy("It's mine")}</li>
+                <li  data-value="2" data-field="scope">{:fy('Subordinate')}</li>
+                <li  data-value="3" data-field="scope">{:fy('All')}</li>
+                <li  data-value="10" data-field="scope">{:fy('To be followed')}</li>
+                <li  data-value="11" data-field="scope">{:fy('Followed up today')}</li>
+                <li  data-value="12" data-field="scope">{:fy('Never followed up')}</li>
+            </ul>
+        </div>
+        <?php  } ?>
+
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('crm.business/add')}"
+               data-auth-edit="{:auth('crm.business/edit')}"
+               data-auth-delete="{:auth('crm.business/delete')}"
+               data-auth-record_add="{:auth('crm.business_record/add')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>

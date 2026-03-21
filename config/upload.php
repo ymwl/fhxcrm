@@ -1,0 +1,21 @@
+<?php
+return [
+    'upload_type'=>'local',
+    'upload_allow_ext'=>'doc,docx,gif,ico,icon,jpg,mp3,mp4,p12,pem,png,rar,jpeg,csv,xls,xlsx,zip,apk,txt,pdf,avif',
+    'upload_allow_size'=>'204800000',
+    'upload_allow_mime'=>'image/gif,image/jpeg,video/x-msvideo,text/plain,image/png,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-rar-compressed,application/vnd.android,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/x-icon,image/vnd.microsoft.icon,video/mp4,image/avif',
+    'upload_allow_type'=>'local,alioss,qnoss,txcos',
+    'alioss_access_key_id'=>'填你的',
+    'alioss_access_key_secret'=>'填你的',
+    'alioss_endpoint'=>'填你的',
+    'alioss_bucket'=>'填你的',
+    'alioss_domain'=>'填你的',
+    'txcos_secret_id'=>'填你的',
+    'txcos_secret_key'=>'填你的',
+    'txcos_region'=>'填你的',
+    'tecos_bucket'=>'填你的',
+    'qnoss_access_key'=>'填你的',
+    'qnoss_secret_key'=>'填你的',
+    'qnoss_bucket'=>'填你的',
+    'qnoss_domain'=>'填你的',
+];

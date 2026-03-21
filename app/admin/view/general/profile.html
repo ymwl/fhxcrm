@@ -1,0 +1,125 @@
+{include file="common/head"/}
+<div class="admin-main layui-anim layui-anim-upbit">
+  <fieldset class="layui-elem-field layui-field-title">
+    <legend>{:fy('Profile modification')}</legend>
+  </fieldset>
+  <form class="layui-form layui-form-pane" lay-filter="form">
+    <div class="layui-form-item">
+      <label class="layui-form-label">{:lang('Username')}</label>
+      <div class="layui-input-block">
+        <input type="text" name="username" lay-verify="required" class="layui-input" readonly>
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label">当前密码</label>
+      <div class="layui-input-block">
+        <input type="password" name="oldpwd" placeholder="修改密码必须填写" class="layui-input">
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label">新密码</label>
+      <div class="layui-input-block">
+        <input type="password" name="newpwd" placeholder="不改密码无需填写" class="layui-input">
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label">确认新密码</label>
+      <div class="layui-input-block">
+        <input type="password" name="newpwd2" placeholder="不改密码无需填写确认新密码" class="layui-input">
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label">{:fy('Avatar')}</label>
+      <input type="hidden" name="avatar" id="avatar">
+      <input type="hidden" name="admin_id" id="admin_id">
+      <div class="layui-input-block">
+        <div class="layui-upload">
+          <button type="button" class="layui-btn layui-btn-primary" id="adBtn"><i class="icon icon-upload3"></i>{:fy('Click Upload')}</button>
+          <div class="layui-upload-list">
+            <img class="layui-upload-img" id="adPic">
+            <p id="demoText"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label">{:lang('email')}</label>
+      <div class="layui-input-block">
+        <input type="text" name="email" lay-verify="email" placeholder="{:lang('Please enter')}用户邮箱" class="layui-input"></div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label">{:lang('tel')}</label>
+      <div class="layui-input-block">
+        <input type="text" name="phone" lay-verify="phone" value="" placeholder="{:lang('Please enter')}手机号" class="layui-input">
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label">联系微信</label>
+      <div class="layui-input-block">
+        <input type="text" name="wechat"  placeholder="请填写联系微信" class="layui-input" value="">
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <div class="layui-input-block">
+        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+      </div>
+    </div>
+  </form>
+</div>
+{include file="common/foot"/}
+<script>
+  layui.use(['form', 'layer','upload'], function () {
+    var form = layui.form, layer = layui.layer,$= layui.jquery,upload = layui.upload;
+    var info = {$info|raw};
+    form.val("form", info);
+    if(info){
+      $('#adPic').attr('src',"{:attrUrl($info_raw['avatar'])}");
+    }
+    form.render();
+    form.on('submit(submit)', function (data) {
+      loading =layer.load(1, {shade: [0.1,'#fff']});
+      $.post("", data.field, function (res) {
+        layer.close(loading);
+        if (res.code > 0) {
+          layer.msg(res.msg, {time: 2800, icon: 1}, function () {
+            reloadPage();
+          });
+        } else {
+          layer.msg(res.msg, {time: 2800, icon: 2});
+        }
+      });
+    });
+    //普通图片上传
+    var uploadInst = upload.render({
+      elem: '#adBtn'
+      ,url: '{:url("ajax/upload")}'
+      ,before: function(obj){
+        //预读本地文件示例，不支持ie8
+        obj.preview(function(index, file, result){
+          $('#adPic').attr('src', result); //图片链接（base64）
+        });
+      },
+      done: function(res){
+        if(res.code>0){
+          $('#avatar').val(res.data.url);
+        }else{
+
+          return layer.msg('{:fy("Upload failed")}');
+        }
+      }
+      ,error: function(){
+        //演示失败状态，并实现重传
+        var demoText = $('#demoText');
+        demoText.html('<span style="color: #FF5722;">{:fy("Upload failed")}</span> <a class="layui-btn layui-btn-mini demo-reload">{:fy("Retry")}</a>');
+        demoText.find('.demo-reload').on('click', function(){
+          uploadInst.upload();
+        });
+      }
+    });
+  });
+</script>

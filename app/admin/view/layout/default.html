@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{$system['name']}后台管理</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <!--[if lt IE 9]>
+    <script src="__MY_PUBLIC__/static/js/html5.min.js"></script>
+    <script src="__MY_PUBLIC__/static/js/respond.min.js"></script>
+    <![endif]-->
+    <link rel="stylesheet" href="__MY_PUBLIC__/static/admin/css/public.min.css?v={$config.VERSION}" media="all">
+    <script>
+        window.CONFIG ={:json_encode($config,320)};
+    </script>
+    <?php
+$lang=\think\facade\Lang::getLangSet();
+if($lang=='en-us'){
+$l='_en';
+ }else{
+$l='';
+} ?>
+    <link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/layuimini/layuimini.min.css" media="all">
+    <link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/layuimini/themes/default.min.css" media="all">
+    <link rel="shortcut icon" href="{:attrUrl($system['favicon'])}" />
+</head>
+<body>
+{__CONTENT__}
+<script src="__MY_PUBLIC__/static/plugs/layui-v2.9/layui.min.js" charset="utf-8"></script>
+<script src="__MY_PUBLIC__/static/plugs/require-2.3.6/require.js" charset="utf-8"></script>
+<script src="__MY_PUBLIC__/static/config-admin.min.js" charset="utf-8"></script>
+</body>
+</html>

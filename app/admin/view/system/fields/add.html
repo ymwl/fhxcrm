@@ -1,0 +1,200 @@
+<style>
+    .layui-iconpicker-body.layui-iconpicker-body-page .hide {
+        display: none;
+    }
+</style>
+<link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/autocomplete/autocomplete.css" media="all">
+<script>
+    var parameter = '';
+</script>
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <input type="hidden" name="table" value="{$row['table']|default=''}">
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Field')}{:fy('Name')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="name" name="name" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Field')}{:fy('Name')}"  lay-verify="required" placeholder="{:fy('Please enter')}{:fy('Field')}{:fy('Name')}" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Presentation name')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="xsname" name="xsname" class="layui-input"  placeholder="{:fy('Please enter')}{:fy('Presentation name')}">
+                <tip>{:fy('Fill out the form')}{:fy('Presentation name')}</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Field')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="field" name="field" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Field')}" placeholder="{:fy('Please enter')}{:fy('Field')}" value=""  lay-verify="required">
+                <tip>数据库表字段名，{:fy('Must start with an English letter, followed by supported numbers and _')}，必须保证同一张表，字段名唯一。</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Sort')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="sort" name="sort" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Sort')}" placeholder="{:fy('Please enter')}{:fy('Sort')}" value="100">
+            </div>
+        </div>
+        <div class="layui-form-item  layui-row layui-col-xs12">
+            <label class="layui-form-label required">{:fy('Field type')}</label>
+            <div class="layui-input-block">
+                <select name="type" class="layui-select" lay-search>
+                    {if isset($alldata['field']['type']['option'])}
+                    {foreach $alldata['field']['type']['option'] as $key=>$vo}
+                    {if $key=='varchar'}
+                    <option value="{$key}" selected>{$vo|raw}</option>
+                    {else}
+                    <option value="{$key}">{$vo|raw}</option>
+                    {/if}
+                    {/foreach}
+                    {/if}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Field length')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="lang" name="lang" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Field length')}" placeholder="{:fy('Please enter')}{:fy('Field length')}" value="255">
+                <tip>{:fy('Enter the maximum number of characters that need to be saved in this field')}。</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Default value')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="default" name="default" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Default value')}" placeholder="{:fy('Please enter')}{:fy('Default value')}" value="">
+                <tip>{:fy('Please enter')}{:fy('Default value')}。</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Validation rules')}</label>
+            <div class="layui-input-block">
+                <div id="multiple-select"></div>
+                <tip>{:fy('Added edit data will be validated')}</tip>
+            </div>
+        </div>
+        <div class="layui-form-item  layui-row layui-col-xs12">
+            <label class="layui-form-label required">{:fy('form types')}</label>
+            <div class="layui-input-block">
+                <select name="formtype" class="layui-select" lay-search>
+                    {if isset($alldata['field']['formtype']['option'])}
+                    {foreach $alldata['field']['formtype']['option'] as $key=>$vo}
+                    <?php if(!IS_DEV && in_array($key,['video','color','none','password','optgroup','json','lradio',"lcheckbox","lselect",'lselects',"treecheckbox",  "aselect","selectgroup","popup_selection"])){continue; }?>
+                    <option value="{$key}">{:fy($vo)}</option>
+                    {/foreach}
+                    {/if}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Options')}</label>
+            <div class="layui-input-block">
+                <textarea type="text" id="option" name="option" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Options')}" placeholder="{:fy('Please enter')}{:fy('Options')
+                }" ></textarea>
+                <tip>{:fy('The form type is a single choice box, a multiple choice box, or a drop-down box. Example: 0: close, 1: open')}</tip>
+            </div>
+        </div>
+        <?php
+         if(IS_DEV){ ?>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Drop down the request address')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="href" name="href" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Drop down the request address')}" placeholder="{:fy('Please enter')}ajax{:fy('Drop down the request address')}" value="{:myurl('ajax/ajaxselect')}">
+                <tip>{:fy('Please enter')}{:fy('Drop down the request address')}。</tip>
+            </div>
+        </div>
+
+        <div class="layui-form-item  layui-row layui-col-xs12">
+            <label class="layui-form-label required">{:fy('Association Table')}</label>
+            <div class="layui-input-block">
+                <select name="join_table" class="layui-select" lay-search>
+                    <option value="">{:fy('Please select')}</option>
+                    {foreach $getTableList as $key=>$vo}
+                    <option value="{$vo.value}">{$vo.name|raw}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Presentation field')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="foreign_key" name="foreign_key" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Presentation field')}" placeholder="{:fy('Please enter')}{:fy('Presentation field')}" value="name">
+
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Storage field')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="relationship_primary_key" name="relationship_primary_key" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Storage field')}" placeholder="{:fy('Please enter')}{:fy('Storage field')}" value="id">
+
+            </div>
+        </div>
+        <?php } ?>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Description')}</label>
+            <div class="layui-input-block">
+                <textarea type="text" id="describe" name="describe" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Description')}" placeholder="{:fy('Please enter')}{:fy('Description')}" ></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('List display')}</label>
+            <div class="layui-input-block">
+                <input type="checkbox" name="show" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Form')}</label>
+            <div class="layui-input-block">
+                <input type="checkbox" name="edit" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Search')}</label>
+            <div class="layui-input-block">
+                <input type="checkbox" name="search" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Import')}</label>
+            <div class="layui-input-block">
+                <input type="checkbox" name="export" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">列表排序</label>
+            <div class="layui-input-block">
+                <input type="checkbox" name="open_sort"  lay-skin="switch" lay-text="开启|关闭">
+                <tip>是否开启支持列表排序</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('width')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="width" name="width" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Field')} {:fy('width')}" placeholder="{:fy('Please enter')}{:fy('Field')} {:fy('width')}" value="100">
+           <tip>列表展示的宽度值，单位px</tip>
+            </div>
+        </div>
+
+    <div class="layui-form-item">
+    <label class="layui-form-label">布局</label>
+    <div class="layui-input-block">
+        <select name="grid">
+            <option value="layui-col-md4">30%</option>
+            <option value="layui-col-md6">50%</option>
+            <option value="layui-col-md12" selected>100%</option>
+        </select>
+    <tip>选择100%，则占满一行，50%就是一行的一半</tip>
+    </div>
+    </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

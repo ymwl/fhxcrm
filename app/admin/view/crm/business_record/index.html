@@ -1,0 +1,17 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" data-value="1" data-field="scope">{:fy("It's mine")}</li>
+                <li  data-value="2" data-field="scope">{:fy('Subordinate')}</li>
+                <li  data-value="3" data-field="scope">{:fy('All')}</li>
+            </ul>
+        </div>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('crm.business_record/add')}"
+               data-auth-edit="{:auth('crm.business_record/edit')}"
+               data-auth-delete="{:auth('crm.business_record/delete')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>

@@ -1,0 +1,24 @@
+<div class="layuimini-container">
+
+    <div class="layuimini-main">
+        <blockquote class="layui-elem-quote" style="color:#FFB800; ">
+            {$grabCountMsg}
+        </blockquote>
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+        </div>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('crm.customer/add')}"
+               data-auth-edit="{:auth('crm.customer/edit')}"
+               data-auth-delete="{:auth('crm.customer/delete')}"
+               data-auth-import="{:auth('crm.customer/import')}"
+               data-auth-fields="{:auth('system.fields/index')}"
+               data-auth-robclient="{:auth('crm.seas/robclient')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>
+<script type="text/html" id="action">
+<?php if(auth('crm.seas/robclient')){ ?>
+    <a class="layui-btn layui-btn-success layui-btn-xs" style="font-size: 14px" data-title="{:fy('Are you sure you want to claim this customer')}" data-request="crm.seas/robclient?id[]={{d.id}}"><i class="fa fa-user-o"></i>{:fy('Receive')}</a>
+<?php } ?>
+</script>

@@ -1,0 +1,25 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <blockquote class="layui-elem-quote">
+            符号象CRM客户关系管理系统当前版本： v<span id="version"><?php echo config('version.version'); ?></span>&nbsp;&nbsp;
+            <button id="upgrade" class="layui-btn layui-btn-sm layui-btn-warm">更新版本</button>
+        </blockquote>
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" data-value="local" data-field="scope">本地</li>
+                <li  data-value="net" data-field="scope">互联网</li>
+            </ul>
+            <input type="hidden" name="local_install">
+        </div>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('addon/add')}"
+               data-auth-edit="{:auth('addon/edit')}"
+               data-auth-import="{:auth('addon/import')}"
+               data-auth-delete="{:auth('addon/delete')}"
+               data-auth-upgrade="{:auth('addon/upgrade')}"
+               data-auth-install="{:auth('addon/install')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>
+

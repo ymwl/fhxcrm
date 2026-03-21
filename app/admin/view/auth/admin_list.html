@@ -1,0 +1,46 @@
+<style>
+    #searchFieldset_currentTableRenderId{
+        border:1px solid #eee;
+    }
+</style>
+<div class="admin-main layui-anim layui-anim-upbit">
+    <fieldset class="layui-elem-field layui-field-title">
+        <legend>{:fy("Account management")}</legend>
+    </fieldset>
+
+    <table id="currentTable" class="layui-table layui-hide"
+           data-auth-add="{:auth('Auth/adminAdd')}"
+           data-auth-edit="{:auth('Auth/adminEdit')}"
+           data-auth-delete="{:auth('Auth/adminDel')}"
+           data-auth-state="{:auth('Auth/adminState')}"
+           lay-filter="currentTable">
+    </table>
+</div>
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-success layui-btn-xs" data-open="{:url('adminEdit')}?admin_id={{d.admin_id}}" data-title="{:fy('Edit Account')}">{:fy('Edit')}</a>
+    <?php if(auth('Auth/adminDel')){ ?>
+    {{# if(d.admin_id!=1 ){ }}
+    <a class="layui-btn layui-btn-danger layui-btn-xs" data-request="auth/adminDel?admin_id={{d.admin_id}}" data-title="{:fy('Are you sure you want to delete the current account')}？">{:fy('Delete')}</a>
+    {{# } }}
+    <?php } ?>
+
+</script>
+<script type="text/html" id="open">
+    {{# if(d.admin_id==1){ }}
+    -
+    {{# }else{  }}
+        <input type="checkbox" name="is_open" value="{{d.admin_id}}" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}" lay-filter="open" {{ d.is_open == 1 ? 'checked' : '' }}>
+    {{# } }}
+</script>
+<script type="text/html" id="lookiphone">
+    {{# if(d.admin_id==1){ }}
+-
+    {{# }else{  }}
+        <input type="checkbox" name="isphone" value="{{d.admin_id}}" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}" lay-filter="lookiphone" {{ d.isphone == 1 ? 'checked' : '' }}>
+    {{# } }}
+</script>
+<!--<script type="text/html" id="topBtn">
+    <button type="button" class="layui-btn layui-btn-sm layuimini-btn-primary" data-table-refresh="list"><i class="fa fa-refresh"></i> </button>
+    <button class="layui-btn layui-btn-normal layui-btn-sm" data-open="{:url('adminAdd')}" data-title="{:fy('Add account')}"><i class="fa fa-plus"></i>{:fy("Add")}</button>
+</script>-->
+

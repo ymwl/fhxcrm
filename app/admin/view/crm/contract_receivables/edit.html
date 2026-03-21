@@ -1,0 +1,61 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form layui-form-pane">
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">客户名称</label>
+                <div class="layui-input-block">
+                    <input type="text" class="layui-input" lay-verify="required" value="{$crmCustomerName}" readonly>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">合同名称</label>
+                <div class="layui-input-block">
+                    <input type="text" class="layui-input" lay-verify="required" value="{$crmContractName}" readonly>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">回款编号</label>
+                <div class="layui-input-block">
+                    <input type="text" class="layui-input" lay-verify="required" value="{$row.numbering|default=''}" readonly>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+        <div class="layui-form-item">
+            <label class="layui-form-label">回款日期</label>
+            <div class="layui-input-block">
+                <input type="text" name="return_time" class="layui-input"  placeholder="请输入回款日期" value="{$row.return_time|default=''}" data-date="yyyy-MM-dd HH:mm" data-date-type="date">
+            </div>
+        </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+        <div class="layui-form-item">
+            <label class="layui-form-label">回款金额</label>
+            <div class="layui-input-block">
+                <input type="text" name="money" class="layui-input" lay-verify="required" placeholder="请输入回款金额" value="{$row.money|default=''}">
+            </div>
+        </div>
+        </div>
+        {$fields_str|raw}
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+        <div class="layui-form-item">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <textarea name="remark" class="layui-textarea  textarea"  placeholder="请输入备注">{$row.remark|raw|default=''}</textarea>
+            </div>
+        </div>
+        </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+                        <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

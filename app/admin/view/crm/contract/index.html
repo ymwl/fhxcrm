@@ -1,0 +1,23 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <?php if(empty($config['customer_id'])){ ?>
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" data-value="1" data-field="scope">我的</li>
+                <li  data-value="2" data-field="scope">团队的</li>
+                <li  data-value="3" data-field="scope">全部</li>
+            </ul>
+        </div>
+        <?php } ?>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-add="{:auth('crm.contract/add')}"
+               data-auth-edit="{:auth('crm.contract/edit')}"
+               data-auth-delete="{:auth('crm.contract/delete')}"
+               data-auth-desc="{:auth('crm.contract/desc')}"
+               data-auth-fields="{:auth('system.fields/index')}"
+               data-auth-contract_receivables_add="{:auth('crm.contract_receivables/add')}"
+               data-auth-sendEmail="{:auth('crm.contract/sendEmail')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>

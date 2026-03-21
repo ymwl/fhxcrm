@@ -1,0 +1,83 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Product Classification')}</label>
+            <div class="layui-input-block">
+                <select name="product_type_id" lay-verify="required" lay-filter="product_type_id" >
+                    <option value="">{:fy('Please select')}{:fy('Product Classification')}</option>
+                    <?php
+ $typeLst = \think\facade\Db::name('product_type')->order('pid asc,sort asc,id asc')->select();
+                    $nav = new \clt\Leftnav();
+                    $typeLst = $nav->menu($typeLst);
+                    ?>
+                    {volist name="typeLst" id="vo"}
+                    <option value="{$vo.id}" >{$vo.lefthtml}{$vo.title}</option>
+                    {/volist}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Product name')}</label>
+            <div class="layui-input-block">
+
+                <input type="text" name="name" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}{:fy('Product name')}" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Product images')}</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="thumb" class="layui-input layui-col-xs6"   placeholder="{:fy('Please upload')} {:fy('Product images')}" value="">
+                <div class="layuimini-upload-btn">
+                    <span><a class="layui-btn" data-upload="thumb" data-upload-number="one" data-upload-exts="png,jpg,ico,jpeg" data-upload-icon="image"><i class="fa fa-upload"></i>{:fy('Upload')}</a></span>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Specifications')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="specification" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}{:fy('Specifications')}，{:fy('For example')}：1000g*1 {:fy('bag')}" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Model')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="model" class="layui-input"  placeholder="{:fy('Please enter')}{:fy('Model')}" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Cost price')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="cost_price" class="layui-input"  placeholder="{:fy('Please enter')}{:fy('Cost price')}" value="0.00">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Sale price')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="sale_price" class="layui-input"  placeholder="{:fy('Please enter')}{:fy('Sale price')}" value="0.00">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">{:fy('Remark')}</label>
+            <div class="layui-input-block">
+                <textarea name="remark" class="layui-textarea"  placeholder="{:fy('Please enter')}备注"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Status')}</label>
+            <div class="layui-input-inline">
+                <select name="status"  lay-filter="status">
+                    <option value="1">{:fy('Shelves')}</option>
+                    <option value="0">{:fy('Removal')}</option>
+                </select>
+            </div>
+            <div class="layui-form-mid layui-word-aux">{:fy('Removed products will not be associated with actions')}</div>
+        </div>
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

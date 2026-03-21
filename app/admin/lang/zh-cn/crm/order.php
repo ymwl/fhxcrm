@@ -1,0 +1,45 @@
+<?php
+
+return [
+    'Custom printing'       => '自定义打印',
+    'Month target'       => '月目标',
+    'Freight'       => '运费',
+    'Completion rate'       => '完成率',
+    'Month'    =>'月份',
+    'Audit status'    =>'审核状态',
+    'To be reviewed'    =>'待审核',
+    'The audit failed'    =>'审核失败',
+    'Client Principal'    =>'负责人',
+    'Order Remarks'    =>'订单备注信息',
+    'Operation action'    =>'操作动作',
+    'If the review fails, it is recommended to fill in the operation instructions to facilitate the submitter to complete the submission information'    =>'审核不通过，建议填写操作说明以便于提交者完善提交信息',
+    'Operating instructions'       => '操作说明',
+    'Today'    =>'今天',
+    'Yesterday'    =>'昨天',
+    'Week'    =>'本周',
+    'Last week'    =>'上周',
+    'Month1'    =>'本月',
+    'Last month'    =>'上月',
+    'This year'    =>'今年',
+    'Last year'    =>'去年',
+    'Within two hours'    =>'两个小时内',
+    'Order number'    =>'订单号',
+    'Contact number'    =>'联系号码',
+    "Please fill in the real customer's mobile phone number, otherwise the Client name cannot be obtained"    =>'请填写真实客户手机号,否则客户名称无法获取',
+
+
+
+    'The order you want to delete does not exist, or does not belong to you'    =>'您要删除的订单不存在，或不属于您的订单',
+    'Add Order'    =>'添加订单',
+    'Edit Order'    =>'编辑订单',
+    'Order review'    =>'订单审核',
+    'Are you sure you want to delete this order'    =>'您确定要删除此订单吗',
+    'The current order number already exists'    =>'当前订单号已存在',
+    'Validation succeeded, adding is allowed'    =>'验证成功，允许添加',
+    'The order does not exist'    =>'订单不存在',
+    'The order has been approved'    =>'该订单已审核',
+    'The current order status cannot be edited'    =>'当前订单状态无法编辑',
+    "It's useless to find the client information"    =>'客户信息没用找到',
+    'Custom fields'       => '自定义字段',
+
+];

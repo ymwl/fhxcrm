@@ -1,0 +1,191 @@
+<style>
+    #table-pro tr td input{min-width: 70px;}
+    [v-cloak]{display: none;}
+</style>
+<div class="layuimini-container" id="app" v-cloak>
+    <form id="app-form" class="layui-form layuimini-form">
+        <div class="layui-row form-readonly">
+
+            <div class=" layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">合同名称</label>
+                    <div class="layui-input-block">
+                        <input type="text"  class="layui-input"  placeholder="{:fy('Please enter')}合同名称" value="{$row.name|default=''}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="audit_management_id" value="{:input('audit_management_id')}">
+
+            <div class=" layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">合同编号</label>
+                    <div class="layui-input-block layuimini-upload">
+                        <input type="text" class="layui-input"  placeholder="{:fy('Please enter')}合同编号" value="{$row.numbering|default=''}" readonly >
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">关联客户</label>
+                    <div class="layui-input-block">
+                       <a href="javascript:void(0)" class="layui-input">{$row['crmCustomer']['name']}</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">客户签约人</label>
+                    <div class="layui-input-block">
+
+                        <input type="text" class="layui-input" value="{$row['customer_signer']}"  readonly>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">关联商机</label>
+                    <div class="layui-input-block">
+                        <input type="text"  value="{$row['business']['name']|default=''}" class="layui-input" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">签约时间</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input"  value="{:date('Y-m-d',$row['sign_time'])}" readonly>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="layui-form-item layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <label class="layui-form-label">合同金额</label>
+                <div class="layui-input-block">
+                    <input type="text"  class="layui-input"  value="{$row['money']}" readonly>
+                </div>
+            </div>
+
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">公司签约人</label>
+                    <div class="layui-input-block">
+                        <input type="text" value="{$row['company_signer']}" class="layui-input" readonly>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="layui-form-item layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="">
+                    <label class="layui-form-label">合同生效时间</label>
+                    <div class="layui-input-block">
+                        <input type="text"  class="layui-input"   value="{:date('Y-m-d H:i',$row['start_time'])}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">合同到期时间</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" value="{:date('Y-m-d H:i',$row['end_time'])}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            {$fields_str|raw}
+
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label">{:fy('Remark')}</label>
+                    <div class="layui-input-block">
+                        <textarea class="layui-textarea">{$row['remark']}</textarea>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+
+        <div style="padding:9px 15px;">
+            <div class="clear">
+                产品明细
+            </div>
+            <table class="layui-table" id="table-pro" data-id="{$row['id']}">
+                <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>{:fy('Product name')}</th>
+                    <th>{:fy('Specifications')}</th>
+                    <th>{:fy('Model')}</th>
+                    <th style="width: 100px;">成本</th>
+                    <th style="width: 90px;">售价</th>
+                    <th style="width: 90px;">数量</th>
+                    <th style="width: 90px;">折扣</th>
+                    <th>销售金额</th>
+                    <th>{:fy('Remark')}</th>
+                    <th>录入时间</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(item,index) in pro_list" :key="index+1">
+                    <td>{{index+1}}<input type="hidden" :value="item.product_id" ></td>
+                    <td><input type="hidden" :value="item.name" >{{item.name}}</td>
+                    <td><input type="hidden" :value="item.specification" >{{item.specification}}</td>
+                    <td><input type="hidden" :value="item.model">{{item.model}}</td>
+                    <td><input type="hidden" :value="item.cost_price">{{item.cost_price}}</td>
+                    <td><input class="layui-input" type="text" v-model="item.sale_price" readonly></td>
+                    <td><input class="layui-input"  type="text" v-model="item.nums" readonly></td>
+                    <td><input class="layui-input" type="text" v-model="item.discount" readonly></td>
+                    <td>{{item.sale_price*item.nums-item.discount}}</td>
+                    <td><input  class="layui-input" type="text" v-model="item.remark" readonly></td>
+                    <td>{{entryTime(index)}}</td>
+                </tr>
+                </tbody>
+            </table>
+            <div class="total-pro" style="text-align: center">
+                {:fy('Total cost')}：<span class="red">{{getTotal.cost_sum}}</span>  {:fy('Total price')}：<span class="red">{{getTotal.sale_sum}}</span>  {:fy('Total quantity')}：<span class="red">{{getTotal.nums_sum}}</span>  {:fy('Total discount')}：<span class="red">{{getTotal.discount_sum}}</span>  {:fy('Final total amount')}：<span class="red">{{getTotal.real_sale_sum}}</span>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">操作动作</label>
+            <div class="layui-input-block">
+                <input type="radio" name="status" value="1" title="通过" checked>
+                <input type="radio" name="status" value="-1" title="不通过">
+
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">操作说明</label>
+            <div class="layui-input-block">
+                <textarea placeholder="请填写 操作说明" class="layui-textarea" name="result_mess"></textarea>
+                <tip>审核不通过，建议填写操作说明以便于提交者完善提交信息</tip>
+            </div>
+
+        </div>
+
+
+
+
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>

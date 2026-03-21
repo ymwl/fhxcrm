@@ -1,0 +1,101 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">存储位置</label>
+            <div class="layui-input-block">
+                <input type="text" name="upload_type" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}存储位置" value="local">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">文件原名</label>
+            <div class="layui-input-block">
+                <input type="text" name="original_name" class="layui-input"  placeholder="{:fy('Please enter')}文件原名" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">物理路径</label>
+            <div class="layui-input-block">
+                <input type="text" name="url" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}物理路径" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('width')}</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="image_width" class="layui-input layui-col-xs6" lay-verify="required"  placeholder="{:fy('Please upload')} 宽度" value="">
+                <div class="layuimini-upload-btn">
+                    <span><a class="layui-btn" data-upload="image_width" data-upload-number="one" data-upload-exts="png,jpg,ico,jpeg" data-upload-icon="image"><i class="fa fa-upload"></i>{:fy('Upload')}</a></span>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">高度</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="image_height" class="layui-input layui-col-xs6" lay-verify="required"  placeholder="{:fy('Please upload')} 高度" value="">
+                <div class="layuimini-upload-btn">
+                    <span><a class="layui-btn" data-upload="image_height" data-upload-number="one" data-upload-exts="png,jpg,ico,jpeg" data-upload-icon="image"><i class="fa fa-upload"></i>{:fy('Upload')}</a></span>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">图片类型</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="image_type" class="layui-input layui-col-xs6" lay-verify="required"  placeholder="{:fy('Please upload')} 图片类型" value="">
+                <div class="layuimini-upload-btn">
+                    <span><a class="layui-btn" data-upload="image_type" data-upload-number="one" data-upload-exts="png,jpg,ico,jpeg" data-upload-icon="image"><i class="fa fa-upload"></i>{:fy('Upload')}</a></span>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">图片帧数</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="image_frames" class="layui-input layui-col-xs6" lay-verify="required"  placeholder="{:fy('Please upload')} 图片帧数" value="0">
+                <div class="layuimini-upload-btn">
+                    <span><a class="layui-btn" data-upload="image_frames" data-upload-number="one" data-upload-exts="png,jpg,ico,jpeg" data-upload-icon="image"><i class="fa fa-upload"></i>{:fy('Upload')}</a></span>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">mime类型</label>
+            <div class="layui-input-block">
+                <input type="text" name="mime_type" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}mime类型" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">文件大小</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="file_size" class="layui-input layui-col-xs6" lay-verify="required"  placeholder="{:fy('Please upload')} 文件大小" value="0">
+                <div class="layuimini-upload-btn">
+                    <span><a class="layui-btn" data-upload="file_size" data-upload-number="one" data-upload-exts="*" data-upload-icon="file"><i class="fa fa-upload"></i>{:fy('Upload')}</a></span>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">file_ext</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="file_ext" class="layui-input layui-col-xs6"   placeholder="{:fy('Please upload')} file_ext" value="">
+                <div class="layuimini-upload-btn">
+                    <span><a class="layui-btn" data-upload="file_ext" data-upload-number="one" data-upload-exts="*" data-upload-icon="file"><i class="fa fa-upload"></i>{:fy('Upload')}</a></span>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">文件 sha1编码</label>
+            <div class="layui-input-block">
+                <input type="text" name="sha1" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}文件 sha1编码" value="">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">上传时间</label>
+            <div class="layui-input-block">
+                <input type="text" name="upload_time" class="layui-input"  placeholder="{:fy('Please enter')}上传时间" value="">
+            </div>
+        </div>
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+
+    </form>
+</div>
