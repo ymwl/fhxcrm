@@ -159,12 +159,14 @@ class CustomerContacts extends AdminController
             $this->error('不存在的客户信息!');
         }
         $this->modifyPermissions($crmCustomer['admin_id']);
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
-            $this->verifyFields($post);
+            $this->verifyFields($post,$fields,'crm_customer_contacts');
             try {
-                $post=post_convert('crm_customer_contacts',$post);
+                $post=post_convert($post,$fields);
                 $post['create_username']=$this->admin['username'];
                 //谁的客户归谁管理
                 $ower_admin_id=$crmCustomer['admin_id'];
@@ -177,8 +179,6 @@ class CustomerContacts extends AdminController
             }
             $save ? $this->success('保存成功') : $this->error('保存失败');
         }
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" AND `addinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['addinput']);
@@ -204,12 +204,19 @@ class CustomerContacts extends AdminController
             $this->error('不存在的客户信息!');
         }
         $this->modifyPermissions($crmCustomer['admin_id']);
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
-            $this->verifyFields($post);
-
-                $post=post_convert('crm_customer_contacts',$post);
+            $this->verifyFields($post,$fields,'crm_customer_contacts');
+            foreach ($fields as $v){
+                if($v['edit_readonly']){
+//                    只读的数据无需保存
+                    unset($post[$v['field']]);
+                }
+            }
+                $post=post_convert($post,$fields);
                 if(isset($post['customer_id']))unset($post['customer_id']);
                 $post['owner_admin_id']=$crmCustomer['admin_id'];
                 $post['update_time']=time();
@@ -217,8 +224,6 @@ class CustomerContacts extends AdminController
 
             $save ? $this->success('保存成功') : $this->error('保存失败');
         }
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" AND `addinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
@@ -229,20 +234,6 @@ class CustomerContacts extends AdminController
         $this->assign('fields_str', $fields_str);
 //        $this->assign('row', $row);
         return $this->fetch();
-    }
-
-    protected function verifyFields($post){
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE rule <> "" AND `edit`=1 AND `table`="crm_customer_contacts" AND `editinput` is not null order BY `sort` ASC,id ASC');
-        $rule=[];
-        foreach ($fields as $v){
-            $msg=!empty(trim($v['xsname']))?'|'.fy($v['xsname']):'|'.fy($v['name']);
-            $ruleKey=$v['field'].$msg;
-            $rule[$ruleKey]=str_replace('unique','unique:crm_customer_contacts',str_replace(',','|',trim($v['rule'],',')));
-        }
-        if($rule){
-            $this->validater($post, $rule);
-        }
     }
 
     public function sendEmail($id){

@@ -15,7 +15,7 @@
 				</u-dropdown>
 				<view class="right-text">
 					<navigator url="/pages/clues/filter" hover-class="none">
-						<view class="fils">筛选/{{sceneName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
+						<view class="fils">筛选/{{scopeName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
 					</navigator>
 				</view>
 			</view>
@@ -73,7 +73,7 @@
 				sortName: '默认排序',
 				sort: 'id',
 				keyword:'',
-				sceneName: '全部线索',
+				scopeName: '全部线索',
 				specClass: 'hide',
 				priceShow: false,
 				oldScrollTop: 0,
@@ -216,11 +216,11 @@
 					filterObj = this.vuex_cluesfilter.filter
 					opObj = this.vuex_cluesfilter.op
 				
-					if(this.vuex_cluesfilter.formName.sceneName) {
-						this.sceneName = this.vuex_cluesfilter.formName.sceneName
+					if(this.vuex_cluesfilter.formName.scopeName) {
+						this.scopeName = this.vuex_cluesfilter.formName.scopeName
 					}
 				} else {
-					this.sceneName = '全部线索'
+					this.scopeName = '全部线索'
 				}
 				// 下次跟进排序筛选 next_time > 0
 				if(this.sort == 'next_time') {

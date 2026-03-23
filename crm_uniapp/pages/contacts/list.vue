@@ -14,7 +14,7 @@
 				</u-dropdown>
 				<view class="right-text">
 					<navigator url="/pages/contacts/filter" hover-class="none" >
-						<view class="fils">筛选/{{sceneName}}联系人<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
+						<view class="fils">筛选/{{scopeName}}联系人<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
 					</navigator>
 				</view>
 			</view>
@@ -66,7 +66,7 @@
 		data() {
 			return {
 				keyword: '',
-				sceneName:'全部',
+				scopeName:'全部',
 				sort: 'id',
 				sortName: '默认排序',
 				oldScrollTop: 0,
@@ -176,9 +176,9 @@
 				if(!this.$u.test.isEmpty(filter)) {
 					filterObj = filter.filter
 					opObj = filter.op
-					this.sceneName = filter.formName.sceneName?filter.formName.sceneName:'全部'
+					this.scopeName = filter.formName.scopeName?filter.formName.scopeName:'全部'
 				} else {
-					this.sceneName = '全部'
+					this.scopeName = '全部'
 				}
 				this.$u.api.getContactsList({
 					sort: this.sort,

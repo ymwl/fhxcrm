@@ -813,8 +813,8 @@ function auth($uri){
     $admin=session('admin');
 
 //    authopen
-    $HrefId = \think\facade\Db::name('auth_rule')->cache('auth_rule_'.$uri.'_'.$admin['admin_id'])->where(['href'=>$uri,'authopen'=>1])->value('id');
-    if(!$HrefId)return 1;
+    $auth_rule_id = \think\facade\Db::name('auth_rule')->cache('auth_rule_'.$uri.'_'.$admin['admin_id'])->where(['href'=>$uri,'authopen'=>1])->value('id');
+    if(!$auth_rule_id)return 1;
     $prefix = getDataBaseConfig('prefix');
 
     $map['a.admin_id'] = $admin['admin_id'];
@@ -824,7 +824,7 @@ function auth($uri){
         ->find();
     if($rules['group_id']==1)return 1;
     $adminRules = explode(',',$rules['rules']);
-    if(!in_array($HrefId,$adminRules)){
+    if(!in_array($auth_rule_id,$adminRules)){
 //            说明无权限访问
         return 0;
     }else{
@@ -1007,25 +1007,20 @@ function getDataBaseConfig($name=''){
 
 
 
-function post_convert($table,$post){
+function post_convert($post,$fields){
 //    对提交的数据类型进行转换
-    $formtype=\think\facade\Db::name('system_field')->where([['field','in',array_keys($post)],['table','=',$table]])->column('formtype','field');
-    foreach ($post as $k => $v){
-        if(isset($formtype[$k]) ){
-            switch($formtype[$k]){
-                case 'datetime':
-                case 'month':
-                case 'date':
-                    if(trim($v)!=''){
-                        $post[$k]=strtotime($v);
-                        if(empty($post[$k])){
-                            $post[$k]=null;
-                        }
-                    }else{
-                        $post[$k]=null;
-                    }
-
-                    break;
+    foreach ($fields as $v){
+        if($v['formtype']=='checkbox' || $v['formtype']=='lcheckbox'){
+            //            针对多选无值赋空
+            if(!isset($post[$v['field']])){
+                $post[$v['field']]='';
+            }
+        }elseif($v['formtype']=='datetime' || $v['formtype']=='month' || $v['formtype']=='date'){
+            if(isset($post[$v['field']])){
+                $post[$v['field']]=strtotime($post[$v['field']]);
+            }
+            if(empty($post[$v['field']])){
+                $post[$v['field']]=null;
             }
         }
     }

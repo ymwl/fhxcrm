@@ -221,3 +221,180 @@ export function getYear(type, dates) {
   }
   return null
 }
+
+/**
+ * 处理字段真实值（对应 PHP real_field_val）
+ * @param {Object} field - 字段配置对象 {formtype, option, field, title}
+ * @param {Any} value - 字段值
+ * @param {String} imgBaseUrl - 图片基础URL
+ * @returns {Object} {type, text, urls, files}
+ *   - type: 'text'|'image'|'images'|'file'|'files'|'datetime'|'date'
+ *   - text: 文本显示值
+ *   - urls: 图片URL数组（用于预览）
+ *   - files: 文件数组 [{name, url}]
+ */
+export function realFieldVal(field, value, imgBaseUrl) {
+  if (value === '' || value === null || value === undefined) {
+    return { type: 'text', text: '' }
+  }
+
+  const formtype = field.formtype || 'text'
+  let result = { type: 'text', text: value, urls: [], files: [] }
+
+  switch (formtype) {
+    case 'datetime':
+      // 时间戳转 Y-m-d H:i:s
+      result.type = 'datetime'
+      // 判断是否为数字（时间戳）
+      if (value && !isNaN(value) && !isNaN(parseFloat(value)) && isFinite(value) && String(value).length <= 10) {
+        const date = new Date(parseInt(value) * 1000)
+        const Y = date.getFullYear()
+        const m = String(date.getMonth() + 1).padStart(2, '0')
+        const d = String(date.getDate()).padStart(2, '0')
+        const H = String(date.getHours()).padStart(2, '0')
+        const i = String(date.getMinutes()).padStart(2, '0')
+        const s = String(date.getSeconds()).padStart(2, '0')
+        result.text = `${Y}-${m}-${d} ${H}:${i}:${s}`
+      } else if (value && typeof value === 'string') {
+        // 已经是可读时间字符串，直接返回
+        result.text = value
+      } else {
+        result.text = ''
+      }
+      break
+
+    case 'date':
+      // 时间戳转 Y-m-d
+      result.type = 'date'
+      // 判断是否为数字（时间戳）
+      if (value && !isNaN(value) && !isNaN(parseFloat(value)) && isFinite(value) && String(value).length <= 10) {
+        const date = new Date(parseInt(value) * 1000)
+        const Y = date.getFullYear()
+        const m = String(date.getMonth() + 1).padStart(2, '0')
+        const d = String(date.getDate()).padStart(2, '0')
+        result.text = `${Y}-${m}-${d}`
+      } else if (value && typeof value === 'string') {
+        // 已经是可读日期字符串，直接返回
+        result.text = value
+      } else {
+        result.text = ''
+      }
+      break
+
+    case 'image':
+      // 单图
+      result.type = 'image'
+      if (value) {
+        const url = getFullUrl(value, imgBaseUrl)
+        result.urls = [url]
+        result.text = '[图片]'
+      }
+      break
+
+    case 'images':
+      // 多图（逗号或竖线分隔）
+      result.type = 'images'
+      if (value) {
+        const urls = String(value).split(/[,|]/).filter(v => v.trim())
+        result.urls = urls.map(url => getFullUrl(url.trim(), imgBaseUrl))
+        result.text = `[${result.urls.length}张图片]`
+      }
+      break
+
+    case 'file':
+      // 单文件
+      result.type = 'file'
+      if (value) {
+        const url = getFullUrl(value, imgBaseUrl)
+        const name = getFileName(value)
+        result.files = [{ name, url }]
+        result.text = name
+      }
+      break
+
+    case 'files':
+      // 多文件（逗号或竖线分隔）
+      result.type = 'files'
+      if (value) {
+        const files = String(value).split(/[,|]/).filter(v => v.trim())
+        result.files = files.map(f => {
+          const url = getFullUrl(f.trim(), imgBaseUrl)
+          return { name: getFileName(f), url }
+        })
+        result.text = `[${result.files.length}个文件]`
+      }
+      break
+
+    case 'select':
+    case 'radio':
+      // 选项类型：根据 option 转换
+      result.type = 'select'
+      if (field.option && value !== '') {
+        const options = parseOptions(field.option)
+        const opt = options.find(o => o.value == value)
+        result.text = opt ? opt.label : value
+      }
+      break
+
+    default:
+      result.type = 'text'
+      result.text = value
+  }
+
+  return result
+}
+
+/**
+ * 获取完整URL
+ */
+function getFullUrl(url, baseUrl) {
+  if (!url) return ''
+  if (url.substr(0, 7).toLowerCase() === 'http://' || url.substr(0, 8).toLowerCase() === 'https://') {
+    return url
+  }
+  return baseUrl + (url.charAt(0) === '/' ? '' : '/') + url
+}
+
+/**
+ * 从路径中提取文件名
+ */
+function getFileName(path) {
+  if (!path) return '文件'
+  const parts = path.split('/')
+  return parts[parts.length - 1] || '文件'
+}
+
+/**
+ * 解析选项字符串为数组
+ * 格式：value1:label1,value2:label2 或 JSON
+ */
+function parseOptions(optionStr) {
+  if (!optionStr) return []
+  try {
+    // 尝试JSON解析
+    if (optionStr.trim().startsWith('[') || optionStr.trim().startsWith('{')) {
+      const parsed = JSON.parse(optionStr)
+      if (Array.isArray(parsed)) {
+        return parsed.map(item => ({
+          value: item.value !== undefined ? item.value : item,
+          label: item.label !== undefined ? item.label : item
+        }))
+      }
+    }
+    // value:label 格式
+    const options = []
+    const items = String(optionStr).split(/[\r\n,]+/)
+    items.forEach(item => {
+      const [value, label] = item.split(':')
+      if (value !== undefined) {
+        options.push({
+          value: value.trim(),
+          label: (label !== undefined ? label : value).trim()
+        })
+      }
+    })
+    return options
+  } catch (e) {
+    return []
+  }
+}

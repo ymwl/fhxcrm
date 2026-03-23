@@ -129,28 +129,16 @@ class Order extends AdminController {
     }
 
 
-
-
-    protected function verifyFields($post){
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE rule <> "" AND `edit`=1 AND `table`="crm_client_order" AND `editinput` is not null order BY `sort` ASC,id ASC');
-        $rule=[];
-        foreach ($fields as $v){
-            $msg=!empty(trim($v['xsname']))?'|'.fy($v['xsname']):'|'.fy($v['name']);
-            $ruleKey=$v['field'].$msg;
-            $rule[$ruleKey]=str_replace('unique','unique:crm_client_order',str_replace(',','|',trim($v['rule'],',')));
-        }
-        if($rule){
-            $this->validater($post, $rule);
-        }
-    }
     //新建订单号
     public function add(){
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`addinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" order BY `sort` ASC,id ASC');
         if($this->request->isPost()){
 
             $data=$this->request->post();
             $data=$this->param_to_str($data);
-            $this->verifyFields($data);
+            $this->verifyFields($data,$fields,'crm_client_order');
+
             if(empty($data['owner_admin_id'])){
                 $this->error('订单负责人必须指定');
             }
@@ -163,7 +151,7 @@ class Order extends AdminController {
 
             Db::startTrans();
             try {
-                $data=post_convert('crm_client_order',$data);
+                $data=post_convert($data,$fields);
             $crmClientOrderModel=new \app\admin\model\CrmClientOrder();
             //$crmClientOrderModel->getTableFields() 获取表字段
                $customerInfo= \think\facade\Db::name('crm_customer')->field('name,phone')->where('id','=',$data['customer_id'])->find();
@@ -201,9 +189,6 @@ class Order extends AdminController {
                 $this->error(fy('Save failed').':'.$e->getMessage());
             }
         }
-
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" AND `addinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['addinput']);
@@ -238,6 +223,8 @@ class Order extends AdminController {
             $msg = ['code' => -200,'msg'=>fy('Wrong request parameters').'!','data'=>[]];
             return json($msg);
         }
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" order BY `sort` ASC,id ASC');
         $result = $this->model ->where(['id' => $id])->where('pr_user','=',$this->admin['username'])->find();
         if(empty($result)){
             $msg = ['code' => -200,'msg'=>fy('The order does not exist').'！','data'=>[]];
@@ -252,13 +239,19 @@ class Order extends AdminController {
 
             $data=$this->request->post();
             $data=$this->param_to_str($data);
-            $this->verifyFields($data);
+            $this->verifyFields($data,$fields,'crm_client_order');
+            foreach ($fields as $v){
+                if($v['edit_readonly']){
+//                    只读的数据无需保存
+                    unset($data[$v['field']]);
+                }
+            }
             $data['update_time'] = time();
             $data['status'] = 0;
             unset($data['id']);
 
             $crmClientOrderModel=new \app\admin\model\CrmClientOrder();
-            $data=post_convert('crm_client_order',$data);
+            $data=post_convert($data,$fields);
             $customerInfo= \think\facade\Db::name('crm_customer')->field('name,phone')->where('id','=',$data['customer_id'])->find();
             if(empty($customerInfo)){
                 $this->error('Customer does not exist');
@@ -285,9 +278,6 @@ class Order extends AdminController {
             $msg = ['code' => 1,'msg'=>fy('Edit successfully'),'data'=>[]];
             return json($msg);
         }
-
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);

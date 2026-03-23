@@ -2,83 +2,76 @@
 	<view>
 		<view class="slot-content">
 			<u-cell-group>
-				<u-cell-item  title="客户场景"  :value="formName.sceneName" @click="sceneShow = true"></u-cell-item>
-				<u-cell-item  title="负责人" :value="formName.companyName" @click="companyShow = true"></u-cell-item>
-				<view class="time u-border-bottom">
-					<view class="title">下次跟进时间</view>
-					<view class="u-flex">
-						<view class="item u-flex-1" @click="selectTimeShow('next_time_start')">
-							<u-icon class="u-m-r-10" name="calendar" color="#2979ff" size="28"></u-icon>
-							<text class="u-font-26">{{formName.next_time_start}}</text>
-						</view>
-						<view class="line"></view>
-						<view class="item u-flex-1" @click="selectTimeShow('next_time_end')">
-							<u-icon class="u-m-r-10" name="calendar" color="#2979ff" size="28"></u-icon>
-							<text class="u-font-26">{{formName.next_time_end}}</text>
-						</view>
-					</view>
-				</view>
-				<view class="time u-border-bottom">
-					<view class="title">最近跟进时间</view>
-					<view class="u-flex">
-						<view class="item u-flex-1" @click="selectTimeShow('last_up_time_start')">
-							<u-icon class="u-m-r-10" name="calendar" color="#2979ff" size="28"></u-icon>
-							<text class="u-font-26">{{formName.last_up_time_start}}</text>
-						</view>
-						<view class="line"></view>
-						<view class="item u-flex-1" @click="selectTimeShow('last_up_time_end')">
-							<u-icon class="u-m-r-10" name="calendar" color="#2979ff" size="28"></u-icon>
-							<text class="u-font-26">{{formName.last_up_time_end}}</text>
-						</view>
-					</view>
-				</view>
-				<u-cell-item  title="客户来源" :value="formName.sourceName" @click="sourceShow = true"></u-cell-item>
-				<u-cell-item  title="客户行业"  :value="formName.hangyeName" @click="hangyeShow = true"></u-cell-item>
-				<u-cell-item  title="客户级别" :value="formName.rankName" @click="rankShow = true"></u-cell-item>
+				<u-cell-item  title="所属客户"  :value="formName.scopeName" @click="scopeShow = true"></u-cell-item>
 			</u-cell-group>
+			<!-- 自定义字段搜索区域 -->
+				<u-cell-group v-if="fields.length > 0">
+					<!-- input/tel/textarea/number 类型 - 直接显示输入框 -->
+					<block v-for="field in fields" :key="field.id">
+						<view v-if="['input', 'tel', 'textarea', 'number'].includes(field.formtype)" class="search-input-item u-border-bottom">
+							<view class="label">{{ field.title }}</view>
+							<u-input v-model="searchForm[field.field]" :placeholder="'请输入' + field.title" :border="false" clearable />
+						</view>
+						<!-- select/radio 类型 -->
+						<u-cell-item v-else-if="['select', 'radio'].includes(field.formtype)" 
+							:title="field.title" 
+							:value="searchFormName[field.field]" 
+							@click="onSearchSelectClick(field)">
+						</u-cell-item>
+						<!-- checkbox 类型 -->
+						<u-cell-item v-else-if="field.formtype === 'checkbox'" 
+							:title="field.title" 
+							:value="searchFormName[field.field]" 
+							@click="onSearchCheckboxClick(field)">
+						</u-cell-item>
+						<!-- datetime/date 类型 -->
+						<view v-else-if="['datetime', 'date'].includes(field.formtype)" class="time u-border-bottom">
+							<view class="title">{{ field.title }}</view>
+							<view class="u-flex">
+								<view class="item u-flex-1" @click="onSearchDateClick(field, 'start')">
+									<u-icon class="u-m-r-10" name="calendar" color="#2979ff" size="28"></u-icon>
+									<text class="u-font-26">{{ searchFormName[field.field + '_start'] }}</text>
+								</view>
+								<view class="line"></view>
+								<view class="item u-flex-1" @click="onSearchDateClick(field, 'end')">
+									<u-icon class="u-m-r-10" name="calendar" color="#2979ff" size="28"></u-icon>
+									<text class="u-font-26">{{ searchFormName[field.field + '_end'] }}</text>
+								</view>
+							</view>
+						</view>
+						<!-- city/district 类型 -->
+						<u-cell-item v-else-if="['city', 'district'].includes(field.formtype)" 
+							:title="field.title" 
+							:value="searchFormName[field.field]" 
+							@click="onSearchCityClick(field)">
+						</u-cell-item>
+					</block>
+				</u-cell-group>
+
 			<view class="bottom-btn">
 				<u-button class="u-m-r-15" type="default" size="medium" @click="reset">重置</u-button>
 				<u-button type="primary" size="medium" @click="onConfirm" :custom-style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" :ripple="true">确定</u-button>
 			</view>
 		</view>
-		<!-- 选择负责人 -->
-		<u-popup class="popup-content" mode="bottom" border-radius="38"  v-model="companyShow" >
-			<view class="popup-title u-border-bottom">
-				<view class=""  style="width: 45px;">
-				</view>
-				<text class="">选择负责人</text> 
-				<view class="" @click="companyShow = false" style="width: 45px;">
-					<u-icon name="close"  color="#909399" size="30"></u-icon>
+    <!-- 选择客户场景 -->
+    <u-action-sheet :list="scopeList" v-model="scopeShow" @click="scopeClick"></u-action-sheet>
+	<!-- 自定义字段搜索 - 输入弹窗 -->
+		<u-popup mode="center" v-model="searchFieldShow" border-radius="14">
+			<view class="search-input-popup">
+				<view class="popup-title">{{ currentSearchField ? currentSearchField.title : '输入' }}</view>
+				<u-input v-model="searchInputValue" :placeholder="'请输入' + (currentSearchField ? currentSearchField.title : '')" border="surround" clearable />
+				<view class="popup-btns">
+					<u-button type="default" size="medium" @click="searchFieldShow = false">取消</u-button>
+					<u-button type="primary" size="medium" @click="onSearchInputConfirm" :custom-style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}">确定</u-button>
 				</view>
 			</view>
-			<u-search margin="30rpx 20rpx" shape="square" v-model="adminkeyword" :show-action="false" :clearabled="true"  placeholder="输入员工搜索" @change="adminSearch"></u-search>
-			<scroll-view scroll-y style="height: 760rpx;width: 100%;" @scrolltolower="adminBottom">
-				<view class="list">
-					<block v-if="companyList.length > 0">
-						<view class="u-m-b-45">
-							<view class="item u-flex u-border-bottom" v-for="(item,index) in companyList" :key="index" @click="oncompany(item,index)">
-								<view class="title">{{item.username}} <text v-if="item.realname">（{{item.realname}}）</text></view>
-								<view class="check-icon">
-									<u-icon v-if="item.checked" name="checkmark" color="#2979ff" size="38"></u-icon>
-								</view>
-							</view>
-						</view>
-						<u-loadmore :status="adminStatus" ></u-loadmore>
-					</block>
-					<u-empty text="暂无数据" v-else  margin-top="100" mode="list"></u-empty>
-				</view>
-			</scroll-view>
 		</u-popup>
-		<!-- 时间选择 -->
-		<u-picker v-model="timeShow" :hour="true" mode="time" :params="params" @confirm="timeChange" @cancel="canceltimeChange"></u-picker>
-		<!-- 选择客户场景 -->
-		<u-action-sheet :list="sceneList" v-model="sceneShow" @click="sceneClick" @close="sceneClose"></u-action-sheet>
-		<!-- 选择客户等级 -->
-		<u-action-sheet :list="rankList" v-model="rankShow" @click="rankClick" @close="rankClose"></u-action-sheet>
-		<!-- 选择客户行业 -->
-		<u-action-sheet :list="hangyeList" v-model="hangyeShow" @click="hangyeClick" @close="hangyeClose"></u-action-sheet>
-		<!-- 选择客户来源 -->
-		<u-action-sheet :list="sourceList" v-model="sourceShow" @click="sourceClick" @close="sourceClose"></u-action-sheet>
+		<!-- 自定义字段搜索 - 下拉选择弹窗 -->
+		<u-action-sheet :list="searchFieldPickerList" v-model="searchFieldPickerShow" @click="onSearchPickerClick" @close="onSearchPickerClose"></u-action-sheet>
+		<!-- 自定义字段搜索 - 时间选择器 -->
+		<u-picker v-model="searchDatePickerShow" :hour="searchDateType === 'datetime'" mode="time" :params="searchDateParams" @confirm="onSearchDateConfirm" @cancel="onSearchDateCancel"></u-picker>
+		<!-- 自定义字段搜索 - 省市区选择器 -->
+		<fa-citys v-model="searchCityPickerShow" @city-change="onSearchCityConfirm"></fa-citys>
 	</view>
 </template>
 
@@ -86,13 +79,8 @@
 	export default {
 		data() {
 			return {
-				timeShow: false,
-				rankShow: false,
-				hangyeShow: false,
-				sourceShow: false,
-				overdueShow: false,
-				sceneShow: false,
-				sceneList: [
+				scopeShow: false,
+				scopeList: [
 					{
 						text: '我的客户',
 						id: 1
@@ -114,55 +102,120 @@
 					minute: true,
 					second: false
 				},
-				rankList: [],
-				hangyeList: [],
-				sourceList: [],
-				companyList: [],
-				adminPage: 1,
-				lastAdmin: false,
-				adminStatus: 'loadmore',
-				adminkeyword: '',
-				pageSize: 20,
-				companyShow: false,
-				timeType: '',
 				form: {
-					scene_id: '',
-          kh_rank: '',
-          kh_hangye: '',
-					source: '',
-					owner_user_id: '',
-					next_time: '',
-					last_up_time: '',
-					expire_type: '',
+					scope: '',
+
 				},
 				formName: {
-					next_time_start: '选择',
-					next_time_end: '选择',
-					last_up_time_start: '选择',
-					last_up_time_end: '选择',
-					companyName: '选择',
-					sceneName: '选择',
-					rankName: '选择',
-          hangyeName: '选择',
-					sourceName: '选择',
-					overdueName: '选择',
-				}
+					scopeName: '选择',
+				},
+				// 自定义字段搜索相关
+				fields: [],
+				searchForm: {},
+				searchFormName: {},
+				searchFieldShow: false,
+				currentSearchField: null,
+				searchFieldPickerShow: false,
+				searchFieldPickerList: [],
+				searchDatePickerShow: false,
+				searchDateType: '',
+				searchDateStart: '',
+				searchDateEnd: '',
+				searchInputValue: '',
+				searchCityPickerShow: false,
 			};
 		},
+		computed: {
+			searchDateParams() {
+				return {
+					year: true,
+					month: true,
+					day: true,
+					hour: this.searchDateType === 'datetime',
+					minute: this.searchDateType === 'datetime',
+					second: false
+				};
+			}
+		},
 		onLoad(e) {
-			this.getBaseConfig()
-			this.onSelectpage()
+      this.getFields();
 		},
 		onShow(){
+      if(!this.$u.test.isEmpty(this.vuex_filter.scopeName)) {
+        this.formName.scopeName  = this.vuex_filter.scopeName
+        this.form.scope = this.vuex_filter.scope
+      }else {
+        this.formName.scopeName  = '我的客户'
+        this.form.scope = 1
+      }
+
+
+      this.scopeList.forEach((item,i)=>{
+        if(item.id == this.form.scope) {
+          item.color = '#2979ff'
+        } else {
+          item.color = ''
+        }
+      })
+      console.log('this.vuex_filter',this.vuex_filter)
 			if(!this.$u.test.isEmpty(this.vuex_filter.filter)) {
-				// 已选数据合并
+				// 已选数据合并（固定筛选项）
 				this.form = Object.assign(this.form,this.vuex_filter.filter)
 				this.formName = Object.assign(this.formName,this.vuex_filter.formName)
 				this.bselectdata();
+				// 自定义字段的回显在 getFields 回调的 restoreSearchFields 方法中处理
 			}
 		},
 		
 		methods: {
+      getFields() {
+        this.$u.api.getFields({table: 'crm_customer', source: 'search'}).then((res) => {
+          if(res.code == 1){
+            this.fields = res.data.fields || [];
+            // 初始化 searchForm 和 searchFormName
+            this.fields.forEach(field => {
+              this.$set(this.searchForm, field.field, '');
+              // 时间类型需要分开存储开始和结束
+              if (field.formtype === 'datetime' || field.formtype === 'date') {
+                this.$set(this.searchFormName, field.field + '_start', '选择');
+                this.$set(this.searchFormName, field.field + '_end', '选择');
+              } else {
+                this.$set(this.searchFormName, field.field, '选择');
+              }
+            });
+            // 回显已选的自定义字段值
+            this.restoreSearchFields();
+          }
+        })
+      },
+      // 回显已选的自定义字段值
+      restoreSearchFields() {
+        if (this.vuex_filter && this.vuex_filter.filter) {
+          this.fields.forEach(field => {
+            const key = field.field;
+            if (this.vuex_filter.filter[key]) {
+              this.searchForm[key] = this.vuex_filter.filter[key];
+              // 恢复显示名
+              if (field.formtype === 'datetime' || field.formtype === 'date') {
+                const range = this.vuex_filter.filter[key].split(' - ');
+                if (range.length === 2) {
+                  this.searchFormName[key + '_start'] = range[0];
+                  this.searchFormName[key + '_end'] = range[1];
+                  this.searchDateStart = range[0];
+                  this.searchDateEnd = range[1];
+                }
+              } else {
+                const formNameKey = 'search_' + key;
+                if (this.vuex_filter.formName && this.vuex_filter.formName[formNameKey]) {
+                  this.searchFormName[key] = this.vuex_filter.formName[formNameKey];
+                } else {
+                  this.searchFormName[key] = this.vuex_filter.filter[key];
+                }
+              }
+            }
+          });
+        }
+      },
 			//绑定输入框的值
 			bselectdata(){
 					if(this.form.next_time){
@@ -175,56 +228,14 @@
 					}
 	
 			},
-			// 时间窗口
-			selectTimeShow(text) {
-				this.timeType = text
-				this.timeShow = !this.timeShow
-			},
-			// 选择时间
-			timeChange(e) {
-				let time = e.year + '-' + e.month + '-' + e.day + ' ' + e.hour + ':' + e.minute
-				switch (this.timeType) {
-					case 'next_time_start':
-						this.formName.next_time_start = time
-						break;
-					case 'next_time_end':
-						this.formName.next_time_end = time
-						break;
-					case 'last_up_time_start':
-						this.formName.last_up_time_start = time
-						break;
-					case 'last_up_time_end':
-						this.formName.last_up_time_end = time
-						break;
-					default:
-						break;
-				}
-			},
-      canceltimeChange(e) {
-			  //取消时间选择
-				let time = e.year + '-' + e.month + '-' + e.day + ' ' + e.hour + ':' + e.minute
-				switch (this.timeType) {
-					case 'next_time_start':
-						this.formName.next_time_start = '选择';
-						break;
-					case 'next_time_end':
-						this.formName.next_time_end = '选择';
-						break;
-					case 'last_up_time_start':
-						this.formName.last_up_time_start = '选择';
-						break;
-					case 'last_up_time_end':
-						this.formName.last_up_time_end = '选择';
-						break;
-					default:
-						break;
-				}
-			},
+
+
+
 			// 选择客户场景
-			sceneClick(index) {
-				this.formName.sceneName =  this.sceneList[index].text
-				this.form.scene_id = this.sceneList[index].id
-				this.sceneList.forEach((item,i)=>{
+			scopeClick(index) {
+				this.formName.scopeName =  this.scopeList[index].text
+				this.form.scope = this.scopeList[index].id
+				this.scopeList.forEach((item,i)=>{
 					if(index == i) {
 						item.color = '#2979ff'
 					} else {
@@ -232,80 +243,7 @@
 					}
 				})
 			},
-      sceneClose() {
-        this.formName.sceneName =  '我的客户'
-        this.form.scene_id = 1
-        this.sceneList.forEach((item,i)=>{
-            item.color = ''
-        })
-      },
-			// 选择客户等级
-			rankClick(index) {
-				this.formName.rankName = this.rankList[index].text
-				this.form.kh_rank = this.rankList[index].id
-				this.rankList.forEach((item,i)=>{
-					if(index == i) {
-						item.color = '#2979ff'
-					} else {
-						item.color = ''
-					}
-				})
-			},
-      rankClose() {
-        this.formName.rankName = '选择'
-        this.form.kh_rank = '';
-        this.rankList.forEach((item,i)=>{
-            item.color = ''
-        })
-      },
-			// 选择客户行业
-			hangyeClick(index){
-				this.formName.hangyeName = this.hangyeList[index].text
-				this.form.kh_hangye = this.hangyeList[index].id
-				this.hangyeList.forEach((item,i)=>{
-					if(index == i) {
-						item.color = '#2979ff'
-					} else {
-						item.color = ''
-					}
-				})
-			},
-      hangyeClose(){
-        this.formName.hangyeName = '选择'
-        this.form.kh_hangye = '';
-        this.hangyeList.forEach((item,i)=>{
-            item.color = '';
-        })
-      },
-			// 选择客户来源
-			sourceClick(index){
-				this.formName.sourceName = this.sourceList[index].text
-				this.form.source = this.sourceList[index].id
-				this.sourceList.forEach((item,i)=>{
-					if(index == i) {
-						item.color = '#2979ff'
-					} else {
-						item.color = ''
-					}
-				})
-			},	sourceClose(){
-				this.formName.sourceName = '选择';
-				this.form.source = '';
-				this.sourceList.forEach((item,i)=>{
-						item.color = ''
-				})
-			},
-			// 获取配置字段
-			getBaseConfig() {
-        this.$u.post('crm.customer/type', {}).then(res => {
-          if(res.code == 1){
-            //转换成需要的格式
-            this.rankList = this.onJson(res.data.rankList)
-            this.hangyeList = this.onJson(res.data.hangyeList)
-            this.sourceList = this.onJson(res.data.sourceList)
-          }
-        });
-			},
+
 			// json 转化
 			onJson(data) {
 				let arr = []
@@ -319,73 +257,14 @@
 				}
 				return arr
 			},
-			// 获取负责人
-			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
-					pageNumber: (pages || 1 ),
-					pageSize: this.pageSize,
-					name: this.adminkeyword,
-					keyField: 'admin_id',
-					showField: 'username,realname',
-					"q_word": this.adminkeyword,
-					"searchField": "username,realname",
-					model:'admin',
-				}).then(res => {
-					if(res.code == 1 ) {
-						// 最后一页
-						if(res.data.list.length == 0) {
-							this.lastAdmin = true
-						} 
-						//不够一页
-						if (res.data.list.length < this.pageSize) {
-							this.adminStatus = 'nomore'
-						}
-						// 第二页开始
-						if(isNextPage) {
-							this.companyList = this.companyList.concat(res.data.list)
-							return 
-						}
-						this.companyList = res.data.list
-					}
-				})
-			},
-			// 滚动到底部加载更多
-			adminBottom() {
-				if(this.lastAdmin || this.adminStatus == 'loading') return ;
-				this.adminStatus = 'loading'
-				setTimeout(() => {
-					if(this.lastAdmin) return ;
-					this.onSelectpage(true,++this.adminPage)
-					if(this.companyList.length >= 10) this.adminStatus = 'loadmore';
-					else this.adminStatus = 'loading';
-				}, 1200)
-			},
-			// 选择客户负责人
-			oncompany(val,index) {
-				this.companyList.forEach((item,index) => {
-					if(val.admin_id == item.admin_id) {
-						item.checked = true
-					} else {
-						item.checked = false
-					}
-				})
-				this.formName.companyName = val.username
-				this.companyShow = false
-				this.form.pr_user = val.username
-			},
-			// 选择搜索
-			adminSearch() {
-				this.lastAdmin = false
-				this.onSelectpage()
-			},
 			// 重置
 			reset() {
 				for (const key in this.form) {
 					if (this.form.hasOwnProperty.call(this.form, key)) {
 						if(!this.$u.test.isEmpty(this.form[key])){
 							switch (key) {
-								case 'scene_id':
-									this.sceneList.forEach((item,index)=>{
+								case 'scope':
+									this.scopeList.forEach((item,index)=>{
 										if(this.form[key] == item.id) {
 											item.color = ""
 										}
@@ -421,66 +300,213 @@
 					}
 				}
 				this.form = {
-					scene_id: '',
-					rank: '',
-					hangye: '',
-					source: '',
-					owner_user_id: '',
-					next_time: '',
-					last_up_time: '',
-					expire_type: '',
+					scope: ''
 				}
 				this.formName = {
-					next_time_start: '选择',
-					next_time_end: '选择',
-					last_up_time_start: '选择',
-					last_up_time_end: '选择',
-					companyName: '选择',
-					sceneName: '选择',
-					rankName: '选择',
-					hangyeName: '选择',
-					sourceName: '选择',
-					overdueName: '选择',
+					scopeName: '选择',
 				}
-
+				// 重置自定义字段搜索
+				this.fields.forEach(field => {
+					this.searchForm[field.field] = '';
+					if (field.formtype === 'datetime' || field.formtype === 'date') {
+						this.searchFormName[field.field + '_start'] = '选择';
+						this.searchFormName[field.field + '_end'] = '选择';
+					} else {
+						this.searchFormName[field.field] = '选择';
+					}
+				});
+				this.searchDateStart = '';
+				this.searchDateEnd = '';
 			},
 			// 确定
 			onConfirm() {
 				let filterData = {
+          scope: this.form.scope,
+          scopeName: this.formName.scopeName,
 					filter: {},
 					op: {},
 					formName: {}
 				}
-				// 时间是否选择
-				if(this.formName.next_time_start != '选择' && this.formName.next_time_end != '选择'){
-					this.form.next_time  = this.formName.next_time_start + ' - ' + this.formName.next_time_end
-				}
-				if(this.formName.last_up_time_start != '选择' && this.formName.last_up_time_end != '选择'){
-					this.form.last_up_time = this.formName.last_up_time_start + ' - ' + this.formName.last_up_time_end
-				}
-				for (const key in this.form) {
-					if (this.form.hasOwnProperty.call(this.form, key)) {
-						if(!this.$u.test.isEmpty(this.form[key])){
-							if( key == 'next_time' || key == 'last_up_time') {
-								filterData.op[key] = 'RANGE'
-							} else {
-								filterData.op[key] = '='
-							}
-							filterData.filter[key] = this.form[key]
+
+
+				// 自定义字段搜索项
+				for (const key in this.searchForm) {
+					if (this.searchForm.hasOwnProperty.call(this.searchForm, key)) {
+						const value = this.searchForm[key];
+						if (!this.$u.test.isEmpty(value)) {
+							// 查找字段定义获取操作符
+							const fieldDef = this.fields.find(f => f.field === key);
+							const formtype = fieldDef ? fieldDef.formtype : 'input';
+							filterData.filter[key] = value;
+							filterData.op[key] = this.getFieldOperator(formtype);
 						}
 					}
 				}
-				for (const key in this.formName) {
-					if (this.form.hasOwnProperty.call(this.formName, key)) {
-						if(this.formName[key] != '选择'){
-							filterData.formName[key] = this.formName[key]
-						}
+				// 自定义字段显示名
+				for (const key in this.searchFormName) {
+					if (this.searchFormName[key] != '选择' && this.searchFormName[key] != '输入') {
+						filterData.formName['search_' + key] = this.searchFormName[key];
 					}
 				}
 				// 储存
 				this.$u.vuex('vuex_filter', filterData)
 				uni.navigateBack();
-			}
+			},
+			// ========== 自定义字段搜索方法 ==========
+			// 下拉选择类型点击
+			onSearchSelectClick(field) {
+				this.currentSearchField = field;
+				// 解析 option 或 content_list
+				let options = [];
+				if (field.content_list && field.content_list.length > 0) {
+					options = field.content_list.map(item => ({
+						text: item.name || item,
+						id: item.value || item.name || item
+					}));
+				} else if (field.option) {
+					const optArr = field.option.split(',');
+					options = optArr.map(item => ({
+						text: item.trim(),
+						id: item.trim()
+					}));
+				}
+				this.searchFieldPickerList = options;
+				// 标记当前选中项
+				const currentVal = this.searchForm[field.field];
+				this.searchFieldPickerList.forEach(item => {
+					item.color = item.id === currentVal ? '#2979ff' : '';
+				});
+				this.searchFieldPickerShow = true;
+			},
+			// 下拉选择点击
+			onSearchPickerClick(index) {
+				if (this.currentSearchField) {
+					const field = this.currentSearchField.field;
+					const selected = this.searchFieldPickerList[index];
+					this.searchForm[field] = selected.id;
+					this.searchFormName[field] = selected.text;
+					// 更新选中状态
+					this.searchFieldPickerList.forEach((item, i) => {
+						item.color = i === index ? '#2979ff' : '';
+					});
+				}
+			},
+			// 下拉选择关闭
+			onSearchPickerClose() {
+				// 清空选择
+				if (this.currentSearchField) {
+					const field = this.currentSearchField.field;
+					this.searchForm[field] = '';
+					this.searchFormName[field] = '选择';
+				}
+				this.searchFieldPickerList.forEach(item => {
+					item.color = '';
+				});
+			},
+			// 多选类型点击
+			onSearchCheckboxClick(field) {
+				this.currentSearchField = field;
+				// 解析 option 或 content_list
+				let options = [];
+				if (field.content_list && field.content_list.length > 0) {
+					options = field.content_list.map(item => ({
+						text: item.name || item,
+						id: item.value || item.name || item
+					}));
+				} else if (field.option) {
+					const optArr = field.option.split(',');
+					options = optArr.map(item => ({
+						text: item.trim(),
+						id: item.trim()
+					}));
+				}
+				this.searchFieldPickerList = options;
+				// 多选场景暂时用单选，后续可改为多选弹窗
+				this.searchFieldPickerShow = true;
+			},
+			// 时间类型点击
+			onSearchDateClick(field, type) {
+				this.currentSearchField = field;
+				this.searchDateType = type;
+				this.searchDatePickerShow = true;
+			},
+			// 时间选择确认
+			onSearchDateConfirm(e) {
+				if (this.currentSearchField) {
+					const field = this.currentSearchField.field;
+					const time = e.year + '-' + e.month + '-' + e.day + (this.searchDateType === 'datetime' ? ' ' + e.hour + ':' + e.minute : '');
+					if (this.searchDateType === 'start') {
+						this.searchDateStart = time;
+						this.searchFormName[field + '_start'] = time;
+					} else {
+						this.searchDateEnd = time;
+						this.searchFormName[field + '_end'] = time;
+					}
+					// 更新 searchForm 中的值（时间范围用 - 连接）
+					if (this.searchDateStart && this.searchDateEnd) {
+						this.searchForm[field] = this.searchDateStart + ' - ' + this.searchDateEnd;
+					} else if (this.searchDateStart) {
+						this.searchForm[field] = this.searchDateStart;
+					} else if (this.searchDateEnd) {
+						this.searchForm[field] = this.searchDateEnd;
+					}
+				}
+			},
+			// 时间选择取消
+			onSearchDateCancel() {
+				if (this.currentSearchField) {
+					const field = this.currentSearchField.field;
+					if (this.searchDateType === 'start') {
+						this.searchFormName[field + '_start'] = '选择';
+						this.searchDateStart = '';
+					} else {
+						this.searchFormName[field + '_end'] = '选择';
+						this.searchDateEnd = '';
+					}
+					// 重新计算时间范围值
+					if (this.searchDateStart && this.searchDateEnd) {
+						this.searchForm[field] = this.searchDateStart + ' - ' + this.searchDateEnd;
+					} else {
+						this.searchForm[field] = '';
+					}
+				}
+			},
+			// 城市选择点击
+			onSearchCityClick(field) {
+				this.currentSearchField = field;
+				this.searchCityPickerShow = true;
+			},
+			// 城市选择确认
+			onSearchCityConfirm(result) {
+				if (this.currentSearchField && result && result.length === 3) {
+					const field = this.currentSearchField.field;
+					// 存储选中的值：省/市/区
+					const cityValue = result[0].label + '/' + result[1].label + '/' + result[2].label;
+					this.searchForm[field] = cityValue;
+					this.searchFormName[field] = result[0].label + result[1].label + result[2].label;
+				}
+				this.searchCityPickerShow = false;
+			},
+			// 获取字段对应的操作符
+			getFieldOperator(formtype) {
+				switch (formtype) {
+					case 'input':
+					case 'tel':
+					case 'textarea':
+					case 'city':
+					case 'district':
+						return '%*%'; // 模糊搜索
+					case 'datetime':
+					case 'date':
+						return 'RANGE'; // 范围搜索
+					case 'number':
+					case 'select':
+					case 'radio':
+					case 'checkbox':
+					default:
+						return '='; // 精确匹配
+				}
+			},
 		},
 		
 	}
@@ -488,6 +514,10 @@
 
 <style lang="scss">
 .slot-content{
+  .u-cell{
+    padding: 12rpx 16rpx;
+  }
+  .u-border-bottom:after{border: none;}
 	background-color: #fff;
 	.time {
 		padding: 26rpx 32rpx;
@@ -512,6 +542,28 @@
 	.bottom-btn {
 		text-align: right;
 		padding: 68rpx 25rpx;
+	}
+	.custom-fields-section {
+		margin-top: 20rpx;
+		.section-title {
+			padding: 20rpx 32rpx;
+			font-size: 28rpx;
+			font-weight: 600;
+			color: #606266;
+			background-color: #f5f7fa;
+		}
+	}
+	.search-input-item {
+		display: flex;
+		align-items: center;
+		padding: 12rpx 16rpx;
+		background-color: #fff;
+		.label {
+			width: 160rpx;
+			flex-shrink: 0;
+			font-size: 28rpx;
+			color: #303133;
+		}
 	}
 }
 .popup-content {
@@ -547,6 +599,21 @@
 		display: flex;
 		justify-content: flex-end;
 		padding: 28rpx 10rpx 45rpx;
+	}
+}
+.search-input-popup {
+	padding: 30rpx;
+	width: 600rpx;
+	.popup-title {
+		font-size: 32rpx;
+		font-weight: 600;
+		text-align: center;
+		margin-bottom: 30rpx;
+	}
+	.popup-btns {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 30rpx;
 	}
 }
 </style>

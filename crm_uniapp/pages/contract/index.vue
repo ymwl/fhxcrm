@@ -539,7 +539,7 @@
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({source: 'contract',id: ''}).then((res) => {
+				this.$u.api.getFields({table: 'contract',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.fields = res.data.fields;
 						//渲染自定义字段,默认字段
@@ -909,8 +909,8 @@
 					order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
-					filter: JSON.stringify({scene_id: 4,customer_id: this.form.customer_id }),
-					op: JSON.stringify({scene_id: '=',customer_id: '='})
+					filter: JSON.stringify({scope: 4,customer_id: this.form.customer_id }),
+					op: JSON.stringify({scope: '=',customer_id: '='})
 				}).then(res => {
 					if(res.code == 1 ) {
 						// 不够一页

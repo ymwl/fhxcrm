@@ -1,6 +1,5 @@
 <template>
 	<view>
-    <u-navbar is-back="false" title="资料提交" :background="{ background: '#336699' }" title-color="#ffffff"></u-navbar>
 		<view class="set-box" >
 			<u-form :model="form" v-model="form" :rules="rules" ref="uForm" :error-type="errorType">
 				<!-- 自定义字段组件 -->
@@ -12,6 +11,15 @@
 			</view>
 		</view>
 
+
+		<!-- 选择客户行业 -->
+		<u-action-sheet :list="industryList" v-model="industryShow" @click="industryClick"></u-action-sheet>
+		<!-- 选择客户来源 -->
+		<u-action-sheet :list="sourceList" v-model="sourceShow" @click="sourceClick"></u-action-sheet>
+		<!-- 跟进时间选择 -->
+		<u-picker v-model="createTimeShow" :hour="true" mode="time" :params="params" @confirm="createTimeChange"></u-picker>
+		<!-- 选择地区 -->
+		<u-select v-model="addressShow" mode="mutil-column-auto" label-name="name" :list="regionList" @confirm="addressChange" ></u-select>
 	</view>
 </template>
 
@@ -73,38 +81,23 @@
       }
     },
 		onLoad(e) {
-      console.log('onLoad',e.pr_user)
 			// 获取城市区数据
 			// this.getAllarea();
-			if(e.pr_user) {
-        this.form.pr_user = e.pr_user;
-        uni.setStorageSync('pr_user',e.pr_user);
-
-			}else{
-        let pr_user=uni.getStorageSync('pr_user');
-        if(pr_user){
-          this.form.pr_user = pr_user;
-        }
-      }
-if(this.$u.test.isEmpty(this.form.pr_user)){
-  this.$reuse.showError('请先获取正确的申请链接');
-  return false;
-}
-      if(e.id) {
-        this.customer_id = e.id
-        this.getCustomer()
-        this.type= 'edit'
-        uni.setNavigationBarTitle({
-          title: '编辑信息'
-        });
-      } else {
-        // 获取自定义字段
-        this.getFields()
-        // 获取配置字段
-        this.getBaseConfig()
-        this.type='add'
-      }
-
+			if(e.id) {
+				this.customer_id = e.id
+				this.getCustomer()
+			} else {
+				// 获取自定义字段
+				this.getFields()
+				// 获取配置字段
+				this.getBaseConfig()
+			}
+			this.type = e.type
+			if(this.type == "edit") {
+				uni.setNavigationBarTitle({
+					title: '编辑客户'
+				});
+			}
 		},
 		// 必须要在onReady生命周期，因为onLoad生命周期组件可能尚未创建完毕
 		onReady() {
@@ -125,7 +118,7 @@ if(this.$u.test.isEmpty(this.form.pr_user)){
 			},
 			// 获取客户详情
 			getCustomer() {
-				this.$u.api.getApplyCustomer({id: this.customer_id}).then(res => {
+				this.$u.api.getCustomer({id: this.customer_id}).then(res => {
 					if(res.code == 1 ) {
 						this.customerData = res.data
 						// 标签数据赋值
@@ -221,8 +214,8 @@ if(this.$u.test.isEmpty(this.form.pr_user)){
 			},
 			// 自定义字段
 			getFields() {
-				let arr = []
-				this.$u.api.getFields({table: 'apply_customer',id: ''}).then((res) => {
+				let arr = [];let source='addForm';this.type == 'edit' ? source='editForm' : source='addForm';
+				this.$u.api.getFields({table: 'crm_customer',source: source}).then((res) => {
 					if(res.code == 1){
 						this.detail = res.data.info;
 						this.fields = res.data.fields;
@@ -254,114 +247,115 @@ if(this.$u.test.isEmpty(this.form.pr_user)){
 							]*/
 						};
 						this.fields.map(item => {
-// 编辑场景
-              if(this.type == 'edit') {
-                //表单赋值
-                if (item.formtype == 'number') {
-                  custom_form[item.field] = this.customerData[item.field]
-                } else {
-                  custom_form[item.field] = this.customerData[item.field]
-                  item.value = this.customerData[item.field] // 默认值为已有的数据
-                }
-                //单图赋值
-                if (item.formtype == 'image') {
-                  if (this.customerData[item.field]) {
-                    item.value = [
-                      {
-                        url: getImgUrl(this.customerData[item.field])
-                      }
-                    ];
-                  } else {
-                    item.value = [];
-                  }
-                }
-                //多图赋值
-                if (item.formtype == 'images') {
-                  if (this.customerData[item.field]) {
-                    let images = this.customerData[item.field].split(',');
-                    let urls = [];
-                    images.forEach(it => {
-                      urls.push({
-                        url: getImgUrl(it)
-                      });
-                    });
-                    item.value = urls;
-                  } else {
-                    item.value = [];
-                  }
-                }
-                //单文件
-                if (item.formtype == 'file') {
-                  item.value = this.customerData[item.field] ? [this.customerData[item.field]] : [];
-                }
-                //多文件
-                if (item.formtype == 'files') {
-                  if (this.customerData[item.field]) {
-                    item.value = this.customerData[item.field].split(',');
-                  } else {
-                    item.value = [];
-                  }
-                }
-              } else {
-              // 新增场景 表单赋值
-              if (item.formtype == 'number') {
-                custom_form[item.field] = item.value || item.default || 0;
-              } else {
-                custom_form[item.field] = item.value || item.default || '';
-              }
-              if (item.formtype == 'radio') {
-                item.value = this.customerData[item.field]
-              }
-              //单图赋值
-              if (item.formtype == 'image') {
-                if (item.value) {
-                  item.value = [
-                    {
-                      url: getImgUrl(item.value)
-                    }
-                  ];
-                } else {
-                  item.value = [];
-                }
-              }
-              //多图赋值
-              if (item.formtype == 'images') {
-                if (item.value) {
-                  let images = item.value.split(',');
-                  let urls = [];
-                  images.forEach(it => {
-                    urls.push({
-                      url: getImgUrl(it)
-                    });
-                  });
-                  item.value = urls;
-                } else {
-                  item.value = [];
-                }
-              }
-              //单文件
-              if (item.formtype == 'file') {
-                item.value = item.value ? [item.value] : [];
-              }
-              //多文件
-              if (item.formtype == 'files') {
-                if (item.value) {
-                  item.value = item.value.split(',');
-                } else {
-                  item.value = [];
-                }
-              }
-
-              //追加自定义表单验证
-              rules[item.field] = this.getRules(item)
-            }
+							// 编辑场景
+							if(this.type == 'edit') {
+								//表单赋值
+								if (item.type == 'number') {
+									custom_form[item.field] = this.customerData[item.field]
+								} else {
+									custom_form[item.field] = this.customerData[item.field]
+									item.value = this.customerData[item.field] // 默认值为已有的数据
+								}
+								//单图赋值
+								if (item.type == 'image') {
+									if (this.customerData[item.field]) {
+										item.value = [
+											{
+												url: getImgUrl(this.customerData[item.field])
+											}
+										];
+									} else {
+										item.value = [];
+									}
+								}
+								//多图赋值
+								if (item.type == 'images') {
+									if (this.customerData[item.field]) {
+										let images = this.customerData[item.field].split(',');
+										let urls = [];
+										images.forEach(it => {
+											urls.push({
+												url: getImgUrl(it)
+											});
+										});
+										item.value = urls;
+									} else {
+										item.value = [];
+									}
+								}
+								//单文件
+								if (item.type == 'file') {
+									item.value = this.customerData[item.field] ? [this.customerData[item.field]] : [];
+								}
+								//多文件
+								if (item.type == 'files') {
+									if (this.customerData[item.field]) {
+										item.value = this.customerData[item.field].split(',');
+									} else {
+										item.value = [];
+									}
+								}
+							} else {
+								// 新增场景 表单赋值
+								if (item.type == 'number') {
+									custom_form[item.field] = item.value || item.default || 0;
+								} else {
+									custom_form[item.field] = item.value || item.default || '';
+								}
+								if(item.type == 'radio') {
+									item.value = this.customerData[item.field]
+								}
+								//单图赋值
+								if (item.type == 'image') {
+									if (item.value) {
+										item.value = [
+											{
+												url: getImgUrl(item.value)
+											}
+										];
+									} else {
+										item.value = [];
+									}
+								}
+								//多图赋值
+								if (item.type == 'images') {
+									if (item.value) {
+										let images = item.value.split(',');
+										let urls = [];
+										images.forEach(it => {
+											urls.push({
+												url: getImgUrl(it)
+											});
+										});
+										item.value = urls;
+									} else {
+										item.value = [];
+									}
+								}
+								//单文件
+								if (item.type == 'file') {
+									item.value = item.value ? [item.value] : [];
+								}
+								//多文件
+								if (item.type == 'files') {
+									if (item.value) {
+										item.value = item.value.split(',');
+									} else {
+										item.value = [];
+									}
+								}
+							}
+							//追加自定义表单验证
+							rules[item.field] = this.getRules(item)
 						});
 						this.form = custom_form // 表单字段数据合并
 						this.rules = rules;
 						this.showForm = true;
 						//设置表单验证规则
 
-
+            console.log('this.form=',this.form)
+            console.log('this.rules=',this.rules)
+            console.log('this.fields=', this.fields)
 						this.$nextTick(() => {
 							this.$refs.uForm.setRules(this.rules);
 						});
@@ -425,34 +419,38 @@ if(this.$u.test.isEmpty(this.form.pr_user)){
 			},
 			// 提交
 			onSubmit() {
-        if(this.type == 'add') {
-          this.$u.api.onApplyCustomerAdd(this.form).then((res) => {
-            if(res.code == 1) {
-              uni.navigateTo({
-                url: '/pages/apply/order/add?customer_id='+res.data.id
-              })
-            }else{
+				if(this.type == 'add') {
+					this.$u.api.onCustomerAdd(this.form).then((res) => {
+						if(res.code == 1) {
+							// 提示
+							uni.showToast({
+								title: '添加成功',
+								icon: 'success',
+								duration: 2000
+							})
+							setTimeout(() => {
+								uni.navigateBack();
+							}, 1000);
+						}else{
               this.$reuse.showError(res.msg)
             }
-          })
-
-        } else {
-          this.form.id = this.customer_id;
-          let that=this.customer_id;
-          this.$u.api.onApplyCustomerEdit(this.form).then((res) => {
-            if(res.code == 1) {
-              uni.navigateTo({
-                url: '/pages/apply/order/add?customer_id='+that
-              })
-            }else{
-              this.$reuse.showError(res.msg)
-            }
-          })
-        }
-
-
-
-
+					})
+				} else {
+					this.form.id = this.customer_id
+					this.$u.api.onCustomerEdit(this.form).then((res) => {
+						if(res.code == 1) {
+							// 提示
+							uni.showToast({
+								title: '修改成功',
+								icon: 'success',
+								duration: 2000
+							})
+							setTimeout(() => {
+								uni.navigateBack();
+							}, 1000);
+						}
+					})
+				}
 			}
 		},
 	}

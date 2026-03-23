@@ -447,7 +447,7 @@
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({source: 'contract_receivables',id: ''}).then((res) => {
+				this.$u.api.getFields({table: 'contract_receivables',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.fields = res.data.fields;
 						//渲染自定义字段,默认字段

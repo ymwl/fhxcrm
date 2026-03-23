@@ -15,7 +15,6 @@ use think\Validate;
  */
 abstract class BaseController
 {
-//    use \liliuwei\think\Jump;
     /**
      * Request实例
      * @var \think\Request
@@ -247,6 +246,47 @@ abstract class BaseController
     protected function getResponseType()
     {
         return $this->request->isJson() || $this->request->isAjax() ? 'json' : 'html';
+    }
+
+    protected function verifyFields($post,$fields,$table){
+        $rule=[];
+        foreach ($fields as $v){
+            $v['rule']=trim($v['rule'],',');
+            if($v['rule']){
+                $msg=!empty(trim($v['xsname']))?'|'.fy($v['xsname']):'|'.fy($v['name']);
+                $ruleKey=$v['field'].$msg;
+                $rule[$ruleKey]=str_replace('unique','unique:'.$table,str_replace(',','|',$v['rule']));
+            }
+
+        }
+        if($rule){
+            $this->validater($post, $rule);
+        }
+    }
+    /**
+     * 重写验证规则
+     * @param array $data
+     * @param array|string $validate
+     * @param array $message
+     * @param bool $batch
+     * @return array|bool|string|true
+     */
+    protected function validater(array $data, $validate, array $message = [], bool $batch = false)
+    {
+        try {
+            $this->validate($data, $validate, $message, $batch);
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+        }
+        return true;
+    }
+
+    protected function param_to_str($params){
+        foreach ($params as $k => $v) {
+            //数组的字段处理成字符串,主要处理是自定义字段多选的值
+            if (!empty($v) && is_array($v)) $params[$k] = implode(',', $v);
+        }
+        return $params;
     }
 
 }

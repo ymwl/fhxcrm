@@ -173,7 +173,7 @@
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({customer_id: this.customer_id}),
-					op: JSON.stringify({scene_id: '=',customer_id: '='})
+					op: JSON.stringify({scope: '=',customer_id: '='})
 				}).then(res => {
 					if(res.code == 1 ) {
 						res.data.rows.forEach((item,index) => {

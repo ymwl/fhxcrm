@@ -349,18 +349,6 @@ trait Curd
 
     //    判断是否具有修改权限
 //传入被修改者的管理员用户名
- /*   public function modifyPermissionsByName($modifiedByAdminName){
-        $adminNames=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-        if($adminNames=='ALL'){
-            return true;
-        }
-        if(!in_array($modifiedByAdminName,$adminNames)){
-            $this->error(fy("无操作当前数据权限").'!');
-        }
-        return true;
-    }*/
-    //    判断是否具有修改权限
-//传入被修改者的管理员用户名
     public function modifyPermissionsByName($modifiedByAdminName){
         $adminNames=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
         if($adminNames=='ALL'){

@@ -43,26 +43,24 @@ trait Curd
      */
     public function index()
     {
-
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
-            list($page, $limit, $where) = $this->buildTableParames();
-            $count = $this->model
-                ->where($where)
-                ->count();
-            $list = $this->model
-                ->where($where)
-                ->page($page, $limit)
-                ->order($this->sort)
-                ->select();
-            $data = [
-                'code'  => 0,
-                'msg'   => '',
-                'count' => $count,
-                'data'  => $list,
-            ];
-            return json($data);
+        if (input('selectFields')) {
+            return $this->selectList();
+        }
+        list($page, $limit, $where, $sort) = $this->buildTableParames();
+        $count = $this->model
+            ->where($where)
+            ->count();
+        $list = $this->model
+            ->where($where)
+            ->page($page, $limit)
+            ->order($sort)
+            ->select();
+        $data = [
+            'code'  => 1,
+            'msg'   => '',
+            'data'  => ['rows' => $list, 'count' => $count],
+        ];
+        return json($data);
     }
 
     /**
@@ -109,8 +107,9 @@ trait Curd
     /**
      * @NodeAnotation(title="删除")
      */
-    public function delete($id)
+    public function delete()
     {
+        $id=$this->request->param('id');
         $this->checkPostRequest();
         $row = $this->model->whereIn('id', $id)->select();
         $row->isEmpty() && $this->error(fy('The data does not exist'));
@@ -181,299 +180,182 @@ trait Curd
         }
         $this->success(fy('Save successfully'));
     }
+
     /**
      * 构建请求参数
      * @param array $excludeFields 忽略构建搜索的字段
      * @return array
      */
-    protected function buildTableParames($searchfields = null, $relationSearch = null)
+    protected function buildTableParames($excludeFields = [])
     {
-        $searchfields = is_null($searchfields) ? $this->searchFields : $searchfields;
-        $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
-        $search = $this->request->get("search", '');
-        $filter = $this->request->get("filter", '');
-        $op = $this->request->get("op", '', 'trim');
-        $sort = $this->request->get("sort", "id");
-        $order = $this->request->get("order", "DESC");
-        $offset = $this->request->get("offset", 0);
-        $limit = $this->request->get("limit", 20);
-        $filter = json_decode($filter, TRUE);
+        $get = $this->request->get('', null, null);
 
-        $op = json_decode($op, TRUE);
-        $filter = $filter ? $filter : [];
+        // 兼容前端分页参数：offset（偏移量）转换为 page（页码）
+        $limit = isset($get['limit']) && !empty($get['limit']) ? $get['limit'] : 15;
+        if (isset($get['offset']) && $get['offset'] !== '') {
+            $page = max(1, floor((int)$get['offset'] / $limit) + 1);
+        } else {
+            $page = isset($get['page']) && !empty($get['page']) ? $get['page'] : 1;
+        }
+
+        // 兼容前端排序参数：sort + order（同时保留 sort_by + sort_order）
+        $sortBy = !empty($get['sort_by']) ? $get['sort_by'] : (!empty($get['sort']) ? $get['sort'] : '');
+        $sortOrder = !empty($get['sort_order']) ? $get['sort_order'] : (!empty($get['order']) ? $get['order'] : '');
+        if (!empty($sortBy) && !empty($sortOrder)) {
+            $sort = [
+                $sortBy => $sortOrder,
+            ];
+        } else {
+            $sort = $this->sort;
+        }
+
+        $filters = isset($get['filter']) && !empty($get['filter']) ? $get['filter'] : '{}';
+        $ops = isset($get['op']) && !empty($get['op']) ? $get['op'] : '{}';
+        // json转数组
+        $filters = json_decode($filters, true);
+        $ops = json_decode($ops, true);
         $where = [];
-        $tableName = '';
-        if ($relationSearch)
-        {
-            if (!empty($this->model))
-            {
-                $tableName = $this->model->getTable() . ".";
+        $excludes = [];
+        $filters=$this->transformArray($filters);
+
+        // 关键词搜索（使用 searchFields 配置）
+        if (!empty($get['search']) && !empty($this->searchFields)) {
+            $keyword = $get['search'];
+            $fields = is_array($this->searchFields) ? $this->searchFields : explode(',', $this->searchFields);
+            $searchConditions = [];
+            foreach ($fields as $field) {
+                $searchConditions[] = "{$field} LIKE '%{$keyword}%'";
             }
-            $sort = stripos($sort, ".") === false ? $tableName . $sort : $sort;
+            if (!empty($searchConditions)) {
+                $where[] = ['', 'exp', Db::raw('(' . implode(' OR ', $searchConditions) . ')')];
+            }
         }
 
-        if ($search)
-        {
-            $searcharr = is_array($searchfields) ? $searchfields : explode(',', $searchfields);
-            foreach ($searcharr as $k => &$v)
-            {
-                $v = stripos($v, ".") === false ? $tableName . $v : $v;
+
+        // 判断是否关联查询
+        $tableName = \tools\hs::humpToLine(lcfirst($this->model->getName()));
+
+        foreach ($filters as $key => $val) {
+            if (in_array($key, $excludeFields)) {
+                $excludes[$key] = $val;
+                continue;
             }
-            unset($v);
-            $where[] = [implode("|", $searcharr), "LIKE", "%{$search}%"];
-        }
-        foreach ($filter as $k => $v)
-        {
-            $sym = isset($op[$k]) ? $op[$k] : '=';
-            if (stripos($k, ".") === false)
-            {
-                $k = $tableName . $k;
+            if(is_array($val)){
+                if(isset($val[0])){
+                    $where[] = [$key, '>=', $val[0]];
+                }
+                if(isset($val[1])){
+                    $where[] = [$key, '<=', $val[1]];
+                }
+                continue;
+
             }
-            $v = !is_array($v) ? trim($v) : $v;
-            $sym = strtoupper(isset($op[$k]) ? $op[$k] : $sym);
-            switch ($sym)
-            {
+            $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
+            if ($this->relationSearch && count(explode('.', $key)) == 1) {
+                $key = "{$tableName}.{$key}";
+            }
+            if ($this->relationSearch && count(explode('.',  $sort_by )) == 2) {
+                $sort_by  = \tools\hs::humpToLine(lcfirst($sort_by));
+            }
+            if ($this->relationSearch && count(explode('.',  $key )) == 2) {
+                $key  = \tools\hs::humpToLine(lcfirst($key));
+            }
+
+            switch (strtolower($op)) {
                 case '=':
-                case '!=':
-                    $where[] = [$k, $sym, (string) $v];
+                    $where[] = [$key, '=', $val];
                     break;
-                case 'LIKE':
-                case 'NOT LIKE':
-                case 'LIKE %...%':
-                case 'NOT LIKE %...%':
-                    $where[] = [$k, trim(str_replace('%...%', '', $sym)), "%{$v}%"];
+                case 'in':
+                    $where[] = [$key, 'in', $val];
                     break;
-                case '>':
-                case '>=':
-                case '<':
-                case '<=':
-                    $where[] = [$k, $sym, intval($v)];
+                case '%*%':
+                    $where[] = [$key, 'LIKE', "%{$val}%"];
                     break;
-                case 'FINDIN':
-                case 'FIND_IN_SET':
-                    $where[] = "FIND_IN_SET('{$v}', `{$k}`)";
+                case '*%':
+                    $where[] = [$key, 'LIKE', "{$val}%"];
                     break;
-                case 'IN':
-                case 'IN(...)':
-                case 'NOT IN':
-                case 'NOT IN(...)':
-                    $where[] = [$k, str_replace('(...)', '', $sym), is_array($v) ? $v : explode(',', $v)];
+                case '%*':
+                    $where[] = [$key, 'LIKE', "%{$val}"];
                     break;
-                case 'BETWEEN':
-                case 'NOT BETWEEN':
-                    $arr = array_slice(explode(',', $v), 0, 2);
-                    if (stripos($v, ',') === false || !array_filter($arr))
-                        continue 2;
-                    //当出现一边为空时改变操作符
-                    if ($arr[0] === '')
-                    {
-                        $sym = $sym == 'BETWEEN' ? '<=' : '>';
-                        $arr = $arr[1];
-                    }
-                    else if ($arr[1] === '')
-                    {
-                        $sym = $sym == 'BETWEEN' ? '>=' : '<';
-                        $arr = $arr[0];
-                    }
-                    $where[] = [$k, $sym, $arr];
-                    break;
-                case 'RANGE':
-                case 'NOT RANGE':
-                    $v = str_replace(' - ', ',', $v);
-                    $arr = array_slice(explode(',', $v), 0, 2);
-                    if (stripos($v, ',') === false || !array_filter($arr))
-                        continue 2;
-                    //当出现一边为空时改变操作符
-                    if ($arr[0] === '')
-                    {
-                        $sym = $sym == 'RANGE' ? '<=' : '>';
-                        $arr = $arr[1];
-                    }
-                    else if ($arr[1] === '')
-                    {
-                        $sym = $sym == 'RANGE' ? '>=' : '<';
-                        $arr = $arr[0];
-                    }
-                    $where[] = [$k, str_replace('RANGE', 'BETWEEN', $sym) . ' time', $arr];
-                    break;
-                case 'LIKE':
-                case 'LIKE %...%':
-                    $where[] = [$k, 'LIKE', "%{$v}%"];
-                    break;
-                case 'NULL':
-                case 'IS NULL':
-                case 'NOT NULL':
-                case 'IS NOT NULL':
-                    $where[] = [$k, strtolower(str_replace('IS ', '', $sym))];
+                case 'range':
+                    [$beginTime, $endTime] = explode(' - ', $val);
+                    $where[] = [$key, '>=', strtotime($beginTime)];
+                    $where[] = [$key, '<=', strtotime($endTime)];
                     break;
                 default:
-                    break;
+                    $where[] = [$key, $op, "%{$val}"];
             }
         }
-        return [$where, $sort.' '.$order, $offset, $limit];
+        return [(int)$page, (int)$limit, $where, $sort, $excludes];
+    }
+    protected function transformArray($input) {
+        $output = [];
+
+        foreach ($input as $key => $value) {
+            // 使用正则表达式匹配类似 ceshi[0] 这样的键
+            if (preg_match('/^(.+)\[(\d+)\]$/', $key, $matches)) {
+                // $matches[1] 是数组名称（例如 'ceshi'）
+                // $matches[2] 是索引（例如 '0' 或 '1'）
+                $arrayName = $matches[1];
+                $index = intval($matches[2]);
+
+                // 如果目标数组不存在，则初始化它
+                if (!isset($output[$arrayName])) {
+                    $output[$arrayName] = [];
+                }
+
+                // 将值添加到对应的数组中
+                $output[$arrayName][$index] = $value;
+            } else {
+                // 对于不符合模式的键，直接复制到输出数组中
+                $output[$key] = $value;
+            }
+        }
+
+        // 移除数组中的空隙（如果有的话），确保索引连续
+        foreach ($output as $key => &$subArray) {
+            if (is_array($subArray)) {
+                $subArray = array_values($subArray);
+            }
+        }
+
+        return $output;
+    }
+    protected function modifyPermissionsByName($modifiedByAdminName){
+        $adminNames=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
+        if($adminNames=='ALL'){
+            return true;
+        }
+        if(is_string($modifiedByAdminName)){
+            if(!in_array($modifiedByAdminName,$adminNames)){
+                $this->error(fy("无操作当前数据权限").'!');
+            }
+        }elseif (is_array($modifiedByAdminName)){
+            $diff = array_diff($modifiedByAdminName,$adminNames);
+            if (!empty($diff)) {
+                $this->error(fy("无操作当前数据权限").'!');
+            }
+        }
+        return true;
+    }
+    //传入被修改者的管理员用户id集合
+    protected function modifyPermissionsByIds($modifiedByAdminIds){
+        $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+        if($adminIds=='ALL'){
+            return true;
+        }
+        if(is_numeric($modifiedByAdminIds) || is_string($modifiedByAdminIds)){
+            if(!in_array($modifiedByAdminIds,$adminIds)){
+                $this->error(fy("无操作当前数据权限").'!');
+            }
+        }elseif (is_array($modifiedByAdminIds)){
+            $diff = array_diff($modifiedByAdminIds,$adminIds);
+            if (!empty($diff)) {
+                $this->error(fy("无操作当前数据权限").'!');
+            }
+        }
+        return true;
     }
 
-
-
-    /**
-     * 生成查询所需要的条件,排序方式
-
-     * @param mixed $searchfields 快速查询的字段
-     * @param boolean $relationSearch 是否关联查询
-     * @remark sort:排序字段
-     * order:排序方式(ASC降序,DESC升序)
-     * offset:查询开始行数
-     * limit:查询条数，
-     * search：搜索关键字，
-     * filter检索字段和值（如搜索手机号和姓名：{"name":"12","mobile":"1"}，前面是字段，后面是检索值）
-     * op匹配方式（格式：{"name":"=","mobile":"="}）
-     * op方式（=等于,!=不等于，LIKE包含，NOT LIKE不包含，>大于，>=大于等于，<小于，<=小于等于，IN在里面，BETWEEN在范围之间）
-     * @return array
-     */
-    protected function buildTableParamesScop($searchfields = null, $relationSearch = null)
-    {
-        $searchfields = is_null($searchfields) ? $this->searchFields : $searchfields;
-        $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
-        $search = $this->request->get("search", '');
-        $filter = $this->request->get("filter", '');
-        $op = $this->request->get("op", '', 'trim');
-        $sort = $this->request->get("sort", "id");
-        $order = $this->request->get("order", "DESC");
-        $offset = $this->request->get("offset", 0);
-        $limit = $this->request->get("limit", 20);
-        $filter = json_decode($filter, TRUE);
-
-
-        $scope = isset($filter['scene_id']) ? $filter['scene_id'] : 1;
-
-
-        $op = json_decode($op, TRUE);
-        $filter = $filter ? $filter : [];
-        $where = [];
-        if($scope==2){
-//                    展示下属的
-            $adminLst=(new \app\admin\model\Admin())->getChildrenAdminName($this->admin);
-            $where[] = ['pr_user', 'in',$adminLst ];
-        }elseif($scope==3){
-//                    展示下属的和自己的
-            if($this->admin['group_id']>1){
-                $adminLst=(new \app\admin\model\Admin())->getChildrenAdminName($this->admin,true);
-                $where[] = ['pr_user', 'in', $adminLst];
-            }
-        }else{
-//                    展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-        }
-        unset($filter['scene_id']);
-        $tableName = '';
-        if ($relationSearch)
-        {
-            if (!empty($this->model))
-            {
-                $tableName = $this->model->getTable() . ".";
-            }
-            $sort = stripos($sort, ".") === false ? $tableName . $sort : $sort;
-        }
-
-        if ($search)
-        {
-            $searcharr = is_array($searchfields) ? $searchfields : explode(',', $searchfields);
-            foreach ($searcharr as $k => &$v)
-            {
-                $v = stripos($v, ".") === false ? $tableName . $v : $v;
-            }
-            unset($v);
-            $where[] = [implode("|", $searcharr), "LIKE", "%{$search}%"];
-        }
-        foreach ($filter as $k => $v)
-        {
-            $sym = isset($op[$k]) ? $op[$k] : '=';
-            if (stripos($k, ".") === false)
-            {
-                $k = $tableName . $k;
-            }
-            $v = !is_array($v) ? trim($v) : $v;
-            $sym = strtoupper(isset($op[$k]) ? $op[$k] : $sym);
-            switch ($sym)
-            {
-                case '=':
-                case '!=':
-                    $where[] = [$k, $sym, (string) $v];
-                    break;
-                case 'LIKE':
-                case 'NOT LIKE':
-                case 'LIKE %...%':
-                case 'NOT LIKE %...%':
-                    $where[] = [$k, trim(str_replace('%...%', '', $sym)), "%{$v}%"];
-                    break;
-                case '>':
-                case '>=':
-                case '<':
-                case '<=':
-                    $where[] = [$k, $sym, intval($v)];
-                    break;
-                case 'FINDIN':
-                case 'FIND_IN_SET':
-                    $where[] = "FIND_IN_SET('{$v}', `{$k}`)";
-                    break;
-                case 'IN':
-                case 'IN(...)':
-                case 'NOT IN':
-                case 'NOT IN(...)':
-                    $where[] = [$k, str_replace('(...)', '', $sym), is_array($v) ? $v : explode(',', $v)];
-                    break;
-                case 'BETWEEN':
-                case 'NOT BETWEEN':
-                    $arr = array_slice(explode(',', $v), 0, 2);
-                    if (stripos($v, ',') === false || !array_filter($arr))
-                        continue 2;
-                    //当出现一边为空时改变操作符
-                    if ($arr[0] === '')
-                    {
-                        $sym = $sym == 'BETWEEN' ? '<=' : '>';
-                        $arr = $arr[1];
-                    }
-                    else if ($arr[1] === '')
-                    {
-                        $sym = $sym == 'BETWEEN' ? '>=' : '<';
-                        $arr = $arr[0];
-                    }
-                    $where[] = [$k, $sym, $arr];
-                    break;
-                case 'RANGE':
-                case 'NOT RANGE':
-                    $v = str_replace(' - ', ',', $v);
-                    $arr = array_slice(explode(',', $v), 0, 2);
-                    if (stripos($v, ',') === false || !array_filter($arr))
-                        continue 2;
-                    //当出现一边为空时改变操作符
-                    if ($arr[0] === '')
-                    {
-                        $sym = $sym == 'RANGE' ? '<=' : '>';
-                        $arr = $arr[1];
-                    }
-                    else if ($arr[1] === '')
-                    {
-                        $sym = $sym == 'RANGE' ? '>=' : '<';
-                        $arr = $arr[0];
-                    }
-                    $where[] = [$k, str_replace('RANGE', 'BETWEEN', $sym) . ' time', $arr];
-                    break;
-                case 'LIKE':
-                case 'LIKE %...%':
-                    $where[] = [$k, 'LIKE', "%{$v}%"];
-                    break;
-                case 'NULL':
-                case 'IS NULL':
-                case 'NOT NULL':
-                case 'IS NOT NULL':
-                    $where[] = [$k, strtolower(str_replace('IS ', '', $sym))];
-                    break;
-                default:
-                    break;
-            }
-        }
-        return [$where, $sort, $order, $offset, $limit];
-    }
 
 }

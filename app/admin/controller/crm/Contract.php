@@ -183,22 +183,10 @@ WHERE
         return $this->fetch();
     }
 
-    protected function verifyFields($post){
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE rule <> "" AND `edit`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
-        $rule=[];
-        foreach ($fields as $v){
-            $msg=!empty(trim($v['xsname']))?'|'.fy($v['xsname']):'|'.fy($v['name']);
-            $ruleKey=$v['field'].$msg;
-            $rule[$ruleKey]=str_replace('unique','unique:crm_contract',str_replace(',','|',trim($v['rule'],',')));
-        }
-        if($rule){
-            $this->validater($post, $rule);
-        }
-    }
-
     public function add()
     {
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post['contract']=$this->param_to_str($post['contract']);
@@ -208,16 +196,15 @@ WHERE
                 'name|合同名称' => 'require|unique:crm_contract',
                 'numbering|合同编号' => 'require|unique:crm_contract',
             ];
-
             $this->validater($post['contract'], $rule);
-            $this->verifyFields($post['contract']);
+            $this->verifyFields($post['contract'],$fields,'crm_contract');
             $row_customer=Db::name('crm_customer')->field('id,source')->where([['id','=',$post['contract']['customer_id']],['pr_user','=',$this->admin['username']]])->find();
             if(empty($row_customer['id'])){
                 $this->error('合同只能选择自己的客户');
             }
             Db::startTrans();
             try {
-                $post['contract']=post_convert('crm_contract',$post['contract']);
+                $post['contract']=post_convert($post['contract'],$fields);
                 $post['contract']['sign_time'] = $post['contract']['sign_time'] ? strtotime($post['contract']['sign_time']) : null;
                 $post['contract']['start_time'] = $post['contract']['start_time'] ? strtotime($post['contract']['start_time']) : null;
                 $post['contract']['end_time'] = $post['contract']['end_time'] ? strtotime($post['contract']['end_time']) :null;
@@ -279,13 +266,15 @@ WHERE
             }
         }
 
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `field`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `addinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
 //         remark  替换成 contract[remark]  $v['field']
-            $v['addinput'] = str_replace('"'.$v['field'].'"', '"contract['.$v['field'].']"', $v['addinput']);
-            $fields_str.=trim($v['addinput']);
+            $v['addinput']=trim($v['addinput']);
+            if($v['addinput']){
+                $v['addinput'] = str_replace('"'.$v['field'].'"', '"contract['.$v['field'].']"', $v['addinput']);
+                $fields_str.=$v['addinput'];
+            }
+
         }
         $this->app->view->engine()->layout(false);
         $fields_str=$this->display($fields_str,['row'=>[]]);
@@ -300,8 +289,9 @@ WHERE
 
     public function edit($id)
     {
-
-        $row = $this->model->find($id);
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" order BY `sort` ASC,id ASC');
+        $row = $this->model->field(array_column($fields, 'field'))->find($id);
         $this->modifyPermissions($row['owner_admin_id']);
         empty($row) && $this->error(fy('The data does not exist'));
         if($row['check_status']>=0){
@@ -328,14 +318,20 @@ WHERE
 //$id: 要排除的记录 ID
 //id: 主键字段名（可选，默认是 id）
             $this->validater($post['contract'], $rule);
-            $this->verifyFields($post['contract']);
+            $this->verifyFields($post['contract'], $fields,'crm_contract');
+            foreach ($fields as $v){
+                if($v['edit_readonly']){
+//                    只读的数据无需保存
+                    unset($post['contract'][$v['field']]);
+                }
+            }
             $row_customer=Db::name('crm_customer')->field('id,source')->where([['id','=',$post['contract']['customer_id']],['pr_user','=',$this->admin['username']]])->find();
             if(empty($row_customer['id'])){
                 $this->error('合同只能选择自己的客户');
             }
             Db::startTrans();
             try {
-                $post['contract']=post_convert('crm_contract',$post['contract']);
+                $post['contract']=post_convert($post['contract'],$fields);
                 if (isset($post['contract']['numbering']))unset($post['contract']['numbering']);
                 $post['contract']['sign_time'] = $post['contract']['sign_time'] ? strtotime($post['contract']['sign_time']) : null;
                 $post['contract']['start_time'] = $post['contract']['start_time'] ? strtotime($post['contract']['start_time']) : null;
@@ -402,8 +398,6 @@ WHERE
             }
         }
 
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);

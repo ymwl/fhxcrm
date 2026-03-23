@@ -57,7 +57,7 @@
 			return {
 				sort: 'id',
 				keyword:'',
-				sceneName: '全部客户',
+				scopeName: '全部客户',
 				specClass: 'hide',
 				priceShow: false,
 				oldScrollTop: 0,

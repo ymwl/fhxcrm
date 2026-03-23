@@ -436,9 +436,9 @@ let systemInfo = uni.getSystemInfoSync();
 						filterData.op['next_time'] = 'RANGE';
 						filterData.filter['next_time'] ="1970-01-02 00:00"+" - "+get_date(0)+" 23:59";
 						if(this.datatype.value=="oneself"){
-							filterData.op['scene_id'] = '=';
-							filterData.filter['scene_id'] = '2';
-							filterData.formName['sceneName'] = "我的客户";
+							filterData.op['scope'] = '=';
+							filterData.filter['scope'] = '2';
+							filterData.formName['scopeName'] = "我的客户";
 						}
 						// 储存
 						this.$u.vuex('vuex_filter', filterData)
@@ -448,9 +448,9 @@ let systemInfo = uni.getSystemInfoSync();
 						filterData.op['next_time'] = 'RANGE';
 						filterData.filter['next_time'] ="1970-01-02 00:00"+" - "+get_date(0)+" 23:59";
 						if(this.datatype.value=="oneself"){
-							filterData.op['scene_id'] = '=';
-							filterData.filter['scene_id'] = '8';
-							filterData.formName['sceneName'] = "我的商机";
+							filterData.op['scope'] = '=';
+							filterData.filter['scope'] = '8';
+							filterData.formName['scopeName'] = "我的商机";
 						}
 						// 储存
 						this.$u.vuex('vuex_bfilter', filterData)
@@ -460,9 +460,9 @@ let systemInfo = uni.getSystemInfoSync();
 						filterData.op['expire_type'] = '=';
 						filterData.filter['expire_type'] ="1";
 						if(this.datatype.value=="oneself"){
-							filterData.op['scene_id'] = '=';
-							filterData.filter['scene_id'] = '2';
-							filterData.formName['sceneName'] = "我的客户";
+							filterData.op['scope'] = '=';
+							filterData.filter['scope'] = '2';
+							filterData.formName['scopeName'] = "我的客户";
 						}
 						// 储存
 						this.$u.vuex('vuex_filter', filterData)
@@ -472,9 +472,9 @@ let systemInfo = uni.getSystemInfoSync();
 						filterData.op['next_time'] = 'RANGE';
 						filterData.filter['next_time'] ="1970-01-02 00:00"+" - "+get_date(0)+" 23:59";
 						if(this.datatype.value=="oneself"){
-							filterData.op['scene_id'] = '=';
-							filterData.filter['scene_id'] = '11';
-							filterData.formName['sceneName'] = "我的线索";
+							filterData.op['scope'] = '=';
+							filterData.filter['scope'] = '11';
+							filterData.formName['scopeName'] = "我的线索";
 						}
 						// 储存
 						this.$u.vuex('vuex_cluesfilter', filterData)

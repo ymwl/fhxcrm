@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import App from './App'
 
-import {getQueryVariable} from '@/common/mUtils'
+import {getQueryVariable, realFieldVal} from '@/common/mUtils'
 import {baseUrl} from '@/common/config'
 
 
@@ -200,6 +200,23 @@ const getPath = (path) => {
 	}
 
 	Vue.prototype.$reuse = {navigationTo,showError,doLogin,subscriptionInfo,getPath};
+
+	/**
+	 * 全局字段值处理函数
+	 * @param {Object} field - 字段配置
+	 * @param {Any} value - 字段值
+	 * @returns {Object} 处理后的结果 {type, text, urls, files}
+	 */
+	Vue.prototype.$realFieldVal = function(field, value) {
+		// 获取图片基础URL：优先从 vuex_system.domain，其次 baseUrl
+		let domain = '';
+		try {
+			domain = this.vuex_system && this.vuex_system.domain ? this.vuex_system.domain : baseUrl;
+		} catch (e) {
+			domain = baseUrl;
+		}
+		return realFieldVal(field, value, domain);
+	};
 
 	/**
 	 * 获取资源完整URL

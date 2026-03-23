@@ -82,7 +82,7 @@
 			// 自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({source: 'clues',id: ''}).then((res) => {
+				this.$u.api.getFields({table: 'clues',id: ''}).then((res) => {
 					if(res.code == 1){
 						res.data.fields.forEach((item,index)=>{
 							// 复选框 数据格式化

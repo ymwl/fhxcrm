@@ -10,44 +10,6 @@
 				<u-button type="success"  @click="submit" :custom-style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" :ripple="true" >提交</u-button>
 			</view>
 		</view>
-		<!-- 添加标签弹窗 -->
-		<u-popup class="popup-content" mode="bottom" border-radius="38"  v-model="tagsShow" >
-			<view class="popup-title u-border-bottom">
-				<view class=""  style="width: 45px;">
-					<!-- <u-icon name="close"  color="#909399" size="30"></u-icon> -->
-				</view>
-				<text class="">添加标签</text> 
-				<view class="" @click="tagsShow = false" style="width: 45px;">
-					<u-icon name="close"  color="#909399" size="30"></u-icon>
-				</view>
-			</view>
-			<scroll-view scroll-y style="height: 660rpx;width: 100%;">
-				<view class="list">
-					<view class="u-flex">
-						<u-input class="u-flex-1 u-m-r-15" v-model="tagVal" :border="true" />
-						<u-button type="primary" size="medium" @click="addTag" :custom-style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" :ripple="true">添加</u-button>
-					</view> 
-					<view class="u-flex u-m-t-50 u-flex-wrap">
-						<view class="u-m-b-20 u-m-r-15" v-for="(item,index) in tagList" :key="index">
-							<u-tag :text="item"  closeable @close="tagClick(index)" /> 
-						</view>
-					</view>
-				</view>
-			</scroll-view>
-			<view class="bottom_btn u-border-top">
-				<u-button type="primary"  @click="chosen" size="medium" :custom-style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" :ripple="true">确定</u-button>
-			</view>
-		</u-popup>
-		<!-- 选择客户等级 -->
-		<u-action-sheet :list="levelList" v-model="levelShow" @click="levelClick"></u-action-sheet>
-		<!-- 选择客户行业 -->
-		<u-action-sheet :list="industryList" v-model="industryShow" @click="industryClick"></u-action-sheet>
-		<!-- 选择客户来源 -->
-		<u-action-sheet :list="sourceList" v-model="sourceShow" @click="sourceClick"></u-action-sheet>
-		<!-- 跟进时间选择 -->
-		<u-picker v-model="createTimeShow" :hour="true" mode="time" :params="params" @confirm="createTimeChange"></u-picker>
-		<!-- 选择地区 -->
-		<u-select v-model="addressShow" mode="mutil-column-auto" label-name="name" :list="regionList" @confirm="addressChange" ></u-select>
 	</view>
 </template>
 
@@ -242,8 +204,8 @@
 			},
 			// 自定义字段
 			getFields() {
-				let arr = []
-				this.$u.api.getFields({source: 'crm_customer',id: ''}).then((res) => {
+				let arr = [];let source='addForm';this.type == 'edit' ? source='editForm' : source='addForm';
+				this.$u.api.getFields({table: 'crm_customer',source: source}).then((res) => {
 					if(res.code == 1){
 						this.detail = res.data.info;
 						this.fields = res.data.fields;

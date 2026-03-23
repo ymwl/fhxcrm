@@ -163,10 +163,10 @@
 			getList(isNextPage,pages) {
 				// 筛选参数
 				let filterObj = {
-					scene_id: this.types
+					scope: this.types
 				}
 				let opObj = {
-					scene_id: '='
+					scope: '='
 				}
 				// 代开发票筛选
 				if(this.currents == 2) {

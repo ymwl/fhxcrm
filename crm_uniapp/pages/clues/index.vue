@@ -392,7 +392,7 @@
 			// 自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({source: this.type == 'transform' ? 'customer' : 'clues',id: ''}).then((res) => {
+				this.$u.api.getFields({table: this.type == 'transform' ? 'customer' : 'clues',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.detail = res.data.info;
 						this.fields = res.data.fields;

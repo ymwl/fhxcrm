@@ -22,11 +22,21 @@ class Fields extends Common {
 
     }
    public function get_fields(){
+       $table=$this->request->request('table','');
        $source=$this->request->request('source','');
+       if($source=='index'){
+          $where='`show`=1 AND `table`=:table';
+       }else if($source=='addForm'){
+           $where='`edit`=1 AND `table`=:table AND `addinput` is not null AND `is_key`<>1';
+       }else if($source=='editForm'){
+           $where='`edit`=1 AND `table`=:table AND `editinput` is not null AND `is_key`<>1';
+       }else if($source=='search'){
+           $where='`search`=1 AND `table`=:table';
+       }
 
        $id = $this->request->param('id', 0, 'intval');
        $prefix=getDataBaseConfig('prefix');
-       $fields=Db::query('SELECT `id`,`default` as value,`formtype`,`foreign_key`,`relationship_primary_key`,`field`,`rule`,if(`xsname`<>"",`xsname`,`name`) title,`option` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`=:table AND `editinput` is not null AND `is_key`<>1 order BY `sort` ASC,id ASC',['table'=>$source]);
+       $fields=Db::query('SELECT `id`,`open_sort`,`default` as value,`formtype`,`foreign_key`,`relationship_primary_key`,`field`,`rule`,if(`xsname`<>"",`xsname`,`name`) title,`option`,`width` FROM `'.$prefix.'system_field` WHERE '. $where .' order BY `sort` ASC,id ASC',['table'=>$table]);
         foreach($fields as $ko => $vo){
             if($vo['formtype']=='lselect'){
 

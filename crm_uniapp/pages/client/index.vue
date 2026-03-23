@@ -15,39 +15,55 @@
 				</u-dropdown>
 				<view class="right-text">
 					<navigator url="/pages/client/filter" hover-class="none">
-						<view class="fils">筛选/{{sceneName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
+						<view class="fils">筛选/{{scopeName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
 					</navigator>
 				</view>
 			</view>
 			<scroll-view scroll-y class="sv" :style="{height:scrollHeight+'px'}" :scroll-top="scrollTop" @scroll="scroll" @scrolltolower="reachBottom">
 				<view class="page-box" @touchmove="handletouchstart" @touchend="handletouchend">
 					<block v-if="dataList.length > 0">
-						<view class="client" v-for="(item, index) in dataList" :key="index" @click="onItem(items)">
-							<view class="top">
-								<view class="left">
-									<view class="store u-line-1">{{item.name}}</view>
+						<view class="client" v-for="(item, index) in dataList" :key="index" @click="onItem(item)">
+							<!-- 动态字段展示 -->
+							<view class="client-content">
+								<view class="field-wrap">
+									<view class="field-item" v-for="(field, fIndex) in fields" :key="fIndex" v-if="shouldShowField(field, item[field.field])">
+										<text class="field-label">{{field.title}}：</text>
+										<!-- 图片类型 -->
+										<template v-if="getFieldType(field) === 'image' || getFieldType(field) === 'images'">
+											<view class="field-images">
+												<image 
+													v-for="(img, imgIdx) in getFieldUrls(field, item[field.field])" 
+													:key="imgIdx"
+													:src="img" 
+													class="field-thumb" 
+													mode="aspectFill"
+													@click.stop="previewImage(img, getFieldUrls(field, item[field.field]))">
+												</image>
+											</view>
+										</template>
+										<!-- 文件类型 -->
+										<template v-else-if="getFieldType(field) === 'file' || getFieldType(field) === 'files'">
+											<view class="field-files">
+												<view 
+													v-for="(file, fileIdx) in getFieldFiles(field, item[field.field])" 
+													:key="fileIdx"
+													class="file-item"
+													@click.stop="downloadFile(file)">
+													<u-icon name="file-text" size="32" color="#666"></u-icon>
+													<text class="file-name">{{file.name}}</text>
+												</view>
+											</view>
+										</template>
+										<!-- 文本类型 -->
+										<template v-else>
+											<text class="field-value">{{getFieldText(field, item[field.field])}}</text>
+										</template>
+									</view>
 								</view>
-								<view :style="{color: items.issuccess == 1 ? '#19be6b' :vuex_theme.color}">
-								{{item.issuccess | changeStatus}}
-								<u-icon name="arrow-right" :color="vuex_theme.color" :size="26"></u-icon></view>
 							</view>
-							<!-- 标签 -->
-							<view class="tap" v-if="items.tags !='' ">
-								<u-tag :text="item"  size="min"  v-for="(item,i) in items.tagsArr" :key="i" />
-							</view>
-							<view class="item">
-								<view class="content">
-									<view class="title u-line-2">{{item.phone ? items.phone :items.email}}</view>
-
-								</view>
-								<view class="right">负责人：{{item.pr_user}}</view>
-							</view>
-							<view class="bottom">
-								<view class="client_time" v-if="items.next_up_time>0">下次跟进：{{timeFormats(items.next_up_time)}}</view>
-								<view class="client_time" v-else>最后跟进：{{timeFormats(items.last_up_time)}}</view>
-								<view class="u-flex">
-									<view class="btn u-m-l-15 entity" :style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" @click.stop="follow(items.id)">跟进</view>
-								</view>
+							<!-- 跟进按钮 - 右侧 -->
+							<view class="client-action">
+								<view class="btn entity" :style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" @click.stop="follow(item.id)">跟进</view>
 							</view>
 						</view>
 						<u-loadmore :status="listStatus" ></u-loadmore>
@@ -72,7 +88,7 @@
 				sortName: '默认排序',
 				sort: 'id',
 				keyword:'',
-				sceneName: '我的客户',
+				scopeName: '我的客户',
 				specClass: 'hide',
 				priceShow: false,
 				oldScrollTop: 0,
@@ -80,6 +96,7 @@
 				search: {
 					fontSise: '18px'
 				},
+				fields: [],
 				dataList: [],
 				value1: 0,
 				options1: [
@@ -94,7 +111,7 @@
 						sort: 'next_time',
 					},
 					{
-						label: '跟进状态',
+						label: '成交状态',
 						value: 2,
 						sort: 'issuccess',
 					},
@@ -163,7 +180,7 @@
 			})
 		},
 		onLoad(e) {
-			
+      this.getFields();
 		},
 		onShow(){
 			// 是否有筛选数据
@@ -180,6 +197,139 @@
 			
 		},
 		methods: {
+			// 判断字段是否应该显示
+			shouldShowField(field, value) {
+				// 空值不显示
+				if (value === '' || value === null || value === undefined) {
+					return false;
+				}
+				// 时间/日期类型值为0不显示
+				const formtype = field.formtype || 'text';
+				if ((formtype === 'datetime' || formtype === 'date') && value == 0) {
+					return false;
+				}
+				return true;
+			},
+			// 获取字段类型
+			getFieldType(field) {
+				const result = this.$realFieldVal(field, '');
+				return field.formtype || 'text';
+			},
+			// 获取字段显示文本
+			getFieldText(field, value) {
+				const result = this.$realFieldVal(field, value);
+				return result.text;
+			},
+			// 获取图片URL数组
+			getFieldUrls(field, value) {
+				const result = this.$realFieldVal(field, value);
+				return result.urls || [];
+			},
+			// 获取文件数组
+			getFieldFiles(field, value) {
+				const result = this.$realFieldVal(field, value);
+				return result.files || [];
+			},
+			// 预览图片
+			previewImage(current, urls) {
+				uni.previewImage({
+					current: current,
+					urls: urls
+				});
+			},
+			// 下载文件
+			downloadFile(file) {
+				uni.showLoading({ title: '下载中...' });
+				uni.downloadFile({
+					url: file.url,
+					success: (res) => {
+						uni.hideLoading();
+						if (res.statusCode === 200) {
+							uni.openDocument({
+								filePath: res.tempFilePath,
+								success: () => {
+									console.log('文件打开成功');
+								},
+								fail: (err) => {
+									uni.showToast({ title: '文件打开失败', icon: 'none' });
+								}
+							});
+						}
+					},
+					fail: () => {
+						uni.hideLoading();
+						uni.showToast({ title: '下载失败', icon: 'none' });
+					}
+				});
+			},
+      // 自定义字段
+      getFields() {
+        let arr = []
+        this.$u.api.getFields({table: 'crm_customer',source: 'index'}).then((res) => {
+          if(res.code == 1){
+          /*this.fields=     {
+                "id": 10,
+                "open_sort": 0,
+                "value": "",
+                "formtype": "input",
+                "foreign_key": "name",
+                "relationship_primary_key": "id",
+                "field": "contact",
+                "rule": "",
+                "title": "客户联系人",
+                "option": "",
+                "width": 150
+            },
+            {
+                "id": 30,
+                "open_sort": 1,
+                "value": "",
+                "formtype": "input",
+                "foreign_key": "",
+                "relationship_primary_key": "",
+                "field": "email",
+                "rule": "email",
+                "title": "邮箱",
+                "option": "",
+                "width": 100
+            },
+            {
+                "id": 33,
+                "open_sort": 0,
+                "value": "",
+                "formtype": "district",
+                "foreign_key": "",
+                "relationship_primary_key": "",
+                "field": "area",
+                "rule": "",
+                "title": "地区",
+                "option": "",
+                "width": 100
+            },*/
+            this.fields = res.data.fields;
+
+            // 获取参与排序的字段（open_sort为1的就是）赋值给options1，没有则保持默认排序字段
+            const sortFields = res.data.fields.filter(f => f.open_sort === 1);
+            if (sortFields.length > 0) {
+              // 第一项固定为默认排序
+              const newOptions = [{
+                label: '默认排序',
+                value: 0,
+                sort: 'id',
+              }];
+              // 动态添加可排序字段
+              sortFields.forEach((field, index) => {
+                newOptions.push({
+                  label: field.title,
+                  value: index + 1,
+                  sort: field.field,
+                });
+              });
+              this.options1 = newOptions;
+            }
+          }
+        })
+      },
 			// 排序
 			optionsChange(){
 				this.sort = this.options1[this.value1].sort
@@ -217,19 +367,18 @@
 					filterObj = this.vuex_filter.filter
 					opObj = this.vuex_filter.op
 
-					if(this.vuex_filter.formName.sceneName) {
-						this.sceneName = this.vuex_filter.formName.sceneName
-					}
-				} else {
-					this.sceneName = '我的客户'
+
 				}
-				// 下次跟进排序筛选 next_time > 0
-				if(this.sort == 'next_time') {
-					filterObj.next_time = '0'
-					opObj.next_time ='>'
-				}
+        if(!this.$u.test.isEmpty(this.vuex_filter.scopeName)) {
+          this.scopeName = this.vuex_filter.scopeName
+          this.scope = this.vuex_filter.scope
+        }else {
+          this.scopeName = '我的客户'
+          this.scope = 1
+        }
 				this.$u.api.getCustomerList({
 					sort: this.sort,
+					scope: this.scope,
 					order: this.sort == 'next_time' ? 'asc' : 'desc',
 					search:this.keyword,
 					offset: (pages || 0 ) * this.pageSize,
@@ -327,7 +476,8 @@
 	padding: 20rpx 20rpx 45rpx;
 }
 .client {
-
+	display: flex;
+	flex-direction: column;
 	background-color: #ffffff;
 	margin-bottom: 20rpx;
 	border-radius: 20rpx;
@@ -392,6 +542,73 @@
 				color: $u-tips-color;
 				font-size: 24rpx;
 			}
+		}
+	}
+	.client-content {
+		width: 100%;
+	}
+	.client-action {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 16rpx;
+		padding-top: 16rpx;
+		border-top: 1rpx solid #f0f0f0;
+		.btn {
+			line-height: 56rpx;
+			padding: 0 32rpx;
+			border-radius: 8rpx;
+			font-size: 26rpx;
+			text-align: center;
+			white-space: nowrap;
+		}
+		.entity {
+			color: #fff;
+		}
+	}
+	.field-wrap {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.field-item {
+		min-width: 50%;
+		box-sizing: border-box;
+		padding: 8rpx 20rpx 8rpx 0;
+		font-size: 26rpx;
+		.field-label {
+			color: #666;
+		}
+		.field-value {
+			color: #333;
+			word-break: break-all;
+		}
+		.field-images {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8rpx;
+		}
+		.field-thumb {
+			width: 80rpx;
+			height: 80rpx;
+			border-radius: 8rpx;
+			background-color: #f5f5f5;
+		}
+		.field-files {
+			display: flex;
+			flex-direction: column;
+			gap: 8rpx;
+		}
+		.file-item {
+			display: flex;
+			align-items: center;
+			gap: 8rpx;
+		}
+		.file-name {
+			color: #2979ff;
+			font-size: 24rpx;
+			max-width: 300rpx;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 	}
 	.total {

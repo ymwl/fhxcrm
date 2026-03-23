@@ -390,6 +390,8 @@ class Customer extends AdminController
      */
     public function add()
     {
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $allowCustomersNum=$this->model->allowCustomersNum($this->admin);
             if($allowCustomersNum['max_customers_num']>0){
@@ -400,9 +402,9 @@ class Customer extends AdminController
             }
             $post = $this->request->post();
             $post=$this->param_to_str($post);
-            $this->verifyFields($post);
+            $this->verifyFields($post,$fields,'crm_customer');
             try {
-                $post=post_convert('crm_customer',$post);
+                $post=post_convert($post,$fields);
                 $post['at_user']=$this->admin['username'];
                 $post['pr_user']=$this->admin['username'];
                 $post['owner_admin_id']=$this->admin['admin_id'];
@@ -438,8 +440,6 @@ class Customer extends AdminController
             }
             $id ? $this->success(fy('Save successfully')) : $this->error(fy('Save failed'));
         }
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `addinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['addinput']);
@@ -458,13 +458,15 @@ class Customer extends AdminController
      */
     public function edit($id)
     {
-        $row = $this->model->find($id);
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
+        $row = $this->model->field(array_column($fields, 'field'))->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
         $this->modifyPermissionsByName($row['pr_user']);
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
-            $this->verifyFields($post);
+            $this->verifyFields($post,$fields,'crm_customer');
             $prefix=getDataBaseConfig('prefix');
             $fields =Db::query('SELECT `field`,`formtype`,`xsname`,`name` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `editinput` is not null ');
 
@@ -483,7 +485,7 @@ class Customer extends AdminController
             }
             Db::startTrans();
             try {
-                $post=post_convert('crm_customer',$post);
+                $post=post_convert($post,$fields);
                 $post['update_time']=time();
                 if(strpos($post['phone'],'****')!==false){
                     unset($post['phone']);
@@ -548,8 +550,6 @@ class Customer extends AdminController
             }
             $save ? $this->success(fy('Save successfully')) : $this->error(fy('Save failed'));
         }
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
@@ -609,20 +609,6 @@ class Customer extends AdminController
             $this->error(fy('Delete failed'));
         }
         $save ? $this->success(fy('Delete succeeded')) : $this->error(fy('Delete failed'));
-    }
-
-    protected function verifyFields($post){
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE rule <> "" AND `edit`=1 AND `table`="crm_customer" AND `editinput` is not null order BY `sort` ASC,id ASC');
-        $rule=[];
-        foreach ($fields as $v){
-            $msg=!empty(trim($v['xsname']))?'|'.fy($v['xsname']):'|'.fy($v['name']);
-            $ruleKey=$v['field'].$msg;
-            $rule[$ruleKey]=str_replace('unique','unique:crm_customer',str_replace(',','|',trim($v['rule'],',')));
-        }
-        if($rule){
-            $this->validater($post, $rule);
-        }
     }
 
     //客户转移，变更负责人
@@ -824,7 +810,7 @@ class Customer extends AdminController
 
                         try {
                             if($rule){
-                                parent::validate($data, $rule);
+                                $this->validate($data, $rule);
                             }
                             foreach ($data as $k=>$v){
                                 if(isset($arr_fields[$k]['formtype'])){
@@ -946,149 +932,6 @@ class Customer extends AdminController
         }
         exit();
     }
-
-    /**
-     * @NodeAnotation(title="导出")
-     */
-    public function exportbak()
-    {
-        @ini_set("memory_limit",'-1');
-        @ini_set('max_execution_time', '0');
-
-        list($page, $limit, $where,$sort) = $this->buildTableParames();
-        $scope=$this->request->get('scope', 1,'intval');
-
-        if($scope==2){
-//                    展示其他的  不包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
-            if(empty($adminName)){
-                return json([
-                    'code'  => 0,
-                    'msg'   => '',
-                    'count' => 0,
-                    'data'  => [],
-                ]);
-            }
-            if($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
-            }elseif($adminName=='ALL'){
-//                    展示其他的  不包括自己需要做排除
-                $where[] = ['pr_user', '<>',$this->admin['username']];
-            }
-
-        }elseif($scope==3){
-//                    展示全部 包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-            if(empty($adminName)){
-                $where[] = ['id', 'in',-1];
-            }elseif($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
-            }
-        }elseif($scope==10){
-// 待跟进
-            $where[] = ['next_time', '>', 0];
-            $where[] = ['next_time', '<', strtotime('tomorrow')];
-// 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-
-        }elseif($scope==11){
-// 今天已跟进
-            $where[] = ['last_up_time', '>=', strtotime('today')];
-            $where[] = ['last_up_time', '<', strtotime('tomorrow')];
-// 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-
-        }elseif($scope==12){
-// 从未跟进
-            $where[] = ['last_up_time', '=', 0];
-// 限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-
-        }elseif($scope==20){
-
-            //            展示自己分享给他人的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-            $where[] = ['share_admin_ids', '<>', ''];
-
-        }elseif($scope==21){
-            //                    展示分享给我的
-            $where[]=['','exp',\think\facade\Db::raw("FIND_IN_SET('{$this->admin['admin_id']}',share_admin_ids)")];
-        }else{
-//                   限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-        }
-        $where[]=['status','=',1];
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `field`,`name`,`xsname`,`width`,`rule`,`formtype`,`option` FROM `'.$prefix.'system_field` WHERE (`export`=1 OR `show`=1) AND `table`="crm_customer" order BY `sort` ASC,id ASC');
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $worksheet = $spreadsheet->getActiveSheet();
-        $i = 0;
-        $str_fields='`id`';
-        $arr_fields=[];
-
-        foreach ($fields as $k => $v) {
-            $name=$v['xsname']?$v['xsname']:$v['name'];
-            if ($i >= 26) {
-                $cell = chr(65 + $i / 26 - 1) . chr(65 + $i % 26);
-            } else {
-                $cell = chr(65 + $i);
-            }
-            $worksheet->getStyle($cell . '1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('cdf79e');
-            $worksheet->getColumnDimension($cell)->setWidth($v['width'],'px');
-            if($v['field']!='id'){
-                $str_fields=$str_fields.',`'.$v['field'].'`';
-            }
-
-            $arr_fields[$cell]=$v;
-            $worksheet->setCellValue($cell . '1', $name);
-            $i++;
-        }
-        $str_fields=trim($str_fields,',');
-        $line=1;
-        $cursor=$this->model->field($str_fields)
-            ->where($where)
-            ->order($sort)->cursor();
-        $styleArray = array(
-            'font' => array(
-                'bold'  => false,
-                'color' => array('rgb' => '000000'),
-                'size'  => 12,
-                'name'  => 'Microsoft Yahei'
-            ));
-//        循环输出
-        foreach ($cursor as $key => $item) {
-            $line++;
-            foreach ($arr_fields as $cell => $field) {
-                $value=$item[$field['field']];
-                $value=real_field_val($field,$value);
-
-                $worksheet->setCellValue($cell . $line, $value.' ');
-                $worksheet->getStyle($cell . $line)->getNumberFormat()->setFormatCode('@');
-                $worksheet->getCell($cell . $line)->getStyle()->applyFromArray($styleArray);
-
-            }
-        }
-        ob_end_clean();
-        $title = date("YmdHis");
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $title . '.xlsx"');
-        header('Cache-Control: max-age=0');
-        header('Cache-Control: cache, must-revalidate');
-        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-        try {
-            $writer->save('php://output');
-            $spreadsheet->disconnectWorksheets();
-            unset($spreadsheet);
-        } catch (\Exception $e) {
-            echo $e->getMessage();
-        }
-
-        exit();
-    }
-
-
-
-
 
     public function export()
     {

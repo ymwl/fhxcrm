@@ -1499,10 +1499,8 @@ class TablHandle
         }
         if($value['search']==1){
             $field['search']=true;
-            $str .= '{field: \''.$value['field'].'\',  title: \''.$xsname.'\',totalRowText: \'合计\''.$width.'},';
         }else{
             $field['search']=false;
-            $str .= '{field: \''.$value['field'].'\',  title: \''.$xsname.'\',search:false,totalRowText: \'合计\''.$width.'},';
         }
         if(!empty($value['width'])){
             $field['width']=$value['width'];

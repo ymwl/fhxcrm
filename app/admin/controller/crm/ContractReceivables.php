@@ -142,19 +142,7 @@ class ContractReceivables extends AdminController
         return $this->fetch();
     }
 
-    protected function verifyFields($post){
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE rule <> "" AND `edit`=1 AND `table`="crm_contract_receivables" AND `editinput` is not null order BY `sort` ASC,id ASC');
-        $rule=[];
-        foreach ($fields as $v){
-            $msg=!empty(trim($v['xsname']))?'|'.fy($v['xsname']):'|'.fy($v['name']);
-            $ruleKey=$v['field'].$msg;
-            $rule[$ruleKey]=str_replace('unique','unique:crm_contract_receivables',str_replace(',','|',trim($v['rule'],',')));
-        }
-        if($rule){
-            $this->validater($post, $rule);
-        }
-    }
+
 
 
     public function add()
@@ -167,6 +155,8 @@ class ContractReceivables extends AdminController
         if(!$contract_row){
             $this->error('提交回款指定合同不存在');
         }
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables" order BY `sort` ASC,id ASC');
 
         if ($this->request->isPost()) {
             $post = $this->request->post();
@@ -180,7 +170,7 @@ class ContractReceivables extends AdminController
             ];
 
             $this->validater($post, $rule);
-            $this->verifyFields($post);
+            $this->verifyFields($post, $fields,'crm_contract_receivables');
             $pr_user=Db::name('crm_customer')->where([['id','=',$post['customer_id']]])->value('pr_user');
             if(empty($pr_user)){
                 $this->error('请先设置客户负责人');
@@ -192,7 +182,7 @@ class ContractReceivables extends AdminController
 
             try {
 
-                $post=post_convert('crm_contract_receivables',$post);
+                $post=post_convert($post,$fields);
                 $post['check_status'] =0;
                 $post['create_username'] =$this->admin['username'];
                 $post['owner_admin_id'] =$admin_id;
@@ -215,7 +205,6 @@ class ContractReceivables extends AdminController
         }
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `field`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables" AND `addinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['addinput']);
@@ -235,8 +224,9 @@ class ContractReceivables extends AdminController
 
     public function edit($id)
     {
-
-        $row = $this->model->find($id);
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables" order BY `sort` ASC,id ASC');
+        $row = $this->model->field(array_column($fields, 'field'))->find($id);
         $this->modifyPermissions($row['owner_admin_id']);
         empty($row) && $this->error(fy('The data does not exist'));
         if($row['check_status']>2){
@@ -257,10 +247,10 @@ class ContractReceivables extends AdminController
                 'return_time|回款日期'    => 'require',
             ];
             $this->validater($post, $rule);
-            $this->verifyFields($post);
+            $this->verifyFields($post,$fields,'crm_contract_receivables');
             Db::startTrans();
             try {
-                $post=post_convert('crm_contract_receivables',$post);
+                $post=post_convert($post,$fields);
                 $post['check_status'] =0;
 
                 $save = $row->allowField($this->model->getTableFields())->save($post);
@@ -291,9 +281,6 @@ class ContractReceivables extends AdminController
                 $this->error(fy('Save failed'));
             }
         }
-
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);

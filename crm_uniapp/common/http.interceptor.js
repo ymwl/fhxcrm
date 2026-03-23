@@ -67,31 +67,9 @@ const install = (Vue, vm) => {
 		// } else return false;
 
 		if(res.statusCode == 200) {
-			/*if(!isRefreshing &&
-				!vm.$u.test.contains(vm.$u.http.options.url,'login/config') &&
-				!vm.$u.test.contains(vm.$u.http.options.url,'yzm/index') &&
-				!vm.$u.test.contains(vm.$u.http.options.url,'login/index') &&
-				!vm.$u.test.contains(vm.$u.http.options.url,'ajax/refreshtoken')){
-				let expire=vm.vuex_admin.expire;
-				var timestamp = Date.parse(new Date());
-				if(expire<(timestamp/1000-600)){
-					isRefreshing=true;
-					vm.$u.post('ajax/refreshtoken').then(res => {
-						vm.$u.vuex('vuex_token', res.data.token)
-						vm.$u.vuex('vuex_admin', res.data);//存储登录的信息
-					}).finally(() => {
-						isRefreshing = false
-					})
-				}
-			}*/
-
-			// res为服务端返回值，可能有code，result等字段
-			// 这里对res.result进行返回，将会在this.$u.post(url).then(res => {})的then回调中的res的到
-			// 如果配置了originalData为true，请留意这里的返回值
-
-			//返回 code为0 数据为空进行提示
-			if(res.data.code == 0 && res.data.data == null) {
-				vm.$u.toast(res.data.msg);
+			// code==1 为成功，code==0 为业务错误
+			if(res.data.code == 0) {
+				vm.$u.toast(res.data.msg || '操作失败');
 			}
 			return res.data;
 		} else if(res.statusCode == 401) {

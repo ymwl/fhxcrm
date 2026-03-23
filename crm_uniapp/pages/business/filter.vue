@@ -2,7 +2,7 @@
 	<view>
 		<view class="slot-content">
 			<u-cell-group>
-				<u-cell-item  title="商机场景"  :value="formName.sceneName" @click="sceneShow = true"></u-cell-item>
+				<u-cell-item  title="商机场景"  :value="formName.scopeName" @click="sceneShow = true"></u-cell-item>
 				<u-cell-item  title="负责人" :value="formName.companyName" @click="companyShow = true"></u-cell-item>
 				<u-cell-item  title="客户"  :value="formName.customerName" @click="customerShow = true"></u-cell-item>
 				<u-cell-item  title="状态" :value="formName.isEndName" @click="isEndShow = true"></u-cell-item>
@@ -182,7 +182,7 @@
 				companyShow: false,
 				timeType: '',
 				form: {
-					scene_id: '',
+					scope: '',
 					customer_id: '',
 					owner_user_id: '',
 					next_time: '',
@@ -195,7 +195,7 @@
 					deal_time_start: '选择',
 					deal_time_end: '选择',
 					companyName: '选择',
-					sceneName: '选择',
+					scopeName: '选择',
 					levelName: '选择',
 					customerName: '选择',
 					isEndName: '选择',
@@ -246,9 +246,9 @@
 			},
 			// 选择商机场景
 			sceneClick(index) {
-				this.formName.sceneName =  this.sceneList[index].text
+				this.formName.scopeName =  this.sceneList[index].text
 				this.sceneList[index].color = '#2979ff'
-				this.form.scene_id = this.sceneList[index].id
+				this.form.scope = this.sceneList[index].id
 			},
 			// 选择商机等级
 			levelClick(index) {
@@ -430,7 +430,7 @@
 					if (this.form.hasOwnProperty.call(this.form, key)) {
 						if(!this.$u.test.isEmpty(this.form[key])){
 							switch (this.form[key]) {
-								case 'scene_id':
+								case 'scope':
 									this.sceneList.forEach((item,index)=>{
 										if(key = item.id) {
 											item.color = ""
@@ -467,7 +467,7 @@
 					}
 				}
 				this.form = {
-					scene_id: '',
+					scope: '',
 					level: '',
 					industry: '',
 					source: '',
@@ -482,7 +482,7 @@
 					deal_time_start: '选择',
 					deal_time_end: '选择',
 					companyName: '选择',
-					sceneName: '选择',
+					scopeName: '选择',
 					levelName: '选择',
 					customerName: '选择',
 					isEndName: '选择',

@@ -35,11 +35,11 @@ class Authority extends Common
                 if (!$sessionInfo) {
                     throw new \Exception('token已过期', 401);
                 }
-                $user = Db::name('admin')->field('`admin_id`,`username`,`realname`,`group_id`,`avatar`,`isphone`,`is_open`')->where('admin_id', $sessionInfo->admin_id)->cache('admin_id' . $sessionInfo->admin_id, 300)->find();
-                if ($user['is_open'] < 1) {
+//                `admin_id`,`username`,`salt`,`realname`,`pwd`,`group_id`,`avatar`,`isphone`,`is_open`,`role_id`,phone,email,wechat
+                $this->admin  = Db::name('admin')->field('`admin_id`,`username`,`realname`,`group_id`,`avatar`,`isphone`,`is_open`,`role_id`,phone,email,wechat')->where('admin_id', $sessionInfo->admin_id)->cache('admin_id' . $sessionInfo->admin_id, 300)->find();
+                if ($this->admin['is_open'] < 1) {
                     throw new \Exception('当前用户已禁用，请联系网站管理员!', 401);
                 }
-                $this->admin = $user;
 
                 //权限管理
                 //当前操作权限ID

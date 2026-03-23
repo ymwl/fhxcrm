@@ -675,8 +675,8 @@
 					order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
-					filter: JSON.stringify({scene_id:"4",types_id: this.customer_id,}),
-					op: JSON.stringify({scene_id:"=",types_id:"="})
+					filter: JSON.stringify({scope:"4",types_id: this.customer_id,}),
+					op: JSON.stringify({scope:"=",types_id:"="})
 				}).then(res => {
 					if(res.code == 1 ) {
 						// 不够一页
@@ -703,8 +703,8 @@
 					order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
-					filter: JSON.stringify({scene_id: 4,customer_id: this.customer_id}),
-					op: JSON.stringify({scene_id: '=',customer_id: '='})
+					filter: JSON.stringify({scope: 4,customer_id: this.customer_id}),
+					op: JSON.stringify({scope: '=',customer_id: '='})
 				}).then(res => {
 					if(res.code == 1 ) {
 						// 不够一页

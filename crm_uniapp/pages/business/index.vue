@@ -14,7 +14,7 @@
 				</u-dropdown>
 				<view class="right-text">
 					<navigator url="/pages/business/filter" hover-class="none">
-						<view class="fils">筛选/{{sceneName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
+						<view class="fils">筛选/{{scopeName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
 					</navigator>
 				</view>
 			</view>
@@ -66,7 +66,7 @@
 				sortName: '默认排序',
 				sort: 'id',
 				specClass: 'hide',
-				sceneName: '全部商机',
+				scopeName: '全部商机',
 				keyword: '',
 				oldScrollTop: 0,
 				scrollTop: -1,
@@ -212,11 +212,11 @@
 				if(!this.$u.test.isEmpty(this.vuex_bfilter.filter)) {
 					filterObj = this.vuex_bfilter.filter
 					opObj = this.vuex_bfilter.op
-					if(this.vuex_bfilter.formName.sceneName) {
-						this.sceneName = this.vuex_bfilter.formName.sceneName
+					if(this.vuex_bfilter.formName.scopeName) {
+						this.scopeName = this.vuex_bfilter.formName.scopeName
 					}
 				} else {
-					this.sceneName = '全部商机'
+					this.scopeName = '全部商机'
 				}
 				// 下次跟进排序筛选 next_time > 0
 				if(this.sort == 'next_time') {

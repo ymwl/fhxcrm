@@ -169,7 +169,7 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({source: 'customer_contacts',id: ''}).then((res) => {
+				this.$u.api.getFields({table: 'customer_contacts',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.fields = res.data.fields;
 						res.data.fields.forEach((item,index)=>{

@@ -254,7 +254,7 @@
 					filter.pr_user = this.pr_user_name
 					op.pr_user = '='
 				}
-        filter.scene_id=3
+        filter.scope=3
 				this.$u.api.getCustomerList({
 					sort: 'id',
 					order: 'desc',

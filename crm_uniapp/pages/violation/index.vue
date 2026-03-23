@@ -15,7 +15,7 @@
 				</u-dropdown>
 <!--				<view class="right-text">
 					<navigator url="/pages/violation/filter" hover-class="none">
-						<view class="fils">筛选/{{sceneName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
+						<view class="fils">筛选/{{scopeName}}<u-icon name="arrow-right" color="#303133" size="30"></u-icon></view>
 					</navigator>
 				</view>-->
 			</view>
@@ -70,7 +70,7 @@
 				sortName: '默认排序',
 				sort: 'id',
 				keyword:'',
-				sceneName: '违章记录',
+				scopeName: '违章记录',
 				specClass: 'hide',
 				priceShow: false,
 				oldScrollTop: 0,
@@ -215,11 +215,11 @@
 					filterObj = this.vuex_filter.filter
 					opObj = this.vuex_filter.op
 
-					if(this.vuex_filter.formName.sceneName) {
-						this.sceneName = this.vuex_filter.formName.sceneName
+					if(this.vuex_filter.formName.scopeName) {
+						this.scopeName = this.vuex_filter.formName.scopeName
 					}
 				} else {
-					this.sceneName = '违章记录'
+					this.scopeName = '违章记录'
 				}
 				// 下次跟进排序筛选 next_time > 0
 				if(this.sort == 'next_time') {
