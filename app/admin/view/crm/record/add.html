@@ -1,35 +1,101 @@
-<div class="layuimini-container">
-    <form id="app-form" class="layui-form layuimini-form">
-        
-        <div class="layui-form-item">
-            <label class="layui-form-label">被跟进的客户ID</label>
-            <div class="layui-input-block">
-                <input type="text" name="customer_id" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}被跟进的客户ID" value="0">
-            </div>
+<style>
+    .layuimini-container .layui-table-cell,.layui-table-view .layui-table{height: auto;}
+</style>
+<div class="admin-main layui-anim layui-anim-upbit">
+    <fieldset class="layui-elem-field layui-field-title">
+        <legend>{:fy('Write follow-up')}</legend>
+    </fieldset>
+    <div class="layui-row" style="">
+        <div class="layui-col-xs12 layui-col-sm6 layui-col-md6 layui-col-lg6">
+            <form class="layui-form form-readonly">
+            <div class="layui-row">
+        {$fields_str|raw}
         </div>
-        <div class="layui-form-item">
-            <label class="layui-form-label">跟进者</label>
-            <div class="layui-input-block">
-                <input type="text" name="username" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}跟进者" value="0">
-            </div>
+            </form>
         </div>
-        <div class="layui-form-item">
-            <label class="layui-form-label">跟进内容</label>
-            <div class="layui-input-block">
-                <textarea name="content" rows="20" class="layui-textarea editor" 跟进内容 placeholder="{:fy('Please enter')}跟进内容"></textarea>
+        <div class="layui-col-xs12 layui-col-sm6 layui-col-md6 layui-col-lg6" style="padding: 0 10px 0 10px;">
+            <fieldset class="layui-elem-field " style="padding: 15px 15px 0 15px">
+                <legend>填写跟进</legend>
+
+                <div class="layui-form layui-form-pane">
+
+                    <div class="layui-form-item layui-form-text">
+
+                        <div class="layui-input-block">
+                            <textarea name="content" id="content"  required lay-verify="required" placeholder="{:fy('Follow up frequently and sign more')}"  class="layui-textarea fly-editor" style="height: 150px;"></textarea>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:fy('Attachment')}</label>
+                        <div class="layui-input-block layuimini-upload">
+                            <input name="attachs" class="layui-input layui-col-xs6" placeholder="{:fy('Please upload')} {:fy('Attachment')}" value="">
+                            <div class="layuimini-upload-btn">
+                                <span><a class="layui-btn" data-upload="attachs" data-upload-number="5" ><i class="fa fa-upload"></i> {:fy('Upload')}</a></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="layui-form-item layui-form-text">
+                        <label class="layui-form-label"> {:fy('Follow up type')}:</label>
+                        <div class="layui-input-inline">
+                            <select name="record_type">
+                                <option value="">{:fy('Please select')} {:fy('Follow up type')}</option>
+                                <?php
+$typeList=think\facade\Db::name('crm_record_type')->field('`id`,`name`')->where('status','=',1)->order('sort ASC,id DESC')->select();
+                                foreach($typeList as $v){
+?>
+                                <option value="{$v['name']}">{$v['name']}</option>
+<?php } ?>
+
+
+                            </select>
+
+
+                        </div>
+                    </div>
+                    <div class="layui-form-item layui-form-text">
+                        <label class="layui-form-label"> {:fy('Next follow-up time')}:</label>
+                        <div class="layui-input-inline">
+
+                            <input  lay-verify="required"  type="text"   class="layui-input" name="next_time" autocomplete="off" value="{:date('Y-m-d H:i:s',strtotime('+1 day'))}">
+
+                        </div>
+                    </div>
+                    <div class="layui-form-item text-center">
+                        <input type="hidden" name="customer_id" value="{$result.id}">
+                        <button class="layui-btn" lay-filter="btn_comment" lay-submit="{:url('add')}" data-refresh="true">提交</button>
+                        <?php if($next_url){ ?>
+
+                        <button  type="submit" lay-submit="{:url('add')}" data-jump="{$next_url}" class="layui-btn layui-btn-normal" data-refresh="true">提交进入下一条</button>
+
+                        <a  href="{$next_url}" class="layui-btn layui-btn-primary" data-refresh="true">下一条</a>
+                        <?php } ?>
+
+                    </div>
+
+                </div>
+
+            </fieldset>
+
+            <div class="layui-row">
+                <div class="layuimini-container">
+                    <div class="layuimini-main">
+                        <table id="currentTable" class="layui-table layui-hide"
+                               data-auth-add="{:auth('crm.business_record/add')}"
+                               data-auth-delete="{:auth('crm.business_record/delete')}"
+                               lay-filter="currentTable">
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="layui-form-item">
-            <label class="layui-form-label"> {:fy('Follow up type')}</label>
-            <div class="layui-input-block">
-                <input type="text" name="record_type_id" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')} {:fy('Follow up type')}" value="0">
-            </div>
-        </div>
-        <div class="hr-line"></div>
-        <div class="layui-form-item text-center">
-            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
-            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+
+
+
         </div>
 
-    </form>
+
+    </div>
+
+
+
+
 </div>

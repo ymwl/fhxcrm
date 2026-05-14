@@ -1,10 +1,10 @@
 <?php
 
-namespace app\admin\model;
+namespace app\common\model\crm;
 
 use app\common\model\TimeModel;
 
-class CrmContract extends TimeModel
+class Contract extends TimeModel
 {
 
     protected $name = "crm_contract";
@@ -30,13 +30,7 @@ class CrmContract extends TimeModel
         return $numbering;
     }
 
-    public function getCheckStatus()
-    {
-//        -1审核未通过0待审核、1草稿、2审核中、3审核通过
-//        return ['-1'=>'审核未通过','0'=>'待审核','1'=>'草稿','2'=>'审核中','3'=>'审核通过'];
-        return ['-1'=>'审核未通过','0'=>'待审核','3'=>'审核通过'];
 
-    }
 
     public function ownerAdmin()
     {
@@ -68,5 +62,10 @@ class CrmContract extends TimeModel
 
         ];
     }
+    public function getStatusText($status){
+        $status_text=['-1'=>'审核未通过','0'=>'待审核','1'=>'草稿','2'=>'审核中','3'=>'审核通过'];
+        return $status_text[$status]?:'未知状态';
+    }
+
 
 }
