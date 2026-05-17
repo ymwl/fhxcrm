@@ -200,7 +200,7 @@ $todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t
                                     <img src="{$vo.avatar}"></a>
                                 </div>
                                 <div>
-                                    <p>{$vo.username} <em style="color: red;margin-right: 5px">{:fy('follow up')}</em>  <a href="javascript:;" data-open="crm.record/dialogue?id={$vo.id}" data-title="{:fy('Recent follow-up records')}" data-full="true" > {$vo.name}</a> </p>
+                                    <p>{$vo.username} <em style="color: red;margin-right: 5px">{:fy('follow up')}</em>  <a href="javascript:;" data-open="crm.record/add?customer_id={$vo.id}" data-title="{:fy('Recent follow-up records')}" data-full="true" > {$vo.name}</a> </p>
                                     <p><strong style="color: burlywood;margin-right: 5px">{:fy('Follow up on records')}: </strong>{$vo.content}</p>
                                     <span>{:fy('Follow-up time')}：{$vo.create_time|date='Y-m-d H:i:s'}</span>
                                 </div>
@@ -287,7 +287,7 @@ $todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t
                                 {volist name='today_tiixng' id='vo'}
                                 <dd>
                                     <div>
-                                        <p>{$vo.pr_user} <em style="color: red;margin-right: 5px">{:fy('Follow up')}</em>  <a href="javascript:;" data-open="crm.record/dialogue?id={$vo.id}" data-title="{:fy('Clients to be followed')}" data-full="true" > {$vo.name}</a> </p>
+                                        <p>{$vo.pr_user} <em style="color: red;margin-right: 5px">{:fy('Follow up')}</em>  <a href="javascript:;" data-open="crm.record/add?customer_id={$vo.id}" data-title="{:fy('Clients to be followed')}" data-full="true" > {$vo.name}</a> </p>
                                         <span>{:fy('Follow-up time')}：{$vo.next_time|date='Y-m-d H:i:s'}</span>
                                     </div>
                                 </dd>

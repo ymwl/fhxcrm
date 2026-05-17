@@ -223,9 +223,9 @@ export default {
 		// 获取列表
 		getSelectList(isNextPage,pages) {
 			if(this.type == 0) {
-				this.$u.api.getGroupdata({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('auth/getGroupdata', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					filter: JSON.stringify({}),
 					op: JSON.stringify({})
 				}).then(res => {
@@ -241,7 +241,7 @@ export default {
 					}
 				})
 			} else {
-				this.$u.api.onSelectpage({
+				this.$u.get('auth.admin/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name:  this.keyword,
@@ -397,7 +397,7 @@ export default {
 					}
 				}
 				console.log(param)
-				this.$u.api.onBatchTeam(param).then(res => {
+				this.$u.post('crm.achievement/batchTeam', param).then(res => {
 					if(res.code == 1 ) {
 						// 提示
 						uni.showToast({
@@ -425,7 +425,7 @@ export default {
 					}
 				}
 				console.log(param)
-				this.$u.api.onBatchAdmin(param).then(res => {
+				this.$u.post('crm.achievement/batchAdmin', param).then(res => {
 					if(res.code == 1 ) {
 						// 提示
 						uni.showToast({

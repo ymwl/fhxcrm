@@ -175,10 +175,10 @@
 			},
 			// 页面数据
 			getList(isNextPage,pages) {
-				this.$u.api.getBacklog({
+				this.$u.get('crm.backlog/index', {
 					types: this.types,
-					sort: 'id',
-					order: 'desc',
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 				}).then(res => {

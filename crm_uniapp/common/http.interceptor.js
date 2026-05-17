@@ -14,6 +14,7 @@ const install = (Vue, vm) => {
 		header: {
 			'content-type': 'application/x-www-form-urlencoded',
 			"Accept": "application/json",
+			'X-Requested-With': 'XMLHttpRequest',
 			// "Content-Type": "application/json; charset=UTF-8"
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
@@ -65,7 +66,6 @@ const install = (Vue, vm) => {
 		// 	}
 		// 	return res.data;
 		// } else return false;
-
 		if(res.statusCode == 200) {
 			// code==1 为成功，code==0 为业务错误
 			if(res.data.code == 0) {
@@ -86,7 +86,11 @@ const install = (Vue, vm) => {
 		} else if(res.statusCode == 500) {
 			// 如果返回false，则会调用Promise的reject回调，
 			// 并将进入this.$u.post(url).then().catch(res=>{})的catch回调中，res为服务端的返回值
-			vm.$reuse.showError("网络请求出错")
+			if(res.data.msg){
+				vm.$reuse.showError(res.data.msg)
+			}else{
+				vm.$reuse.showError("网络请求出错")
+			}
 			return false;
 		} else if (res.statusCode == 403){
 			// 没有权限

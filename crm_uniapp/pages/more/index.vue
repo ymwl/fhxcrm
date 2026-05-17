@@ -73,7 +73,7 @@ export default {
         {
           name: '客户',
           url: 'pages/client/index',
-          icon: 'xinjiankehu',
+          icon: 'kehu',
           color: '#1D6FFF',
         },
         {
@@ -220,7 +220,7 @@ export default {
           type: 'change'
         });
       } else {
-        this.$u.api.onLogout().then(res => {
+        this.$u.get('index/logout').then(res => {
           if(res.code == 1 ) {
             // vuex储存 token
             this.$u.vuex('vuex_token', '')

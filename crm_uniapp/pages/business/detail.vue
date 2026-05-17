@@ -251,7 +251,7 @@
 			},
 			// 获取商机数据详情
 			getData() {
-				this.$u.api.getBusinessEdit({id: this.business_id}).then(res => {
+				this.$u.get('crm.business.index/edit', {id: this.business_id}).then(res => {
 					if(res.code == 1 ) {
 						this.businessData = res.data
 						// this.homeData.time = res.time
@@ -260,10 +260,10 @@
 			},
 			// 获取商机跟进记录
 			getBusinessRecord(isNextPage,pages) {
-				this.$u.api.onBusinessRecord({
+				this.$u.get('crm.business.record/index', {
 					business_id: this.business_id,
-					sort: 'id',
-					order: 'desc',
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({name: this.keyword}),
@@ -300,7 +300,7 @@
 			},
 			// 获取联系人
 			getContactList(isNextPage,pages) {
-				this.$u.api.getBusinessContacts({
+				this.$u.get('crm.business.contacts/index', {
 					business_id: this.business_id
 				}).then(res => {
 					if(res.code == 1 ) {

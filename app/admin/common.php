@@ -284,10 +284,7 @@ EOT;
     }
 }
 
-function build_select_list($table,$primary_key,$foreign_key){
-    $res=Db::name($table)->field($primary_key.','.$foreign_key)->where('status','=',1)->order('sort ASC,id DESC')->column($foreign_key,$primary_key);
-    return json_encode($res,320);
-}
+
 
 function build_option_input($table,$primary_key,$foreign_key,$value){
     $res=Db::name($table)->field($primary_key.','.$foreign_key)->where('status','=',1)->order('sort ASC,id DESC')->cache($table)->select();

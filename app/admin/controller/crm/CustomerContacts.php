@@ -38,20 +38,8 @@ class CustomerContacts extends AdminController
             $this->modifyPermissionsByName($pr_user);
         }
 
-        $fields=cache('crm_customer_contacts_fields');
-        if(!$fields){
-            $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query("SELECT  `field`, `jscol`,`show` FROM `{$prefix}system_field` WHERE `table`='crm_customer_contacts' AND `show`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
-            $field_str=$jscol_str='';
-            foreach ($fields as $key=>$value){
-                $field_str.=$value['field'].',';
-                if($value['show']==1){
-                    $jscol_str.=$value['jscol'].',';
-                }
-            }
-            $fields=['field_str'=>trim($field_str,','),'jscol_str'=>trim($jscol_str,',')];
-            cache('crm_customer_contacts_fields',$fields);
-        }
+        $fields=\tools\Cache::zdy_fields('crm_customer_contacts');
+
 
         if ($this->request->isAjax()) {
             if (input('selectFields')) {
@@ -120,9 +108,13 @@ class CustomerContacts extends AdminController
                     ->page($page, $limit)
                     ->order($sort)
                     ->select();
-                if ($this->admin['isphone'] == 0 && $list) {
+                if ($this->admin['isphone'] == 0) {
                     foreach ($list as $key => $value) {
-                        $value['phone'] = mb_substr($value['phone'], 0, 3).'****'. mb_substr($value['phone'], 7, 11);
+                        foreach ($fields['tels'] as $tel_key => $tel_value){
+                            if($value[$tel_value]){
+                                $value[$tel_value] = mb_substr($value[$tel_value], 0, 3).'****'. mb_substr($value[$tel_value], 7, 11);
+                            }
+                        }
                         $list[$key] = $value;
                     }
                 }

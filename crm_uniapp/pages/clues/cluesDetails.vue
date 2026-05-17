@@ -201,7 +201,7 @@
 		methods: {
 			// 确定转移客户
 			onConfirm(val){
-				this.$u.api.onShiftDivert({ids: this.clues_id,admin_id: val}).then(res => {
+				this.$u.post('crm.clues.index/divert',{ids: this.clues_id,admin_id: val}).then(res => {
 					if(res.code == 1 ) {
 						// 提示
 						uni.showToast({
@@ -229,7 +229,7 @@
 			},
 			// 云呼叫
 			cloudcall(p){
-				this.$u.api.onCloudcall({
+				this.$u.post('crm.setting.cloudcall/call',{
 					type: 'clues',
 					typeid: this.clues_id,
 					field: p,
@@ -273,7 +273,7 @@
 							content: '确定放入线索池吗？',
 							success: function (res) {
 								if (res.confirm) {
-									this.$u.api.onCluesDiscard({
+									this.$u.post('crm.clues.index/discard',{
 											ids: this.clues_id
 										}).then(res => {
 											if(res.code == 1 ) {
@@ -304,7 +304,7 @@
 							content: '确定删除该线索吗？',
 							success: function (res) {
 								if (res.confirm) {
-									this.$u.api.onCluesDel({
+									this.$u.post('crm.clues.index/delete',{
 											ids: this.clues_id
 										}).then(res => {
 											if(res.code == 1 ) {
@@ -372,7 +372,7 @@
 			},
 			// 获取详情
 			getData() {
-				this.$u.api.getCluesEdit({ids: this.clues_id}).then(res => {
+				this.$u.get('crm.clues.index/edit',{ids: this.clues_id}).then(res => {
 					if(res.code == 1 ) {
 						res.data.tags = res.data.tags.split(',')
 						this.clues = res.data
@@ -387,9 +387,9 @@
 			},
 			// 获取跟进记录
 			getCustomerRecord(isNextPage,pages) {
-				this.$u.api.getCluesRecordList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.clues.record/index',{
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({types_id: this.clues_id,}),

@@ -1,10 +1,8 @@
 <?php
 
-namespace app\common\model\crm;
+namespace app\common\model;
 
-use app\common\model\TimeModel;
-
-class Contract extends TimeModel
+class CrmContract extends TimeModel
 {
 
     protected $name = "crm_contract";

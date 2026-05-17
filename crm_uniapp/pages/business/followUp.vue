@@ -126,7 +126,7 @@
 		methods: {
 			// 获取商机详情
 			getData() {
-				this.$u.api.getBusinessEdit({
+				this.$u.get('crm.business.index/edit', {
 					id: this.business_id
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -137,7 +137,7 @@
 			},
 			// 获取配置字段
 			getBaseConfig() {
-				this.$u.api.getBaseConfig().then((res) => {
+				this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.selectList = this.onJson(res.data.recordTypeList)
 					}
@@ -231,7 +231,7 @@
 				param.business_id = this.business_id
 				param.image = this.business_image.join(",")
 				console.log(param)
-				this.$u.api.onBusinessRecordAdd(this.form).then((res) => {
+				this.$u.post('crm.business.record/add', this.form).then((res) => {
 					console.log(res)
 					if(res.code == 1){
 						// 提示

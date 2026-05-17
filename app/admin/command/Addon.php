@@ -251,7 +251,7 @@ class Addon extends Command
             case 'move':
                 $movePath = [
                     'adminOnlySelfDir' => ['admin/behavior', 'admin/controller', 'admin/library', 'admin/model', 'admin/validate', 'admin/view'],
-                    'adminAllSubDir' => ['admin/lang'],
+                    'adminAllSubDir' => ['common/lang'],
                     'publicDir' => ['public/assets/addons', 'public/assets/js/backend']
                 ];
                 $paths = [];

@@ -114,6 +114,7 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				timeShow: false,
 				levelShow: false,
 				customerShow: false,
@@ -288,7 +289,7 @@
 			},
 			// 获取配置字段
 			getBaseConfig() {
-				this.$u.api.getBaseConfig().then((res) => {
+				this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.levelList = this.onJson(res.data.levelList)
 						this.industryList = this.onJson(res.data.industryList)
@@ -310,7 +311,7 @@
 			},
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
+				this.$u.get('ajax/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -364,19 +365,25 @@
 			},
 			// 选择搜索
 			adminSearch() {
-				this.lastAdmin = false
-				this.onSelectpage()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.lastAdmin = false
+					this.onSelectpage()
+				}, 500)
 			},
 			// 搜索
 			onSearch() {
-				this.page = 0
-				this.getCustomer()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.getCustomer()
+				}, 500)
 			},
 			// 获取客户列表
 			getCustomer(isNextPage,pages) {
-				this.$u.api.getCustomerList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.customer/index', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({name: this.keyword}),

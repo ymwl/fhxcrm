@@ -6,6 +6,8 @@ namespace app\admin\service;
 use app\common\service\AbstractService;
 use think\Exception;
 use think\facade\Cache;
+use think\facade\Event;
+use app\admin\model\AuthRule;
 
 
 class AddonService extends AbstractService
@@ -31,7 +33,10 @@ class AddonService extends AbstractService
                 $v['href'] = trim($v['href'],'/');
                 $v['plugin'] = $plugin;
                 $v['addtime'] = time();
-
+                $c=\think\facade\Db::name('auth_rule')->where("pid",$pid)->where("href",$v['href'])->where('plugin',$v['plugin'])->count();
+                if($c){
+                    continue;
+                }
                 $id=safeInsert('auth_rule',$v);
                 if ($hasChild && $id) {
                     $this->addAddonMenu($v['sublist'], $id,$plugin);
@@ -74,34 +79,7 @@ class AddonService extends AbstractService
             }
         }
     }
-    //循环删除菜单
-    public function delAddonMenu(array $menu,string $module = 'backend'){
-        foreach ($menu as $k=>$v){
-            $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
-            try {
-                $v['href'] = trim($v['href'],'/');
-                $menu_rule = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
-                if($menu_rule){
-                    $menu_rule->force()->delete();
-                    if ($hasChild) {
-                        $this->delAddonMenu($v['menulist'],$module);
-                    }
-                }
-                //删除主菜单；
-                $manager = AuthRule::withTrashed()->where('href',$this->myaddon)->find();
-                if($manager){
-                    $manager_child =  AuthRule::withTrashed()->where('pid',$manager->id)->find();
-                    if(!$manager_child){
-                        $manager->force()->delete();
-                    }
-                }
-            } catch (Exception $e) {
-                throw new Exception($e->getMessage());
-            }
-        }
-        $this->delMenuCache();
 
-    }
     //添加管理菜单
     public function addAddonManager(){
         $data = array(
@@ -205,6 +183,7 @@ class AddonService extends AbstractService
         }catch (Exception $e){
             throw new Exception($e->getMessage());
         }
+        Event::trigger('AddonInstalled', ['name' => $name]);
         return true;
     }
     public function uninstallAddon(string $name){
@@ -231,14 +210,21 @@ class AddonService extends AbstractService
             //卸载插件
             $class = get_addons_instance($name);
             $class->uninstall();
-            //删除菜单
-            $menu_config=get_addons_menu($name);
-                if(!empty($menu_config)){
-                    list($menu,$pid) = $this->getMenu($menu_config);
-                    $this->delAddonMenu($menu,$name);
+            // 删除菜单（直接使用 DB 操作，高效批量删除）
+            \think\facade\Db::name('auth_rule')->where('plugin', $name)->delete();
+            // 清理"已装插件"管理菜单（如无子菜单则移除）
+            $manager = \app\admin\model\AuthRule::withTrashed()->where('href', $this->myaddon)->find();
+            if ($manager) {
+                $manager_child = \app\admin\model\AuthRule::withTrashed()->where('pid', $manager->id)->find();
+                if (!$manager_child) {
+                    $manager->force()->delete();
                 }
-                //卸载sql;
-                uninstallsql($name);
+            }
+            $this->delMenuCache();
+            //卸载sql;
+            uninstallsql($name);
+            // 清除路由映射
+            $this->clearPluginRoutes($name);
             //还原文件
             Service::removeApp($name,$delete= true);
             Service::updateAddonsInfo($name,1,0);
@@ -246,6 +232,7 @@ class AddonService extends AbstractService
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
+        Event::trigger('AddonUninstalled', ['name' => $name]);
         return true;
 
     }
@@ -272,13 +259,21 @@ class AddonService extends AbstractService
      */
     public function getMenu($config = [])
     {
-        $is_nav = $config['is_nav']??1;
-        $menuArr = $config['menu'];
+        // 兼容直接传入菜单数组的情况（来自 get_addons_menu() 返回的 menu.php 内容）
+        if (!empty($config) && !isset($config['menu'])) {
+            if (isset($config[0]) && is_array($config[0])) {
+                $config = ['menu' => $config, 'is_nav' => 1];
+            }
+        }
+
+        $is_nav = $config['is_nav'] ?? 1;
+        $menuArr = $config['menu'] ?? [];
         $menu = [];
+        $pid = 0;
         if(!empty($menuArr[0]) && is_array($menuArr[0])){
             foreach ($menuArr as $value) {
                 if($is_nav==-1){
-                    $menu = array_merge($menu,$value['menulist']);
+                    $menu = array_merge($menu,$value['menulist'] ?? []);
                     $pid = 0;
                 }elseif($is_nav==0){
                     $menu[] = $value;
@@ -289,19 +284,84 @@ class AddonService extends AbstractService
                 }
             }
         }else{
-            if($is_nav==-1){
-                $menu = array_merge($menu,$menuArr['menulist']);
-                $pid = 0;
-            }elseif($is_nav==0){
-                $menu[] = $menuArr;
-                $pid = $this->addAddonManager()->id;
-            }else{
-                $menu[] = $menuArr;
-                $pid = 0;
+            if(!empty($menuArr)){
+                if($is_nav==-1){
+                    $menu = array_merge($menu,$menuArr['menulist'] ?? []);
+                    $pid = 0;
+                }elseif($is_nav==0){
+                    $menu[] = $menuArr;
+                    $pid = $this->addAddonManager()->id;
+                }else{
+                    $menu[] = $menuArr;
+                    $pid = 0;
+                }
             }
         }
         return [$menu,$pid];
     }
+    /**
+     * 清除 config/addons.php 中指定插件的路由映射
+     * @param string $name 插件名称
+     */
+    public function clearPluginRoutes(string $name)
+    {
+        $addonsConfig = config('addons');
+        if (!empty($addonsConfig['route'])) {
+            $pluginPrefix = $name . '/';
+            $modified = false;
+            foreach ($addonsConfig['route'] as $key => $value) {
+                if (strpos($value, $pluginPrefix) === 0) {
+                    unset($addonsConfig['route'][$key]);
+                    $modified = true;
+                }
+            }
+            if ($modified) {
+                $configFile = config_path() . 'addons.php';
+                $content = "<?php \r\n return " . var_export($addonsConfig, true) . ';';
+                $lockFile = $configFile . '.lock';
+                $fp = fopen($lockFile, 'w');
+                if (flock($fp, LOCK_EX)) {
+                    file_put_contents($configFile, $content);
+                    flock($fp, LOCK_UN);
+                }
+                fclose($fp);
+            }
+        }
+    }
+
+    /**
+     * 恢复 config/addons.php 中指定插件的路由映射
+     * @param string $name 插件名称
+     */
+    public function restorePluginRoutes(string $name)
+    {
+        $config = get_addons_config($name);
+        if (!empty($config['rewrite']['value']) && is_array($config['rewrite']['value'])) {
+            $addonsConfig = config('addons');
+            $addonsConfig['route'] = array_replace($addonsConfig['route'] ?? [], $config['rewrite']['value']);
+            $configFile = config_path() . 'addons.php';
+            $content = "<?php \r\n return " . var_export($addonsConfig, true) . ';';
+            $lockFile = $configFile . '.lock';
+            $fp = fopen($lockFile, 'w');
+            if (flock($fp, LOCK_EX)) {
+                file_put_contents($configFile, $content);
+                flock($fp, LOCK_UN);
+            }
+            fclose($fp);
+        }
+    }
+
+    /**
+     * 设置插件所有菜单项的显示状态
+     * @param string $plugin 插件名称
+     * @param int $status 状态值：1显示，0隐藏
+     */
+    public function setMenuStatus(string $plugin, int $status)
+    {
+        \think\facade\Db::name('auth_rule')->where('plugin', $plugin)->update(['status' => $status]);
+        $this->delMenuCache();
+    }
+
     /**
      * 修改插件状态
      * @param string $name
@@ -314,20 +374,35 @@ class AddonService extends AbstractService
         try {
             $info->status =$addoninfo['status'];
             Service::updateAddonsInfo($name,$addoninfo['status']);
-            // 安装菜单
+            // 处理菜单：启用时确保菜单存在并显示，禁用时隐藏菜单
             $class = get_addons_instance($name);
             $menu_config = get_addons_menu($name);
             if(!empty($menu_config)){
                 list($menu,$pid) = $this->getMenu($menu_config);
                 if( $addoninfo['status']){
+                    // 启用：先确保菜单结构完整，再设置为显示状态
                     $this->addAddonMenu($menu,$pid,$name);
+                    $this->setMenuStatus($name, 1);
                 }else{
-                    $this->delAddonMenu($menu,$name);
+                    // 禁用：隐藏菜单，不删除数据
+                    $this->setMenuStatus($name, 0);
                 }
+            }
+            // 处理路由映射：启用时恢复，禁用时清除
+            if ($addoninfo['status']) {
+                $this->restorePluginRoutes($name);
+            } else {
+                $this->clearPluginRoutes($name);
             }
             refreshaddons();
             $info->save();
-            $addoninfo['status']==1 ?$class->enabled():$class->disabled();
+            if ($addoninfo['status'] == 1) {
+                $class->enabled();
+                Event::trigger('AddonEnabled', ['name' => $name]);
+            } else {
+                $class->disabled();
+                Event::trigger('AddonDisabled', ['name' => $name]);
+            }
         }catch (Exception $e){
             throw new Exception($e->getMessage());
         }

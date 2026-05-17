@@ -17,6 +17,17 @@
                 </div>
             </div>
         </div>
+        {if condition="$receivablesPlanInfo"}
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">关联回款计划</label>
+                <div class="layui-input-block">
+                    <input type="text" class="layui-input" value="{$receivablesPlanInfo.plan_no} - 计划金额:{$receivablesPlanInfo.plan_money}元" readonly>
+                    <input type="hidden" name="receivables_plan_id" value="{$receivablesPlanInfo.id}">
+                </div>
+            </div>
+        </div>
+        {/if}
         <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
             <div class="layui-form-item">
                 <label class="layui-form-label">回款编号</label>

@@ -173,7 +173,7 @@ export default {
     },
     // 获取记录详情
     getDetails() {
-      this.$u.api.getViolationEdit({
+      this.$u.get('violation/edit', {
         id: this.id,
       }).then(res => {
         if(res.code == 1 ) {
@@ -184,7 +184,7 @@ export default {
         }
       })
     }, getAdd(zhengshu_id) {
-      this.$u.api.getViolationAdd({
+      this.$u.get('violation/add', {
         zhengshu_id: zhengshu_id,
       }).then(res => {
         if(res.code == 1 ) {
@@ -209,7 +209,7 @@ export default {
         console.log('验证后');
         if (valid) {
           if(this.type == 'add') {
-            this.$u.api.onViolationAdd(param).then((res) => {
+            this.$u.post('violation/add', param).then((res) => {
               if(res.code == 1) {
                 // 提示
                 uni.showToast({
@@ -225,7 +225,7 @@ export default {
               }
             })
           } else {
-            this.$u.api.onViolationEdit(param).then((res) => {
+            this.$u.post('violation/edit', param).then((res) => {
               if(res.code == 1) {
                 // 提示
                 uni.showToast({

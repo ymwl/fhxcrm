@@ -21,20 +21,22 @@ class CrmRecord extends TimeModel
     {
 
         // 生成查询的开始和结束时间，默认取30日
-        !is_numeric($startDate) && $starttime = strtotime($startDate);
-        !is_numeric($endDate) && $endtime = strtotime($endDate);
+        if(!is_numeric($startDate) && $startDate){
+            $starttime = strtotime($startDate);
+        }
+        if(!is_numeric($endDate) && $endDate){
+            $endtime = strtotime($endDate);
+        }
         $isnotrangeDate = empty($starttime) && empty($endtime);
 
-        $nearly = '30';
         if ($isnotrangeDate) {
             $endtime = time();
-            $nearly -= 1;
-            $starttime = strtotime("-{$nearly} day");  // 最近30天日期
+            $starttime = strtotime("-1 month");  // 最近30天日期
         } elseif ($starttime > $endtime) {
             $this->error = '起始时间要小于终止时间';
             return false;
         }
-        list($format,$column)=\tools\hs::format_lx_time($starttime,$endtime);
+        list($format,$column)=\tools\Hs::format_lx_time($starttime,$endtime);
         $where = [];
         if ($admin_ids&&is_numeric($admin_ids)){
             $where[] = ['admin_id', '=', $admin_ids];

@@ -25,43 +25,9 @@
 						<view class="client" v-for="(item, index) in dataList" :key="index" @click="onItem(item)">
 							<!-- 动态字段展示 -->
 							<view class="client-content">
-								<view class="field-wrap">
-									<view class="field-item" v-for="(field, fIndex) in fields" :key="fIndex" v-if="shouldShowField(field, item[field.field])">
-										<text class="field-label">{{field.title}}：</text>
-										<!-- 图片类型 -->
-										<template v-if="getFieldType(field) === 'image' || getFieldType(field) === 'images'">
-											<view class="field-images">
-												<image 
-													v-for="(img, imgIdx) in getFieldUrls(field, item[field.field])" 
-													:key="imgIdx"
-													:src="img" 
-													class="field-thumb" 
-													mode="aspectFill"
-													@click.stop="previewImage(img, getFieldUrls(field, item[field.field]))">
-												</image>
-											</view>
-										</template>
-										<!-- 文件类型 -->
-										<template v-else-if="getFieldType(field) === 'file' || getFieldType(field) === 'files'">
-											<view class="field-files">
-												<view 
-													v-for="(file, fileIdx) in getFieldFiles(field, item[field.field])" 
-													:key="fileIdx"
-													class="file-item"
-													@click.stop="downloadFile(file)">
-													<u-icon name="file-text" size="32" color="#666"></u-icon>
-													<text class="file-name">{{file.name}}</text>
-												</view>
-											</view>
-										</template>
-										<!-- 文本类型 -->
-										<template v-else>
-											<text class="field-value">{{getFieldText(field, item[field.field])}}</text>
-										</template>
-									</view>
-								</view>
+								<fhx-field-display :fields="fields" :item="item"></fhx-field-display>
 							</view>
-							<!-- 跟进按钮 - 右侧 -->
+
 							<view class="client-action">
 								<view class="btn entity" :style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" @click.stop="follow(item.id)">跟进</view>
 							</view>
@@ -85,8 +51,9 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				sortName: '默认排序',
-				sort: 'id',
+				sort_by: 'id',
 				keyword:'',
 				scopeName: '我的客户',
 				specClass: 'hide',
@@ -103,27 +70,27 @@
 					{
 						label: '默认排序',
 						value: 0,
-						sort: 'id',
+						sort_by: 'id',
 					},
 					{
 						label: '下次跟进',
 						value: 1,
-						sort: 'next_time',
+						sort_by: 'next_time',
 					},
 					{
 						label: '成交状态',
 						value: 2,
-						sort: 'issuccess',
+						sort_by: 'issuccess',
 					},
 					{
 						label: '创建时间',
 						value: 3,
-						sort: 'create_time',
+						sort_by: 'create_time',
 					},
 					{
 						label: '更新时间',
 						value: 4,
-						sort: 'update_time',
+						sort_by: 'update_time',
 					}
 				],
 				consentShow: false,
@@ -197,115 +164,11 @@
 			
 		},
 		methods: {
-			// 判断字段是否应该显示
-			shouldShowField(field, value) {
-				// 空值不显示
-				if (value === '' || value === null || value === undefined) {
-					return false;
-				}
-				// 时间/日期类型值为0不显示
-				const formtype = field.formtype || 'text';
-				if ((formtype === 'datetime' || formtype === 'date') && value == 0) {
-					return false;
-				}
-				return true;
-			},
-			// 获取字段类型
-			getFieldType(field) {
-				const result = this.$realFieldVal(field, '');
-				return field.formtype || 'text';
-			},
-			// 获取字段显示文本
-			getFieldText(field, value) {
-				const result = this.$realFieldVal(field, value);
-				return result.text;
-			},
-			// 获取图片URL数组
-			getFieldUrls(field, value) {
-				const result = this.$realFieldVal(field, value);
-				return result.urls || [];
-			},
-			// 获取文件数组
-			getFieldFiles(field, value) {
-				const result = this.$realFieldVal(field, value);
-				return result.files || [];
-			},
-			// 预览图片
-			previewImage(current, urls) {
-				uni.previewImage({
-					current: current,
-					urls: urls
-				});
-			},
-			// 下载文件
-			downloadFile(file) {
-				uni.showLoading({ title: '下载中...' });
-				uni.downloadFile({
-					url: file.url,
-					success: (res) => {
-						uni.hideLoading();
-						if (res.statusCode === 200) {
-							uni.openDocument({
-								filePath: res.tempFilePath,
-								success: () => {
-									console.log('文件打开成功');
-								},
-								fail: (err) => {
-									uni.showToast({ title: '文件打开失败', icon: 'none' });
-								}
-							});
-						}
-					},
-					fail: () => {
-						uni.hideLoading();
-						uni.showToast({ title: '下载失败', icon: 'none' });
-					}
-				});
-			},
       // 自定义字段
       getFields() {
         let arr = []
-        this.$u.api.getFields({table: 'crm_customer',source: 'index'}).then((res) => {
+        this.$u.get('fields/get_fields',{table: 'crm_customer',source: 'index'}).then((res) => {
           if(res.code == 1){
-          /*this.fields=     {
-                "id": 10,
-                "open_sort": 0,
-                "value": "",
-                "formtype": "input",
-                "foreign_key": "name",
-                "relationship_primary_key": "id",
-                "field": "contact",
-                "rule": "",
-                "title": "客户联系人",
-                "option": "",
-                "width": 150
-            },
-            {
-                "id": 30,
-                "open_sort": 1,
-                "value": "",
-                "formtype": "input",
-                "foreign_key": "",
-                "relationship_primary_key": "",
-                "field": "email",
-                "rule": "email",
-                "title": "邮箱",
-                "option": "",
-                "width": 100
-            },
-            {
-                "id": 33,
-                "open_sort": 0,
-                "value": "",
-                "formtype": "district",
-                "foreign_key": "",
-                "relationship_primary_key": "",
-                "field": "area",
-                "rule": "",
-                "title": "地区",
-                "option": "",
-                "width": 100
-            },*/
             this.fields = res.data.fields;
 
             // 获取参与排序的字段（open_sort为1的就是）赋值给options1，没有则保持默认排序字段
@@ -315,14 +178,14 @@
               const newOptions = [{
                 label: '默认排序',
                 value: 0,
-                sort: 'id',
+                sort_by: 'id',
               }];
               // 动态添加可排序字段
               sortFields.forEach((field, index) => {
                 newOptions.push({
                   label: field.title,
                   value: index + 1,
-                  sort: field.field,
+                  sort_by: field.field,
                 });
               });
               this.options1 = newOptions;
@@ -332,7 +195,7 @@
       },
 			// 排序
 			optionsChange(){
-				this.sort = this.options1[this.value1].sort
+				this.sort_by = this.options1[this.value1].sort_by
 				this.sortName = this.options1[this.value1].label
 				this.page = 0,
 				this.lastPage = false
@@ -376,36 +239,31 @@
           this.scopeName = '我的客户'
           this.scope = 1
         }
-				this.$u.api.getCustomerList({
-					sort: this.sort,
+				this.$u.get('crm.customer/index',{
+					sort_by: this.sort_by,
 					scope: this.scope,
-					order: this.sort == 'next_time' ? 'asc' : 'desc',
+					sort_order: this.sort_by == 'next_time' ? 'asc' : 'desc',
 					search:this.keyword,
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify(filterObj),
 					op: JSON.stringify(opObj)
 				}).then(res => {
-					res.data.rows.forEach((item,index) => {
-						if(item.tags) {
-							item.tagsArr = item.tags.split(',')
-						}
-					});
 					if(res.code == 1 ) {
 						// 不够一页
-						if (res.data.rows.length < 10) {
+						if (res.data.length < this.pageSize) {
 							this.listStatus = 'nomore'
 						}
 						// 最后一页
-						if(res.data.rows.length == 0) {
+						if(res.data.length == 0) {
 							this.lastPage = true
 						} 
 						// 第二页开始
 						if(isNextPage) {
-							this.dataList = this.dataList.concat(res.data.rows)
+							this.dataList = this.dataList.concat(res.data)
 							return 
 						}
-						this.dataList = res.data.rows;
+						this.dataList = res.data;
             console.log(this.dataList);
 					}
 				})
@@ -427,9 +285,12 @@
 			},
 			// 点击搜索
 			onSearch() {
-				this.page = 0
-				this.lastPage = false
-				this.getCustomerList()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.lastPage = false
+					this.getCustomerList()
+				}, 500)
 			},
 			// 查看客户详情
 			onItem(val) {
@@ -563,52 +424,6 @@
 		}
 		.entity {
 			color: #fff;
-		}
-	}
-	.field-wrap {
-		display: flex;
-		flex-wrap: wrap;
-	}
-	.field-item {
-		min-width: 50%;
-		box-sizing: border-box;
-		padding: 8rpx 20rpx 8rpx 0;
-		font-size: 26rpx;
-		.field-label {
-			color: #666;
-		}
-		.field-value {
-			color: #333;
-			word-break: break-all;
-		}
-		.field-images {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 8rpx;
-		}
-		.field-thumb {
-			width: 80rpx;
-			height: 80rpx;
-			border-radius: 8rpx;
-			background-color: #f5f5f5;
-		}
-		.field-files {
-			display: flex;
-			flex-direction: column;
-			gap: 8rpx;
-		}
-		.file-item {
-			display: flex;
-			align-items: center;
-			gap: 8rpx;
-		}
-		.file-name {
-			color: #2979ff;
-			font-size: 24rpx;
-			max-width: 300rpx;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
 		}
 	}
 	.total {

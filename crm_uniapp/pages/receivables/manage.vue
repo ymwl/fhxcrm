@@ -281,14 +281,20 @@
 		methods: {
 			// 基本设置
 			onGetInit(id) {
-				this.$u.api.getInit().then((res) => {
-					if(res.code == 1){
-						// 是否开启线上收款
-						if(res.data.payConfig.online_pay == '0') {
-							this.payList[1].disabled = true
-						}
+				var payConfig = this.vuex_payConfig
+				if (payConfig && Object.keys(payConfig).length > 0) {
+					if(payConfig.online_pay == '0') {
+						this.payList[1].disabled = true
 					}
-				})
+				} else {
+					this.$u.get('login/config').then((res) => {
+						if(res.code == 1){
+							if(res.data.payConfig.online_pay == '0') {
+								this.payList[1].disabled = true
+							}
+						}
+					})
+				}
 			},
 			// 收款方式改变
 			payTypeChang(val){
@@ -303,7 +309,7 @@
 			},
 			// 生成收款单
 			onGetPayurl(id) {
-				this.$u.api.getPayurl({ids: id}).then((res) => {
+				this.$u.get('crm.contract.receivables/payurl', {ids: id}).then((res) => {
 					if(res.code == 1){
 						this.payUrlData = res.data
 						this.payShow = true
@@ -316,7 +322,7 @@
 			},
 			// 获取基本配置
 			getBaseConfig() {
-				this.$u.api.getBaseConfig().then((res) => {
+				this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.accountList = this.onJson(res.data.accountList)
 						this.accountName = this.accountList[0].text
@@ -346,12 +352,12 @@
 			},
 			// 获取回款配置
 			getReceivablesAdd() {
-				this.$u.api.getReceivablesAdd().then(res => {
+				this.$u.get('crm.contract.receivables/receivablesadd').then(res => {
 					if(res.code == 1 ) {
 						this.flowConfig = res.data
 						if(res.data.flow_admin_id && res.data.config == 1){
 							// 获取审批人数据
-							this.$u.api.getAllAdmin({
+							this.$u.get('crm.common/selectpage/model/admin/type/all', {
 								keyField: 'id',
 								keyValue: res.data.flow_admin_id,
 								showField: 'realname',
@@ -383,7 +389,7 @@
 			},
 			// 获取回款详情
 			getReceivablesEdit() {
-				this.$u.api.getReceivablesEdit({
+				this.$u.get('crm.contract.receivables/edit', {
 					id: this.id
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -397,7 +403,7 @@
 						this.getFields()
 						// 获取审批人数据
 						if(this.receivablesData.flow_admin_id) {
-							this.$u.api.getAllAdmin({
+							this.$u.get('crm.common/selectpage/model/admin/type/all', {
 								keyField: 'id',
 								keyValue: this.receivablesData.flow_admin_id,
 								showField: 'realname',
@@ -410,7 +416,7 @@
 							})
 						}
 						// 获取已选合同
-						this.$u.api.onContractSelectpage({
+						this.$u.get('crm.contract.index/selectpage', {
 							keyField: 'id',
 							showField: 'name',
 							"q_word": this.receivablesData.contract_id,
@@ -428,7 +434,7 @@
 			// 默认选中已选客户
 			defaultCustomer(id) {
 				// 获取已选的客户
-				this.$u.api.getCustomerSelectpage({
+				this.$u.post('crm.customer.index/selectpage', {
 					keyField: 'id',
 					showField: 'name',
 					"q_word": id,
@@ -447,7 +453,7 @@
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: 'contract_receivables',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields', {table: 'contract_receivables',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.fields = res.data.fields;
 						//渲染自定义字段,默认字段
@@ -604,7 +610,7 @@
 			},
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -669,7 +675,7 @@
 					obj.q_word= this.customer_id;
 					obj.searchField= 'id';
 				}
-				this.$u.api.getCustomerSelectpage(obj).then(res => {
+				this.$u.post('crm.customer.index/selectpage', obj).then(res => {
 					if(res.code == 1 ) {
 						// 最后一页
 						if(res.data.list.length == 0) {
@@ -712,7 +718,7 @@
 			},
 			// 获取合同列表
 			getContract(isNextPage,pages) {
-				this.$u.api.onContractSelectpage({
+				this.$u.get('crm.contract.index/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					id: this.contractkeyword,
@@ -870,7 +876,7 @@
 						}
 						// 添加和编辑操作
 						if(this.type == 'add') {
-							this.$u.api.onReceivablesAdd(this.form).then((res) => {
+							this.$u.post('crm.contract.receivables/receivablesadd', this.form).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({
@@ -895,7 +901,7 @@
 							})
 						} else {
 							this.form.id = this.id
-							this.$u.api.onReceivablesEdit(this.form).then((res) => {
+							this.$u.post('crm.contract.receivables/edit', this.form).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({

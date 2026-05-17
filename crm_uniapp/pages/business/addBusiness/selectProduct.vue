@@ -97,6 +97,7 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				keyword: '',
 				selected: false,
 				checked: false,
@@ -253,7 +254,17 @@
 				// 储存
 				this.$u.vuex('vuex_selectProduct', this.selectList)
 				// console.log(this.vuex_selectProduct)
-				uni.navigateBack();
+				// 安全返回上一页
+				const pages = getCurrentPages();
+				if (pages.length <= 1) {
+					uni.switchTab({ url: '/pages/index/index' });
+				} else {
+					uni.navigateBack({
+						fail: () => {
+							uni.switchTab({ url: '/pages/index/index' });
+						}
+					});
+				}
 			},
 			// 格式化时间
 			timeFormats(val) {
@@ -261,9 +272,9 @@
 			},
 			// 页面数据
 			getProductList(isNextPage,pages) {
-				this.$u.api.getProductList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.product.product/index', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					search:this.keyword,
@@ -316,8 +327,11 @@
 			},
 			// 点击搜索
 			onSearch() {
-				this.page = 0
-				this.getProductList()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.getProductList()
+				}, 500)
 			},
 		}
 	}

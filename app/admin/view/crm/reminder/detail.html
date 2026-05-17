@@ -1,0 +1,74 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <div class="layui-card">
+            <div class="layui-card-header">提醒详情</div>
+            <div class="layui-card-body">
+                <div class="layui-form layuimini-form">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">提醒类型</label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input" value="{$row.type_text}" readonly>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">提醒标题</label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input" value="{$row.title}" readonly>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">提醒内容</label>
+                        <div class="layui-input-block">
+                            <textarea class="layui-textarea" readonly>{$row.content}</textarea>
+                        </div>
+                    </div>
+                    {if condition="isset($customer)"}
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">关联客户</label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input" value="{$customer.name}" readonly>
+                            <div class="layui-input-help">
+                                <a href="{:myurl('crm.customer/index')}?id={$customer.id}" target="_blank" class="layui-btn layui-btn-xs layui-btn-normal">查看客户</a>
+                            </div>
+                        </div>
+                    </div>
+                    {/if}
+                    {if condition="isset($contract)"}
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">关联合同</label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input" value="{$contract.name}" readonly>
+                            <div class="layui-input-help">
+                                <a href="{:myurl('crm.contract/index')}?customer_id={$contract.customer_id}" target="_blank" class="layui-btn layui-btn-xs layui-btn-normal">查看合同</a>
+                            </div>
+                        </div>
+                    </div>
+                    {/if}
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">状态</label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input" value="{$row.status_text}" readonly>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">提醒时间</label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input" value="{:date('Y-m-d H:i', $row.remind_time)}" readonly>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">创建时间</label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input" value="{:date('Y-m-d H:i', $row.create_time)}" readonly>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button class="layui-btn layui-btn-danger" onclick="parent.layer.close(parent.layer.getFrameIndex(window.name));">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

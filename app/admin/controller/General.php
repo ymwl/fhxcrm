@@ -17,7 +17,7 @@ class General extends Common
         if($this->request->isPost()){
              $data['avatar']=$this->request->post('avatar','/static/admin/images/0.jpg','trim');
             $data['email']=$this->request->post('email','','trim');
-            $data['tel']=$this->request->post('tel','','trim');
+            $data['phone']=$this->request->post('phone','','trim');
             $newpwd=$this->request->post('newpwd','','trim');
             if ($newpwd){
                 $newpwd2=$this->request->post('newpwd2','','trim');
@@ -56,7 +56,8 @@ class General extends Common
             View::assign('info_raw', $admin);
             View::assign('info', json_encode( $admin,true));
             View::assign('title',lang('edit').lang('admin'));
-            return view();
+            
+            return $this->fetch();
         }
     }
 

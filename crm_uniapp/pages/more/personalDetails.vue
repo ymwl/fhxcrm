@@ -1,21 +1,47 @@
 <template>
 	<view >
 		<view class="set-box">
-			<u-form :model="form" ref="uForm" :error-type="errorType">
-				<u-form-item label="头像:"  label-width="180">
-					<u-avatar class="u-flex" :src="form.avatar" size="120" @click="selectFile"></u-avatar>
+			<u-form :model="form" ref="uForm" :error-type="errorType" label-position="left" autocomplete="off">
+				<!-- 头像 -->
+				<u-form-item label="头像" label-width="180">
+					<view class="avatar-box" @click="selectFile">
+						<u-avatar :src="displayAvatar" size="120" :key="avatarKey"></u-avatar>
+						<view class="avatar-tip">点击更换头像</view>
+					</view>
 				</u-form-item>
-				<u-form-item label="真实姓名:"  label-width="180">
-					<u-input v-model="form.realname" />
+        
+				<!-- 用户名(只读) -->
+				<u-form-item label="用户名" label-width="180">
+					<u-input v-model="form.username" :disabled="true" placeholder="用户名" />
 				</u-form-item>
-				<u-form-item label="联系电话:"  label-width="180" >
-					<u-input v-model="form.tel" />
+				<!-- 防浏览器自动填充的诱饵字段 -->
+				<view style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;pointer-events:none;">
+					<input type="text" name="prevent_autofill_username" tabindex="-1" autocomplete="username" />
+					<input type="password" name="prevent_autofill_password" tabindex="-1" autocomplete="current-password" />
+				</view>
+				<!-- 当前密码 -->
+				<u-form-item label="当前密码" label-width="180" prop="oldpwd">
+					<u-input v-model="form.oldpwd" :type="pwdInputType" placeholder="修改密码必须填写" autocomplete="off" auto-complete="off" @focus="onPwdFocus"/>
 				</u-form-item>
-        <u-form-item label="邮箱:"  label-width="180" >
-					<u-input v-model="form.email" />
+				<!-- 新密码 -->
+				<u-form-item label="新密码" label-width="180" prop="newpwd">
+					<u-input v-model="form.newpwd" :type="pwdInputType" placeholder="不改密码无需填写" autocomplete="off" auto-complete="off" @focus="onPwdFocus"/>
 				</u-form-item>
-				<u-form-item label="密码:"  label-width="180">
-					<u-input v-model="form.password" placeholder="不修改可以留空" :clearable="false" type="password" autocomplete="off" />
+				<!-- 确认新密码 -->
+				<u-form-item label="确认新密码" label-width="180" prop="newpwd2">
+					<u-input v-model="form.newpwd2" :type="pwdInputType" placeholder="不改密码无需填写确认新密码" autocomplete="off" auto-complete="off" @focus="onPwdFocus"/>
+				</u-form-item>
+				<!-- 邮箱 -->
+				<u-form-item label="邮箱" label-width="180" prop="email">
+					<u-input v-model="form.email" placeholder="请输入用户邮箱" />
+				</u-form-item>
+				<!-- 电话 -->
+				<u-form-item label="电话" label-width="180" prop="phone">
+					<u-input v-model="form.phone" placeholder="请输入手机号" />
+				</u-form-item>
+				<!-- 联系微信 -->
+				<u-form-item label="联系微信" label-width="180" prop="wechat">
+					<u-input v-model="form.wechat" placeholder="请填写联系微信" />
 				</u-form-item>
 			</u-form>
 			<view class="u-m-t-80" style="text-align: center;">
@@ -27,140 +53,157 @@
 
 <script>
 	import {baseUrl,api_v1} from '@/common/config'
+	import {tools} from '@/common/fa.mixin.js'
 	export default {
+		mixins: [tools],
+		computed: {
+			// 头像展示URL：以 / 开头的相对路径需拼接 CDN 域名前缀，才能在手机端正常展示
+			displayAvatar() {
+				const avatar = this.form.avatar;
+      
+				return this.cdnurl(avatar);
+
+			}
+		},
 		data() {
 			return {
 				action: baseUrl + api_v1 + '/ajax/upload',
 				param: {
 					token: '',
 				},
+				avatarKey: 0,
+				pwdInputType: 'text', // 初始为text防止浏览器自动填充检测，mounted后切换为password
 				form: {
+					username: '',
 					avatar: '',
-					full_avatar: '',
-					realname: '',
-          tel: '',
+					oldpwd: '',
+					newpwd: '',
+					newpwd2: '',
 					email: '',
-					password: '',
+					phone: '',
+					wechat: '',
 				},
-				videoFilePath: '',
-				customer_id: '',
-				business_image: [],
-				error_video: '',
 				errorType: ['message','toast'],
 				rules: {
-					name: [
+					email: [
 						{
-							required: false,
-							message: '请填写客户名称',
+							type: 'email',
+							message: '请输入正确的邮箱格式',
 							trigger: ['change','blur']
 						},
 					],
-					record_type: [
+					phone: [
 						{
-							required: true,
-							message: '请选择方式',
-							trigger: ['change','blur']
-						},
-					],
-					content: [
-						{
-							required: true,
-							message: '请填写内容',
+							pattern: /^1[3-9]\d{9}$/,
+							message: '请输入正确的手机号',
 							trigger: ['change','blur']
 						},
 					],
 				}
 			};
 		},
-		// 只有onReady生命周期才能调用refs操作组件
-		onReady() {
-      console.log('this.form=',this.form);
-			// 得到整个组件对象，内部图片列表变量为"lists"
-			// this.lists = this.$refs.uUpload.lists;
-		},
 		onLoad(e) {
-			// 上传文件参数
-      console.log('this.form=',this.form);
 			this.param.token = this.vuex_token
 			this.getData()
+			// 延迟切换密码字段类型，避免浏览器在DOM加载时检测到password字段触发自动填充
+			setTimeout(() => {
+				this.pwdInputType = 'password'
+			}, 500)
 		},
 		methods: {
+			// 密码字段获取焦点时确保类型为password
+			onPwdFocus() {
+				if (this.pwdInputType !== 'password') {
+					this.pwdInputType = 'password'
+				}
+			},
 			// 获取用户信息
 			getData() {
-				this.$u.api.onGetInfo().then(res => {
-					if(res.code == 1 ) {
-						this.form.avatar = res.data.avatar
-						this.form.realname = res.data.realname
-						this.form.tel = res.data.tel
-						this.form.email = res.data.email
-            this.form.password='';
+				this.$u.get('general/profile').then(res => {
+					if(res.code == 1 && res.data) {
+						const info = res.data;
+						this.form.username = info.username || '';
+						this.form.avatar = info.avatar || '';
+						this.form.email = info.email || '';
+						this.form.phone = info.phone || '';
+						this.form.wechat = info.wechat || '';
+						this.form.oldpwd = '';
+						this.form.newpwd = '';
+						this.form.newpwd2 = '';
+						this.avatarKey = Date.now();
 					}
 				})
 			},
-			// 选择图片
+			// 选择图片上传
 			selectFile() {
-        console.dir(uni.$u.http)
 				let _this = this
 				uni.chooseImage({
-					count: 1, //默认9
-					sizeType: ['original', 'compressed'], //可以指定是原图还是压缩图，默认二者都有
-					sourceType: ['album'], //从相册选择
+					count: 1,
+					sizeType: ['original', 'compressed'],
+					sourceType: ['album'],
 					success: function (res) {
 						uni.uploadFile({
 							url: _this.action,
 							filePath: res.tempFilePaths[0],
 							name: 'file',
-              header: {
+							header: {
 								token: _this.vuex_token,
-                "Accept": "application/json",
+								"Accept": "application/json",
 							},
 							success: res => {
-								// 判断是否json字符串，将其转为json格式
 								let data = _this.$u.test.jsonString(res.data) ? JSON.parse(res.data) : res.data;
-								if (![200, 201, 204].includes(res.statusCode)) {
-
-								} else {
+								if ([200, 201, 204].includes(res.statusCode)) {
 									if(data.code == 1) {
-										// 上传成功
-										_this.form.avatar = data.data.url
+										_this.form.avatar = data.data.url;
+
 									}
 								}
 							},
 							fail: e => {
-								
+								console.error('上传失败', e)
 							},
-							complete: res => {
-								
-							}
 						});
 					}
 				});
 			},
 			// 提交
 			submit() {
-				// 进行必须填数据验证
-       let  _this=this;
-        _this.$u.api.postProfile(this.form).then((res) => {
+				let _this = this;
+				// 密码修改校验
+				if (_this.form.newpwd) {
+					if (!_this.form.oldpwd) {
+						uni.showToast({ title: '修改密码时当前密码必须填写', icon: 'none', duration: 2000 })
+						return
+					}
+					if (_this.form.newpwd !== _this.form.newpwd2) {
+						uni.showToast({ title: '两次密码输入不一致', icon: 'none', duration: 2000 })
+						return
+					}
+				}
+
+				_this.$u.post('general/profile', this.form).then((res) => {
 					if(res.code == 1){
-            _this.$u.vuex('vuex_admin.avatar', _this.form.avatar);
-            _this.$u.vuex('vuex_admin.realname', _this.form.realname);
-            _this.$u.vuex('vuex_admin.tel', _this.form.tel);
-            _this.$u.vuex('vuex_admin.email', _this.form.email);
+						// 更新vuex中的用户信息
+						_this.$u.vuex('vuex_admin.avatar', _this.form.avatar);
+						_this.$u.vuex('vuex_admin.email', _this.form.email);
+						_this.$u.vuex('vuex_admin.phone', _this.form.phone);
+						_this.$u.vuex('vuex_admin.wechat', _this.form.wechat);
 
-
-						// 提示
 						uni.showToast({
 							title: '修改成功',
 							icon: 'success',
-							duration: 2000
+							duration: 1500
 						})
 
 						setTimeout(() => {
-              if(_this.form.password){
-                _this.$u.vuex('vuex_token',null);
-                _this.$u.route('pages/login/index');
-              }
+							if(_this.form.newpwd){
+								// 修改密码则退出登录
+								_this.$u.vuex('vuex_token', null);
+								_this.$u.route('pages/login/index');
+							}
 						}, 1500);
+					} else {
+						uni.showToast({ title: res.msg || '修改失败', icon: 'none', duration: 2000 })
 					}
 				})
 			},
@@ -189,6 +232,17 @@
       margin-right: 15rpx;
     }
   }
+}
+
+.avatar-box {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	.avatar-tip {
+		margin-left: 20rpx;
+		font-size: 26rpx;
+		color: #909399;
+	}
 }
 
 .slot-btn__hover {

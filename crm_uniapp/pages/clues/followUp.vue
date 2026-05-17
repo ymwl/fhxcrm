@@ -109,7 +109,7 @@
 		methods: {
 			// 获取详情
 			getData() {
-				this.$u.api.getCluesEdit({
+				this.$u.get('crm.clues.index/edit',{
 					ids: this.clues_id
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -120,7 +120,7 @@
 			},
 			// 获取配置字段
 			getBaseConfig() {
-				this.$u.api.getBaseConfig().then((res) => {
+				this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.selectList = this.onJson(res.data.recordTypeList)
 					}
@@ -208,7 +208,7 @@
 					'row[image]': this.form.image,
 					ids: this.clues_id,
 				} 
-				this.$u.api.onCluesRecord(param).then((res) => {
+				this.$u.post('crm.clues.record/add',param).then((res) => {
 					console.log(res)
 					if(res.code == 1){
 						// 提示

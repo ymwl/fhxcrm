@@ -55,7 +55,8 @@
 	export default {
 		data() {
 			return {
-				sort: 'id',
+				searchTimer: null,
+				sort_by: 'id',
 				keyword:'',
 				scopeName: '全部客户',
 				specClass: 'hide',
@@ -71,12 +72,12 @@
 					{
 						label: '客户名称',
 						value: 0,
-						sort: 'name',
+						sort_by: 'name',
 					},
 					{
 						label: '手机号',
 						value: 1,
-						sort: 'mobile',
+						sort_by: 'mobile',
 					},
 				],
 				consentShow: false,
@@ -196,9 +197,9 @@
 				let opObj = {}
         filterObj[this.options[this.value].sort] = this.keyword
         opObj[this.options[this.value].sort] = '='
-				this.$u.api.getReduplicate({
-					sort: this.sort,
-					order: 'desc',
+				this.$u.get('crm.customer.index/reduplicate',{
+					sort_by: this.sort_by,
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify( this.keyword ? filterObj : {}),
@@ -281,9 +282,12 @@
 			},
 			// 点击搜索
 			onSearch() {
-				this.page = 0
-				this.lastPage = false
-				this.getReduplicate()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.lastPage = false
+					this.getReduplicate()
+				}, 500)
 			},
 			// 查看客户详情
 			onItem(val) {

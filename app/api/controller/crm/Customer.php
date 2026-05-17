@@ -25,6 +25,7 @@ class Customer extends Authority
 {
     public $sort_by = 'id';
     public $sort_order = 'DESC';
+    protected $searchFields = 'name|phone';
 
     /**
      * 允许修改的字段
@@ -54,20 +55,8 @@ class Customer extends Authority
     public function index()
     {
 
-        $fields=cache('crm_customer_fields');
-        if(!$fields){
-            $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query("SELECT  `field`, `jscol`,`show` FROM `{$prefix}system_field` WHERE `table`='crm_customer' AND `show`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
-            $field_str=$jscol_str='';
-            foreach ($fields as $key=>$value){
-                $field_str.=$value['field'].',';
-                if($value['show']==1){
-                    $jscol_str.=$value['jscol'].',';
-                }
-            }
-            $fields=['field_str'=>trim($field_str,','),'jscol_str'=>trim($jscol_str,',')];
-            cache('crm_customer_fields',$fields);
-        }
+        $fields=\tools\Cache::zdy_fields('crm_customer');
+
 
 
         if (input('selectFields')) {
@@ -82,8 +71,8 @@ class Customer extends Authority
                 if(empty($adminName)){
                     return json([
                         'code'  => 1,
-                        'msg'   => '',
-                        'data'  => ['rows' => [], 'count' => 0],
+                        'msg'   => '','count' => 0,
+                        'data'  => [],
                     ]);
                 }
                 if($adminName!=='ALL'){
@@ -100,7 +89,8 @@ class Customer extends Authority
                     return json([
                         'code'  => 1,
                         'msg'   => '',
-                        'data'  => ['rows' => [], 'count' => 0],
+                        'count' => 0,
+                        'data'  => []
                     ]);
                 }
                 if($adminName!=='ALL'){
@@ -158,7 +148,7 @@ class Customer extends Authority
                     $field_str='*';
                 }else{
                     $field_str_arr=explode(',',$fields['field_str']);
-                  /*  if(!in_array('issuccess',$field_str_arr)){
+                   if(!in_array('issuccess',$field_str_arr)){
                         $field_str='issuccess,'.$field_str;
                     }
                     if(!in_array('create_time',$field_str_arr)){
@@ -169,7 +159,7 @@ class Customer extends Authority
                     }
                     if(!in_array('to_kh_time',$field_str_arr)){
                         $field_str='to_kh_time,'.$field_str;
-                    }*/
+                    }
                     if(!in_array('id',$field_str_arr)){
                         $field_str='id,'.$field_str;
                     }
@@ -184,7 +174,11 @@ class Customer extends Authority
 
                 if ($this->admin['isphone'] == 0 && $list) {
                     foreach ($list as $key => $value) {
-                        $value['phone'] = mb_substr($value['phone'], 0, 3).'****'. mb_substr($value['phone'], 7, 11);
+                        foreach ($fields['tels'] as $tel_key => $tel_value){
+                            if($value[$tel_value]){
+                                $value[$tel_value] = mb_substr($value[$tel_value], 0, 3).'****'. mb_substr($value[$tel_value], 7, 11);
+                            }
+                        }
                         $list[$key] = $value;
                     }
                 }
@@ -193,7 +187,9 @@ class Customer extends Authority
             $data = [
                 'code'  => 1,
                 'msg'   => '',
-                'data'  => ['rows' => $list, 'count' => $count],
+                'count' => $count,
+                'data'  => $list,
+                'scopes'=>['1'=>'我的','2'=>'下属的','3'=>'全部']
             ];
 
             return json($data);
@@ -203,6 +199,8 @@ class Customer extends Authority
      */
     public function seas()
     {
+        $where = "`show` = 1 OR `field` IN ('to_gh_time', 'pr_user_bef')";
+        $fields = \tools\Cache::zdy_fields('crm_customer', $where);
         $this->model->autoRecycle($this->system);
         $this->sort_by = 'to_gh_time';
         $this->sort_order = 'ASC';
@@ -216,7 +214,16 @@ class Customer extends Authority
             ->count();
         $list=[];
         if($count){
-            $list = $this->model
+            $field_str=empty($fields['field_str'])?'*':$fields['field_str'];
+            if (empty($fields['field_str'])){
+                $field_str='*';
+            }else{
+                $field_str_arr=explode(',',$fields['field_str']);
+                if(!in_array('id',$field_str_arr)){
+                    $field_str='id,'.$field_str;
+                }
+            }
+            $list = $this->model->field($field_str)
                 ->where($where)
                 ->page($page, $limit)
                 ->order($sort)
@@ -225,7 +232,11 @@ class Customer extends Authority
 
         if ($this->admin['group_id'] != 1) {
             foreach ($list as $key => $value) {
-                $value['phone'] = mb_substr($value['phone'], 0, 3).'****'. mb_substr($value['phone'], 7, 11);
+                foreach ($fields['tels'] as $tel_key => $tel_value){
+                    if($value[$tel_value]){
+                        $value[$tel_value] = mb_substr($value[$tel_value], 0, 3).'****'. mb_substr($value[$tel_value], 7, 11);
+                    }
+                }
                 $list[$key] = $value;
             }
         }
@@ -237,22 +248,16 @@ class Customer extends Authority
 
         //技术QQ3623820285
 
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`jscol` FROM `'.$prefix.'system_field` WHERE (`show`=1 AND `table`="crm_customer" AND `jscol` is not null) OR `field`="to_gh_time" OR `field`="pr_user_bef" order BY `sort` ASC,id ASC');
-        $fields_str='';
-        foreach ($fields as $v){
-
-            $fields_str.=$v['jscol'].',';
-        }
-        $fields_str=str_replace(['"已成交"','"未成交"'],['"'.fy('已成交').'"','"'.fy('未成交').'"'],$fields_str);
+        $jscol_str= $fields['jscol_str'];
+        $jscol_str=str_replace(['"已成交"','"未成交"'],['"'.fy('已成交').'"','"'.fy('未成交').'"'],$jscol_str);
         $this->app->view->engine()->layout(false);
-        $fields_str=$this->display(trim($fields_str,','));
+        $jscol_str=$this->display(trim($jscol_str,','));
         $this->app->view->engine()->layout($this->layout);
-        $fields_str=str_replace(['":"{"','"}"'],['":{"','"}'],$fields_str);
-        $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
+        $jscol_str=str_replace(['":"{"','"}"'],['":{"','"}'],$jscol_str);
+        $this->assignconfig('cols_fields',json_decode('['.$jscol_str.']',true));
         $this->assignconfig('parameter',['scope'=>$this->request->get('scope',1,'intval')]);
         View::assign('grabCountMsg',$this->getGrabCount()['msg']);
-        return $this->fetch();
+        
     }
 
     public function reduplicate(){
@@ -277,7 +282,7 @@ class Customer extends Authority
                 'data'  => ['rows' => $list, 'count' => count($list)],
             ]);
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `field` IN ('name','phone','contact','at_user','pr_user','last_up_time','issuccess','create_time','update_time') order BY `sort` ASC,id ASC");
+        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `table`='crm_customer' AND `field` IN ('name','phone','contact','at_user','pr_user','last_up_time','issuccess','create_time','update_time') order BY `sort` ASC,id ASC");
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=$v['jscol'].',';
@@ -294,13 +299,15 @@ class Customer extends Authority
 
 //        var_dump(json_decode('['.$fields_str.']',true));
         $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
-        return $this->fetch();
+        
     }
     /**
      * @NodeAnotation(title="成交客户")
      */
     public function issuccess()
     {
+        $where = "`show` = 1 OR `field` = 'issuccess'";
+        $fields = \tools\Cache::zdy_fields('crm_customer', $where);
         $this->sort_by = 'success_time';
             $this->sort_order = 'DESC';
             if (input('selectFields')) {
@@ -314,22 +321,39 @@ class Customer extends Authority
 
             $count = $this->model
                 ->where($where)
-                ->count();
-            $list = $this->model
-                ->where($where)
-                ->page($page, $limit)
-                ->order($sort)
-                ->select();
-            if ($this->admin['isphone'] == 0) {
-                foreach ($list as $key => $value) {
-                    $value['phone'] = mb_substr($value['phone'], 0, 3).'****'. mb_substr($value['phone'], 7, 11);
-                    $list[$key] = $value;
+                ->count();$list=[];
+            if($count){
+                $field_str=empty($fields['field_str'])?'*':$fields['field_str'];
+                if (empty($fields['field_str'])){
+                    $field_str='*';
+                }else{
+                    $field_str_arr=explode(',',$fields['field_str']);
+                    if(!in_array('id',$field_str_arr)){
+                        $field_str='id,'.$field_str;
+                    }
+                }
+
+                $list = $this->model->field($field_str)
+                    ->where($where)
+                    ->page($page, $limit)
+                    ->order($sort)
+                    ->select();
+                if ($this->admin['isphone'] == 0) {
+                    foreach ($list as $key => $value) {
+                        foreach ($fields['tels'] as $tel_key => $tel_value){
+                            if($value[$tel_value]){
+                                $value[$tel_value] = mb_substr($value[$tel_value], 0, 3).'****'. mb_substr($value[$tel_value], 7, 11);
+                            }
+                        }
+                        $list[$key] = $value;
+                    }
                 }
             }
+
             return json([
                 'code'  => 1,
-                'msg'   => '',
-                'data'  => ['rows' => $list, 'count' => $count],
+                'msg'   => '','count' => $count,
+                'data'  => $list,
             ]);
         $prefix=getDataBaseConfig('prefix');
         $fields=Db::query('SELECT `name`,`jscol` FROM `'.$prefix.'system_field` WHERE `show`=1 AND `table`="crm_customer" AND `jscol` is not null order BY `sort` ASC,id ASC');
@@ -347,7 +371,7 @@ class Customer extends Authority
         $fields_str=str_replace(['":"{"','"}"'],['":{"','"}'],$fields_str);
         $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
         $this->assignconfig('parameter',['scope'=>$this->request->get('scope',1,'intval')]);
-        return $this->fetch();
+        
     }
 
 
@@ -416,31 +440,23 @@ class Customer extends Authority
     {
         $prefix=getDataBaseConfig('prefix');
         $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
-        $row = $this->model->field(array_column($fields, 'field'))->find($id);
+        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','pr_user','phone','name','contacts_id'])))->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
         $this->modifyPermissionsByName($row['pr_user']);
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
             $this->verifyFields($post,$fields,'crm_customer');
-            $prefix=getDataBaseConfig('prefix');
-            $fields =Db::query('SELECT `field`,`formtype`,`xsname`,`name` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `editinput` is not null ');
-
 //            针对多选无值赋空
             $fields_name=[];
             foreach ($fields as $v){
                 $name=!empty($v['xsname'])?$v['xsname']:$v['name'];
                 $fields_name[$v['field']]=$name;
-
-
             }
             Db::startTrans();
             try {
                 $post=post_convert($post,$fields);
                 $post['update_time']=time();
-                if(strpos($post['phone'],'****')!==false){
-                    unset($post['phone']);
-                }
                 if(!empty($this->system['customer_record_fields'])){
 //                    不为空则记录变动的值
                     $record_fields=explode(',',$this->system['customer_record_fields']);
@@ -499,6 +515,14 @@ class Customer extends Authority
                 $this->error(fy('Save failed').':'.$msg);
             }
             $save ? $this->success(fy('Save successfully')) : $this->error(fy('Save failed'));
+        }else{
+
+            foreach ($fields as $value){
+                if ($this->admin['isphone'] == 0 && $value['formtype']=='tel') {
+                    $row[$value['field']] = mb_substr($row[$value['field']], 0, 3).'****'. mb_substr($row[$value['field']], 7, 11);
+                }
+            }
+            $this->success('success','',$row);
         }
 
     }
@@ -592,251 +616,6 @@ class Customer extends Authority
         View::assign('adminResult',$adminResult);
     }
 
-    /**
-     *批量导入客户
-     */
-    public function import()
-    {
-
-        if ($this->request->isPost()) {
-            @ini_set("memory_limit",'-1');
-            @ini_set('max_execution_time', '0');
-            $params = $this->request->post();
-
-            if (!$params['filepath']) {
-                $this->error(fy("Parameter error"));
-            }
-            $filePath = $this->app->getRootPath().'public'.$params['filepath'];
-
-            if (!is_file($filePath)) {
-                $this->error(fy("The uploaded file was not found"));
-            }
-
-            //实例化reader
-            $ext = pathinfo($filePath, PATHINFO_EXTENSION);
-            if (!in_array($ext, ['csv', 'xlsx'])) {
-                $this->error(fy("Please select EXCEL format to import"));
-            }
-            if ($ext === 'xlsx') {
-                $reader = new \OpenSpout\Reader\XLSX\Reader();
-            } else {
-                $reader = new \OpenSpout\Reader\CSV\Reader();
-            }
-
-
-            //加载文件
-            $insert = 0;
-            try {
-
-                $reader->open($filePath);
-                /*if (!$PHPExcel = $reader->load($filePath)) {
-                    throw new  exception(fy("Failed to get file data"));
-                }*/
-
-                $prefix=getDataBaseConfig('prefix');
-                $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE (rule <> "" AND `edit`=1 AND `table`="crm_customer" AND `editinput` is not null)  order BY `sort` ASC,id ASC');
-                $rule=$arr_fields=[];
-                foreach ($fields as $v){
-                    $name=$v['xsname']?$v['xsname']:$v['name'];
-                    $msg=!empty(trim($v['msg']))?'|'.$v['msg']:'|'.$name;
-                    $ruleKey=$v['field'].$msg;
-                    $rule[$ruleKey]=str_replace('unique','unique:crm_customer',str_replace(',','|',$v['rule']));
-                }
-//                获取字段对应类型关系
-                $fields=Db::query('SELECT `field`,`formtype`,`option`,`lang` FROM `'.$prefix.'system_field` WHERE `export`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
-                foreach ($fields as $v){
-                    $arr_fields[$v['field']]=$v;
-                }
-
-                $allowCustomersNum=$this->model->allowCustomersNum($this->admin);
-                if($allowCustomersNum['max_customers_num']>0){
-//                大于零说明要验证
-                    $yx_c=$allowCustomersNum['yx_c'];
-                    if($yx_c<=0){
-                        throw new  exception(fy("The maximum number of customers you can currently have is full and cannot be imported"));
-                    }
-                }
-
-                $fields = [];$insert=0;$sql='';
-//                获取第一列
-                foreach ($reader->getSheetIterator() as $sheet) {
-                    foreach ($sheet->getRowIterator() as $index => $row) {
-                        $data=[];
-                        if(isset($yx_c)){
-                            if($yx_c<=0){
-                                if($sql){
-                                    \think\facade\Db::connect('mysql')->getPdo()->exec($sql);
-                                    $sql='';
-                                }
-                                throw new  exception(fy("The maximum number of customers you can currently have is full and cannot be imported"));
-                            }
-                        }
-                        foreach ($row->getCells() as $column => $cell)  {
-                            $val=$cell->getValue();
-//                        *客户名称(name)  获取字段
-                            $val =trim($val);
-                            if($index==1) {
-                                preg_match('/\(([a-zA-Z][a-zA-Z0-9_]*)\)$/',$val,$match);
-                                if(!empty($match[1])){
-                                    $fields[$column] = $match[1];
-                                }else{
-                                    throw new  exception(fy("Please use the correct import template"));
-                                }
-
-                            }else{
-                                if(empty($val))continue;
-                                 // 数据表字段容量
-                                // 计算备注文本的实际长度（以 UTF-8 编码为例）
-                                if (mb_strlen($val, 'utf-8') > $arr_fields[$fields[$column]]['lang']) {
-                                    // 如果实际长度超过了允许的最大长度，则提示错误信息
-                                    throw new  exception(fy("The length of the field %s exceeds the maximum length of %s",[$fields[$column],$arr_fields[$fields[$column]]['lang']]));
-                                }
-                                $data[$fields[$column]]=$val;
-                            }
-                        }
-                        if(empty(array_filter($data))){
-//                        如果为空则直接跳过
-                            continue;
-                        }
-//                    0-线索，1-客户，2-公海，3-删除
-                        if($params['pr_user']){
-                            $data['pr_user']=$params['pr_user'];
-                            $data['owner_admin_id'] = Db::name('admin')->cache('admin_username_'.$params['pr_user'],3600)->where(['username'=>$params['pr_user']])->value('admin_id');
-                            $data['status']=1;
-                            $data['to_kh_time']=time();
-                        }else{
-                            $data['pr_user']='';
-                            $data['owner_admin_id']=0;
-                            $data['status']=2;
-                            $data['to_gh_time']=time();
-                        }
-                        $data['at_user']=$this->admin['username'];
-                        $data['update_time']=$data['create_time']=time();
-
-                        try {
-                            if($rule){
-                                parent::validate($data, $rule);
-                            }
-                            foreach ($data as $k=>$v){
-                                if(isset($arr_fields[$k]['formtype'])){
-                                    switch($arr_fields[$k]['formtype']){
-                                        case 'datetime':
-                                        case 'date':
-                                            if(!is_numeric($v)){
-                                                $data[$k]=strtotime($v);
-                                            }
-                                            break;
-                                        case 'select':
-                                        case 'radio':
-                                            $selectList=[];
-                                            $option=explode(',',$arr_fields[$k]['option']);
-                                            if($option){
-                                                foreach ($option as $v1){
-                                                    $vv=explode(':',$v1);
-                                                    if($vv){
-                                                        $vv[0]=trim($vv[0]);
-                                                        if(empty($vv[1]))$vv[1]=$vv[0];
-                                                        $selectList[trim($vv[1])]=$vv[0];
-                                                    }
-                                                }
-                                                if(isset($selectList[$v])){
-                                                    $data[$k]= $selectList[$v];
-                                                }
-                                            }
-                                    }
-                                }
-                            }
-                            $temp = Db::name('crm_customer')->fetchSql(true)->save($data).';';
-                            if ($temp) {
-                                $sql=$sql.$temp;
-                                $insert++;
-                                if(isset($yx_c)){
-                                    $yx_c--;
-                                }
-                                if($insert%600==0){
-                                    flush();
-                                    ob_flush();
-//                                            每600条执行一遍
-                                    \think\facade\Db::connect('mysql')->getPdo()->exec($sql);
-                                    $sql='';
-                                }
-
-                            }
-                        } catch (\Exception $e) {
-                            if ($params['skip'] != 1) {
-                                throw new  exception($e->getMessage().'，待插入的数据：'.var_export($data,true));
-                            }else{
-                                \think\facade\Log::write($e->getMessage(),'error');
-                                $sql='';
-                            }
-                        }
-
-                    }
-                }
-                $reader->close();
-
-                if($sql){
-                    \think\facade\Db::connect('mysql')->getPdo()->exec($sql);
-                    $sql='';
-
-                }
-
-            } catch (\Exception $e) {
-
-                $this->error($e->getMessage());
-            } catch (\Throwable $e) {
-                $this->error($e->getMessage());
-            }
-            if (!$insert) {
-                $this->error(fy("No data was imported"));
-            }
-            $this->success(fy('%s imported successfully',[$insert]));
-        }
-        return $this->fetch();
-    }
-
-
-    /**
-     * 获取导入模板
-     * @throws PDOException
-     * @throws \think\db\exception\BindParamException
-     */
-    public function getImportTpl()
-    {
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `field`,`name`,`xsname`,`width`,`rule` FROM `'.$prefix.'system_field` WHERE `export`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $i = 0;
-        foreach ($fields as $k => $v) {
-            $name=$v['xsname']?$v['xsname']:$v['name'];
-            if ($i >= 26) {
-                $cell = chr(65 + $i / 26 - 1) . chr(65 + $i % 26);
-            } else {
-                $cell = chr(65 + $i);
-            }
-            $spreadsheet->getActiveSheet()->getStyle($cell . '1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('cdf79e');
-            $required='';
-            if(strpos($v['rule'],'require')!==false)$required='*';
-            $sheet->getColumnDimension($cell)->setWidth($v['width'],'px');
-            $sheet->setCellValue($cell . '1', $required.$name."({$v['field']})");
-            $i++;
-        }
-
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header("Content-Disposition: attachment;filename=customertpl.xlsx");
-        header('Cache-Control: max-age=0');
-        header('Cache-Control: cache, must-revalidate');
-        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-        try {
-            $writer->save('php://output');
-            $spreadsheet->disconnectWorksheets();
-            unset($spreadsheet);
-        } catch (\Exception $e) {
-            echo $e->getMessage();
-        }
-        exit();
-    }
 
 
 
@@ -844,129 +623,8 @@ class Customer extends Authority
 
 
 
-    public function export()
-    {
-        @ini_set("memory_limit", '-1');
-        @ini_set('max_execution_time', '0');
-
-        list($page, $limit, $where, $sort) = $this->buildTableParames();
-        $scope = $this->request->get('scope', 1, 'intval');
-
-        if($scope==2){
-//                    展示其他的  不包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
-            if(empty($adminName)){
-                return json([
-                    'code'  => 1,
-                    'msg'   => '',
-                    'data'  => ['rows' => [], 'count' => 0],
-                ]);
-            }
-            if($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
-            }elseif($adminName=='ALL'){
-//                    展示其他的  不包括自己需要做排除
-                $where[] = ['pr_user', '<>',$this->admin['username']];
-            }
-
-        }elseif($scope==3){
-//                    展示全部 包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-            if(empty($adminName)){
-                $where[] = ['id', 'in',-1];
-            }elseif($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
-            }
-        }elseif($scope==10){
-// 待跟进
-            $where[] = ['next_time', '>', 0];
-            $where[] = ['next_time', '<', strtotime('tomorrow')];
-// 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-
-        }elseif($scope==11){
-// 今天已跟进
-            $where[] = ['last_up_time', '>=', strtotime('today')];
-            $where[] = ['last_up_time', '<', strtotime('tomorrow')];
-// 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-
-        }elseif($scope==12){
-// 从未跟进
-            $where[] = ['last_up_time', '=', 0];
-// 限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-
-        }elseif($scope==20){
-
-            //            展示自己分享给他人的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-            $where[] = ['share_admin_ids', '<>', ''];
-
-        }elseif($scope==21){
-            //                    展示分享给我的
-            $where[]=['','exp',\think\facade\Db::raw("FIND_IN_SET('{$this->admin['admin_id']}',share_admin_ids)")];
-        }else{
-//                   限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
-        }
-        $where[]=['status','=',1];
-
-        // ...（保留原有的 $where 条件设置逻辑，这部分代码未改动）
-
-        $str_fields = '`id`';
-        $fields = Db::query('SELECT `field`, `name`, `xsname`, `width`, `rule`, `formtype`, `option` FROM `' . getDataBaseConfig('prefix') . 'system_field` WHERE (`export`=1 OR `show`=1) AND `table`="crm_customer" ORDER BY `sort` ASC, id ASC');
-
-        // 初始化 Spout writer
-//        $writer = WriterEntityFactory::createXLSXWriter();
-        $writer = new \OpenSpout\Writer\XLSX\Writer();
-
-        $tempPath=$this->app->getRootPath().'public'.DIRECTORY_SEPARATOR.'temp'.DIRECTORY_SEPARATOR;
-        if(!is_dir($tempPath)){
-            mkdir($tempPath,755,true);
-        }
-        deleteFilesOlderThanDays($tempPath, 1);
-        $tempFile =  date('YmdHis') .'uid'.$this->admin['admin_id'].'_export.xlsx';
-        $writer->openToFile($tempPath.$tempFile);
 
 
-        $str_fields='`id`';
-        $cells=[];
-        foreach ($fields as $k => $v) {
-            $name=$v['xsname']?$v['xsname']:$v['name'];
-            $fields[$k]['xsname']=$name;
-
-            if($v['field']!='id'){
-                $str_fields=$str_fields.',`'.$v['field'].'`';
-            }
-            $cells[]=Cell::fromValue($name);
-        }
-
-        if($cells){
-            $singleRow = new Row($cells);
-            $writer->addRow($singleRow);
-        }
-        $cursor = $this->model->field(trim($str_fields, ','))->where($where)->order($sort)->cursor();
-
-
-        foreach ($cursor as $item) {
-            $rowData = [];
-            foreach ($fields as $field) {
-                $value = $item[$field['field']];
-                $value = real_field_val($field, $value);
-                $rowData[] =Cell::fromValue($value);
-            }
-            if($rowData){
-                $singleRow = new Row($rowData);
-                $writer->addRow($singleRow);
-            }
-        }
-
-        // 关闭 writer 并准备下载
-        $writer->close();
-        $this->redirect(__MY_PUBLIC__.'/temp/'.$tempFile);
-
-    }
 
 
     //移入公海
@@ -1021,7 +679,7 @@ class Customer extends Authority
         View::assign('cus_lst',$cus_lst);
         View::assign('ids',$ids);
 
-        return $this->fetch();
+        
     }
 
 
@@ -1069,7 +727,7 @@ class Customer extends Authority
         $this->assign('system',$this->system);
         $this->assign('kwd',$kwd);
         $this->app->view->engine()->layout(false);
-        return $this->fetch();
+        
 
     }
 
@@ -1109,7 +767,7 @@ class Customer extends Authority
             $this->assign('emailtpl',$emailtpl);
             $this->assign('id',$id);
             $this->assign('row',$row);
-            return $this->fetch();
+            
         }
     }
 

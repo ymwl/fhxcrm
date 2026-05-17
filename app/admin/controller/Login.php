@@ -32,7 +32,7 @@ class Login extends BaseController
         $name = preg_match("/^([a-zA-Z0-9_\.\/]+)\$/i", $jsPath) ? $jsPath : 'index';
         $lang = Lang::getLangSet();
         $lang = preg_match("/^([a-zA-Z\-_]{2,10})\$/i", $lang) ? $lang : 'zh-cn';
-        Lang::load($this->app->getAppPath() . 'lang/' . $lang . '/' . str_replace('.', '/', $name) . '.php');
+        Lang::load(app()->getBasePath() . 'common/lang/' . $lang . '/' . str_replace('.', '/', $name) . '.php');
         if($this->request->isPost()) {
             $check = $this->request->checkToken('__token__');
             if(false === $check) {
@@ -48,21 +48,27 @@ class Login extends BaseController
             if($loginfailure>6){
                 $this->error('您的账号今天登录失败'.$loginfailure.'次，请明天再试');
             }
+            if($this->system['code']){
+                if(!isset($data['vercode']) || !captcha_check($data['vercode'])){
+                    $this->error( fy('Login verification code error'));
+                }
+            }
             $admin = new Admin();
-            $return = $admin->login($data,$this->system['code']);
+            $return = $admin->login($data);
             $ismoblie =$this->request->isMobile();
             $ip =getRealIp();
             $login_side=$ismoblie?2:1;
-            $admin=session('admin');
+
             Db::name('login_log')->insert([
-                'admin_id'=>isset($admin['admin_id'])?$admin['admin_id']:0,
-                'username'=>isset($admin['username'])?$admin['username']:$data['username'],
+                'admin_id'=>isset($return['admin']['admin_id'])?$return['admin']['admin_id']:0,
+                'username'=>isset($return['admin']['username'])?$return['admin']['username']:$data['username'],
                 'ip'=>$ip,
                 'login_side'=>$login_side,
                 'info'=>$return['msg'],
                 'createtime'=>time()
             ]);
             if($return['code']){
+                session('admin',$return['admin']);
                 if(empty($data['remember'])){
                     cookie('username','');
                     cookie('password','');

@@ -3,32 +3,40 @@
 		<!-- 顶部导航 -->
 		<u-navbar :is-back="true">
 			<view class="slot-wrap">
-				<u-search style="width:100%" placeholder="搜索昵称、账号" v-model="keyword" :input-style="search"  :show-action="false" @change="onSearch"></u-search>
+				<u-search style="width:100%" placeholder="搜索姓名、账号" v-model="keyword" :input-style="search"  :show-action="false" @change="onSearch"></u-search>
 			</view>
 		</u-navbar>
 		<view class="wrap">
 			<scroll-view scroll-y class="sv" :style="{height:scrollHeight+'px;'+ 'width:100%'}" :scroll-top="scrollTop" @scroll="scroll"  @scrolltolower="reachBottom">
 				<view class="page-box">
 					<block v-if="adminList.length > 0">
-						<view class="client" v-for="(item, index) in adminList" :key="index" @click="onItem(item)">
-              <view class="top">
-                <view class="left">
-                  <view class="store">{{item.realname}}({{item.username}})</view>
-                </view>
-                <view class="right" :style="{color: vuex_theme.color,}">{{item.status | changeStatus}}<u-icon name="arrow-right" :color="vuex_theme.color" :size="26"></u-icon></view>
-              </view>
-              <view class="item">
-                <view class="content">
-                  <view class="title u-line-2">{{item.groups_text}}</view>
-                </view>
-                <view class="right">{{item.name}}</view>
-              </view>
-              <view class="bottom">
-                <view class="client_time">最后登录：{{timeFormats(item.logintime)}}</view>
-                <view class="u-flex">
-                  <view class="btn u-m-l-15 entity" @click.stop="onEdit(item.id)" :style="{backgroundColor: vuex_theme.color}">编辑</view>
-                </view>
-              </view>
+						<view class="client" v-for="(item, index) in adminList" :key="index">
+							<!-- 顶部：姓名和状态 -->
+							<view class="top">
+								<view class="left">
+									<view class="store">{{item.realname || item.username}}({{item.username}})</view>
+								</view>
+								<view class="right">
+									<text :class="item.is_open == 1 ? 'status-on' : 'status-off'">
+										{{item.is_open == 1 ? '正常' : '禁用'}}
+									</text>
+								</view>
+							</view>
+							<!-- 中间：动态字段渲染 -->
+							<view class="field-wrap">
+								<view class="field-item" v-for="(f, fi) in displayFields" :key="fi" v-if="getNestedValue(item, f.field)">
+									<text class="field-label">{{f.title}}：</text>
+									<text class="field-value">{{getNestedValue(item, f.field)}}</text>
+								</view>
+							</view>
+							<!-- 底部：操作按钮 -->
+							<view class="bottom">
+								<view class="client_time">最后登录：{{timeFormats(item.logintime)}}</view>
+								<view class="u-flex">
+									<view class="btn entity" @click.stop="onEdit(item.admin_id)" :style="{backgroundColor: vuex_theme.color}">编辑</view>
+									<view class="btn entity u-m-l-15" @click.stop="onDel(item.admin_id)" v-if="item.admin_id != 1" style="background-color:#f56c6c">删除</view>
+								</view>
+							</view>
 						</view>
 						<u-loadmore :status="listStatus"></u-loadmore>
 					</block>
@@ -70,6 +78,20 @@
 				lastPage: false,
 				listStatus: 'loadmore',
 				status: '',
+				fields: [
+					{field: 'admin_id', title: 'ID'},
+					{field: 'username', title: '用户名'},
+					{field: 'realname', title: '真实姓名'},
+					{field: 'authGroup.title', title: '部门岗位'},
+					{field: 'authRole.name', title: '角色'},
+					{field: 'mubiao', title: '月目标'},
+					{field: 'ticheng', title: '佣金(%)'},
+					{field: 'email', title: '联系邮箱'},
+					{field: 'phone', title: '联系电话'},
+					{field: 'wechat', title: '联系微信'},
+					{field: 'is_open', title: '状态', type: 'switch'},
+					{field: 'isphone', title: '查看手机号', type: 'switch'}
+				],
 			};
 		},
 		filters: {
@@ -110,11 +132,23 @@
 		},
 		onLoad(e) {
 			this.getAdminList()
+			uni.$on('refreshMemberList', () => {
+				this.page = 1
+				this.lastPage = false
+				this.getAdminList()
+			})
 		},
 		onShow(){
 		},
+		onUnload() {
+			uni.$off('refreshMemberList')
+		},
 		computed: {
-
+			displayFields() {
+				return this.fields.filter(f => 
+					!['admin_id','username','realname','is_open','isphone'].includes(f.field)
+				);
+			}
 		},
 		methods: {
 			// 返回上一页
@@ -142,32 +176,37 @@
 				}
 			},
 			// 页面数据
-			getAdminList(isNextPage,pages) {
-				this.$u.api.getAdminList({
+			getAdminList(isNextPage, pages) {
+				this.$u.get('auth/adminList', {
 					search: this.keyword,
-					sort: 'id',
-					order: 'desc',
-					offset: (pages || 0 ) * this.pageSize,
+					sort_by: 'admin_id',
+					sort_order: 'desc',
+					offset: ((pages || 1) - 1) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({}),
 					op: JSON.stringify({})
 				}).then(res => {
-					if(res.code == 1 ) {
+					if(res.code == 1) {
 						// 不够一页
-						if (res.data.rows.data.length <= this.pageSize) {
+						if (res.data.length < this.pageSize) {
 							this.listStatus = 'nomore'
 						}
-						// 最后一页
-						if(res.data.rows.total == this.adminList.length) {
+						// 判断最后一页
+						if(res.data.length == 0) {
 							this.lastPage = true
 							return
 						}
-						// 第二页开始
+						// 总数判断
+						if(res.count && (this.adminList.length + res.data.length) >= res.count) {
+							this.lastPage = true
+							this.listStatus = 'nomore'
+						}
+						// 第二页开始追加
 						if(isNextPage) {
-							this.adminList = this.adminList.concat(res.data.rows.data)
+							this.adminList = this.adminList.concat(res.data)
 							return
 						}
-						this.adminList = res.data.rows.data
+						this.adminList = res.data
 					}
 				})
 			},
@@ -188,13 +227,40 @@
 			},
 			// 点击搜索
 			onSearch() {
-				this.page = 0
+				this.page = 1
 				this.lastPage = false
 				this.getAdminList()
 			},
 			// 查看详情
 			onItem(val) {
 
+			},
+			// 支持嵌套对象取值（如 authGroup.title）
+			getNestedValue(obj, path) {
+				const val = path.split('.').reduce((o, k) => (o || {})[k], obj);
+				if (val === null || val === undefined || val === '' || val === 0) return '';
+				return val;
+			},
+			// 删除管理员
+			onDel(id) {
+				uni.showModal({
+					title: '提示',
+					content: '确定删除该管理员？',
+					success: (res) => {
+						if (res.confirm) {
+							this.$u.get('auth/adminDel', {admin_id: id}).then(res => {
+								if(res.code == 1) {
+									uni.showToast({title: '删除成功', icon: 'success'});
+									this.page = 1;
+									this.lastPage = false;
+									this.getAdminList();
+								} else {
+									uni.showToast({title: res.msg || '删除失败', icon: 'none'});
+								}
+							})
+						}
+					}
+				})
 			},
 			// 编辑
 			onEdit(id) {
@@ -354,6 +420,32 @@
 		justify-content: end !important;
 		padding-left: 40rpx;
 	}
+}
+.field-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	margin-top: 16rpx;
+}
+.field-item {
+	min-width: 50%;
+	box-sizing: border-box;
+	padding: 8rpx 20rpx 8rpx 0;
+	font-size: 26rpx;
+	.field-label {
+		color: #666;
+	}
+	.field-value {
+		color: #333;
+		word-break: break-all;
+	}
+}
+.status-on {
+	color: #67c23a;
+	font-size: 26rpx;
+}
+.status-off {
+	color: #f56c6c;
+	font-size: 26rpx;
 }
 .bottom-btn {
 	position: fixed;

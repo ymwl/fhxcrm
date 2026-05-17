@@ -139,6 +139,7 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				labelPosition: 'left',
 				border: false,
 				fields: [],
@@ -192,9 +193,12 @@
 		methods: {
 			// 审批人搜索
 			adminSearch() {
-				this.adminPage = 0
-				this.lastAdmin = false
-				this.onSelectpage()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.adminPage = 0
+					this.lastAdmin = false
+					this.onSelectpage()
+				}, 500)
 			},
 			// 查看审核日志
 			goCheckLog(){
@@ -207,7 +211,7 @@
 			getReceivablesEdit() {
 				if(this.params.type == 'look'){
 					// 查看回款详情
-					this.$u.api.getReceivablesEdit({
+					this.$u.get('crm.contract.receivables/edit', {
 						id: this.id,
 						types:'contract',
 					}).then(res => {
@@ -217,7 +221,7 @@
 					})
 				} else {
 					// 查看回款详情（审批的时候）
-					this.$u.api.getBacklogVerify({
+					this.$u.get('crm.backlog/verify', {
 						id: this.id,
 						types:'receivables',
 					}).then(res => {
@@ -249,7 +253,7 @@
 				} 
 				this.getFields()
 				// 获取审批人数据
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					keyField: 'id',
 					showField: 'realname',
 					keyValue: this.form.flow_admin_id,
@@ -263,7 +267,7 @@
 					}
 				})
 				// 获取已选合同
-				this.$u.api.onContractSelectpage({
+				this.$u.get('crm.contract.index/selectpage', {
 					keyField: 'id',
 					keyValue: this.form.contract_id,
 				}).then(res => {
@@ -272,7 +276,7 @@
 					}
 				})
 				// 获取已选的客户
-				this.$u.api.getCustomerSelectpage({
+				this.$u.post('crm.customer.index/selectpage', {
 					keyField: 'id',
 					showField: 'name',
 					"q_word": this.form.customer_id,
@@ -287,7 +291,7 @@
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: 'contract_receivables',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields', {table: 'contract_receivables',id: ''}).then((res) => {
 					if(res.code == 1){
 						res.data.fields.forEach((item,index)=>{
 							// 复选框 数据格式化
@@ -374,7 +378,7 @@
 
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -508,7 +512,7 @@
 				} else {
 					param.next_admin_id = this.next_admin_id
 				}
-				this.$u.api.onBacklogVerify(param).then((res) => {
+				this.$u.post('crm.backlog/verify', param).then((res) => {
 					if(res.code == 1) {
 						// 提示
 						uni.showToast({

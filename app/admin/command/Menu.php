@@ -267,7 +267,7 @@ class Menu extends Command
         ], '', $classComment));
 
         //导入中文语言包
-        \think\facade\Lang::load(dirname(__DIR__).DIRECTORY_SEPARATOR.'lang/zh-cn.php');
+        \think\facade\Lang::load(app()->getBasePath() . 'lang/zh-cn.php');
 
         //先导入菜单的数据
         $pid = 0;

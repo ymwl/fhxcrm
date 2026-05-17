@@ -3,7 +3,6 @@
 namespace app\admin\controller\crm;
 
 use app\common\controller\AdminController;
-
 use think\App;
 use think\facade\Db;
 
@@ -151,7 +150,7 @@ class ContractReceivables extends AdminController
         if($contract_id==0){
             $this->error('提交回款必须选择合同');
         }
-        $contract_row=(new \app\admin\model\CrmContract())->field('`id`,`name`,`customer_id`')->withJoin(['crmCustomer' => ['name']], 'LEFT')->where('crm_contract.id',$contract_id)->find();
+        $contract_row=(new \app\common\model\CrmContract())->field('`id`,`name`,`customer_id`')->withJoin(['crmCustomer' => ['name']], 'LEFT')->where('crm_contract.id',$contract_id)->find();
         if(!$contract_row){
             $this->error('提交回款指定合同不存在');
         }
@@ -204,7 +203,6 @@ class ContractReceivables extends AdminController
             $save ? $this->success(fy('Save successfully')) : $this->error(fy('Save failed'));
         }
 
-        $prefix=getDataBaseConfig('prefix');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['addinput']);
@@ -217,6 +215,15 @@ class ContractReceivables extends AdminController
 
         $this->assign('contract_row',$contract_row);
 
+        // 查询该合同下的回款计划列表（排除已回款状态的计划）
+        $receivablesPlans = (new \app\admin\model\CrmContractReceivablesPlan())
+            ->where('contract_id', $contract_id)
+            ->where('status', '<>', 2)
+            ->field('id, plan_no, plan_money, plan_date, status')
+            ->order('plan_date', 'asc')
+            ->select();
+        $this->assign('receivablesPlans', $receivablesPlans);
+
         $numbering=$this->model->autoNo($this->system['receivables_format']);
         $this->assign(['numbering'=>$numbering]);
         return $this->fetch();
@@ -226,7 +233,8 @@ class ContractReceivables extends AdminController
     {
         $prefix=getDataBaseConfig('prefix');
         $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables" order BY `sort` ASC,id ASC');
-        $row = $this->model->field(array_column($fields, 'field'))->find($id);
+
+        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','owner_admin_id','check_status','customer_id','receivables_plan_id'])))->find($id);
         $this->modifyPermissions($row['owner_admin_id']);
         empty($row) && $this->error(fy('The data does not exist'));
         if($row['check_status']>2){
@@ -295,6 +303,17 @@ class ContractReceivables extends AdminController
         $crmContractName=\think\facade\Db::name('crm_contract')->where('id','=',$row['contract_id'])->value('name');
         $this->assign('crmCustomerName', $crmCustomerName);
         $this->assign('crmContractName', $crmContractName);
+
+        // 加载关联的回款计划信息
+        $receivablesPlanInfo = null;
+        if (!empty($row['receivables_plan_id'])) {
+            $receivablesPlanInfo = \think\facade\Db::name('crm_contract_receivables_plan')
+                ->where('id', $row['receivables_plan_id'])
+                ->field('id, plan_no, plan_money, plan_date, status')
+                ->find();
+        }
+        $this->assign('receivablesPlanInfo', $receivablesPlanInfo);
+
         $this->assign('row', $row);
         return $this->fetch();
     }
@@ -335,6 +354,10 @@ class ContractReceivables extends AdminController
                     Db::name('crm_contract')->where('id', '=', $row['contract_id'])->update(['return_money' =>$sum_return_money]);
                     $result = $this->model->where('id', $id)->update(['check_status' => 3, 'audit_feedback' => $result_mess]);
                     $todoDate = ['result' => 'Approved', 'result_mess' => $result_mess, 'is_finish' => 1];
+//                    对应的回款计划 status改成2
+                    if($row['receivables_plan_id']){
+                        Db::name('crm_contract_receivables_plan')->where('id', '=', $row['receivables_plan_id'])->update(['status' => 2]);
+                    }
                     $msg = ['code' => 1, 'msg' => fy('Submitted successfully'), 'data' => []];
                 } else {
                     if($result_mess==''){
@@ -373,6 +396,15 @@ class ContractReceivables extends AdminController
         $this->app->view->engine()->layout($this->layout);
         $this->assign('fields_str', $fields_str);
         $this->assign('row', $row);
+        // 加载关联的回款计划信息
+        $receivablesPlanInfo = null;
+        if (!empty($row['receivables_plan_id'])) {
+            $receivablesPlanInfo = \think\facade\Db::name('crm_contract_receivables_plan')
+                ->where('id', $row['receivables_plan_id'])
+                ->field('id, plan_no, plan_money, plan_date, status')
+                ->find();
+        }
+        $this->assign('receivablesPlanInfo', $receivablesPlanInfo);
 
         return $this->fetch();
     }
@@ -397,6 +429,15 @@ class ContractReceivables extends AdminController
         $this->assign('fields_str', $fields_str);
         $this->assign('row', $row);
         $this->assign('getCheckStatus', $this->model->getCheckStatus());
+        // 加载关联的回款计划信息
+        $receivablesPlanInfo = null;
+        if (!empty($row['receivables_plan_id'])) {
+            $receivablesPlanInfo = \think\facade\Db::name('crm_contract_receivables_plan')
+                ->where('id', $row['receivables_plan_id'])
+                ->field('id, plan_no, plan_money, plan_date, status')
+                ->find();
+        }
+        $this->assign('receivablesPlanInfo', $receivablesPlanInfo);
 
         return $this->fetch();
     }

@@ -91,17 +91,6 @@ class AdminController extends Common
         return $this->app->view->assign($name, $value);
     }
 
-    /**
-     * 解析和获取模板内容 用于输出
-     * @param string $template
-     * @param array $vars
-     * @return mixed
-     */
-    protected function fetch($template = '', $vars = [])
-    {
-        return $this->app->view->fetch($template, $vars);
-    }
-
     protected function display($template = '', $vars = [])
     {
         return $this->app->view->display($template, $vars);
@@ -152,6 +141,8 @@ class AdminController extends Common
     {
         $get = $this->request->get('', null, null);
         $page = isset($get['page']) && !empty($get['page']) ? $get['page'] : 1;
+        $sort_by = input('sort_order') ? input('sort_by') : 'id';
+        $sort_order = input('sort_order') ? input('sort_order') : 'asc';
         if(!empty($get['sort_by']) && !empty($get['sort_order'])){
             $sort = [
                 $get['sort_by'] => $get['sort_order'],
@@ -171,7 +162,7 @@ class AdminController extends Common
 
 
         // 判断是否关联查询
-        $tableName = \tools\hs::humpToLine(lcfirst($this->model->getName()));
+        $tableName = \tools\Hs::humpToLine(lcfirst($this->model->getName()));
 
         foreach ($filters as $key => $val) {
             if (in_array($key, $excludeFields)) {
@@ -193,10 +184,10 @@ class AdminController extends Common
                 $key = "{$tableName}.{$key}";
             }
             if ($this->relationSearch && count(explode('.',  $sort_by )) == 2) {
-                $sort_by  = \tools\hs::humpToLine(lcfirst($sort_by));
+                $sort_by  = \tools\Hs::humpToLine(lcfirst($sort_by));
             }
             if ($this->relationSearch && count(explode('.',  $key )) == 2) {
-                $key  = \tools\hs::humpToLine(lcfirst($key));
+                $key  = \tools\Hs::humpToLine(lcfirst($key));
             }
 
             switch (strtolower($op)) {

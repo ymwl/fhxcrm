@@ -203,6 +203,14 @@
 			}
 		},
 		{
+			"path" : "pages/contacts/sendEmail",
+			"style" :
+			{
+				"navigationBarTitleText": "发送邮件",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
 			"path" : "pages/more/index",
 			"style" :
 			{

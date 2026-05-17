@@ -6,12 +6,8 @@ use think\facade\Db;
 class Admin extends Model
 {
     protected $pk = 'admin_id';
-    public function login($data,$code){
-        if($code){
-            if(!isset($data['vercode']) || !$this->check($data['vercode'])){
-                return ['code' => 0, 'msg' => 'Login verification code error'];
-            }
-        }
+    public function login($data){
+
         $user=Db::name('admin')->field('`admin_id`,`username`,`salt`,`realname`,`pwd`,`group_id`,`avatar`,`isphone`,`is_open`,`role_id`,phone,email,wechat')->where('username',$data['username'])->find();
         if($user) {
             if($user['is_open']<1){
@@ -21,8 +17,10 @@ class Admin extends Model
                 unset($user['pwd']);
                 unset($user['salt']);
                 unset($user['is_open']);
-                session('admin',$user);
-                return ['code' => 1, 'msg' => 'Login succeeded']; //信息正确
+//                登录成功后记录最后一次登录时间
+                Db::name('admin')->where('admin_id',$user['admin_id'])->update(['logintime'=>time()]);
+
+                return ['code' => 1, 'msg' => 'Login succeeded', 'admin' => $user]; //信息正确
             }else{
                 return ['code' => 0, 'msg' => 'Login user name or password error, login failed']; //密码错误
             }
@@ -31,7 +29,7 @@ class Admin extends Model
         }
     }
     public function getInfo($admin_id){
-        $info = Db::name('admin')->withoutField('pwd')->find($admin_id);
+        $info = Db::name('admin')->withoutField('pwd,salt')->find($admin_id);
         return $info;
     }
     public function check($code){

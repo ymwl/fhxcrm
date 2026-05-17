@@ -90,7 +90,7 @@
 			},
 			// 获取发票详情
 			getInvoiceEdit() {
-				this.$u.api.getInvoiceEdit({
+				this.$u.get('crm.invoice/edit', {
 					ids: this.id,
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -105,14 +105,20 @@
 			},
 			// 基本设置
 			onGetInit(id) {
-				this.$u.api.getInit().then((res) => {
-					if(res.code == 1){
-						// 是否开启线上收款
-						if(res.data.payConfig.online_pay == '0') {
-							this.payList[1].disabled = true
-						}
+				var payConfig = this.vuex_payConfig
+				if (payConfig && Object.keys(payConfig).length > 0) {
+					if(payConfig.online_pay == '0') {
+						this.payList[1].disabled = true
 					}
-				})
+				} else {
+					this.$u.get('login/config').then((res) => {
+						if(res.code == 1){
+							if(res.data.payConfig.online_pay == '0') {
+								this.payList[1].disabled = true
+							}
+						}
+					})
+				}
 			},
 			// 优化微信小程序input、textarea快速删除时光标会跳到最后 处理：改用 textarea 失去焦点触发修改
 			textareaBlur(val) {
@@ -120,12 +126,12 @@
 			},
 			// 获取发票配置
 			getReceivablesAdd() {
-				this.$u.api.getReceivablesAdd().then(res => {
+				this.$u.get('crm.contract.receivables/receivablesadd').then(res => {
 					if(res.code == 1 ) {
 						this.flowConfig = res.data
 						if(res.data.flow_admin_id && res.data.config == 1){
 							// 获取审批人数据
-							this.$u.api.getAllAdmin({
+							this.$u.get('crm.common/selectpage/model/admin/type/all', {
 								keyField: 'id',
 								keyValue: res.data.flow_admin_id,
 								showField: 'realname',
@@ -151,7 +157,7 @@
 				this.$refs.uForm.validate(valid => {
 					if (valid) {
 						params.ids = this.id
-						this.$u.api.onInvoiceOpener(params).then((res) => {
+						this.$u.post('crm.invoice/opener', params).then((res) => {
 							if(res.code == 1) {
 								// 提示
 								uni.showToast({

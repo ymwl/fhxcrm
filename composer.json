@@ -25,7 +25,6 @@
         "phpoffice/phpspreadsheet": "^1.23",
         "topthink/think-captcha": "^3.0",
         "firebase/php-jwt": "7.0",
-        "hulang/think-addons": "*",
         "openspout/openspout": "^4.13",
         "zoujingli/wechat-developer": "^1.2",
         "phpmailer/phpmailer": "^7.0",

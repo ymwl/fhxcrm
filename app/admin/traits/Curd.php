@@ -135,7 +135,7 @@ trait Curd
         list($page, $limit, $where,$sort) = $this->buildTableParames();
         if(empty($this->export_fields)){
             $tableName = $this->model->getName();
-            $tableName = \tools\hs::humpToLine(lcfirst($tableName));
+            $tableName = \tools\Hs::humpToLine(lcfirst($tableName));
             $prefix = config('database.connections.mysql.prefix');
             $dbList = Db::query("show full columns from {$prefix}{$tableName}");
             $header = [];
@@ -334,8 +334,8 @@ trait Curd
     }
 //    判断是否具有修改权限
 //传入被修改者的管理员ID
-    public function modifyPermissions($modifiedByAdminId){
-        $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+    public function modifyPermissions($modifiedByAdminId,$withself=true){
+        $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,$withself);
         if($adminIds=='ALL'){
             return true;
         }

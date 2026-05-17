@@ -134,12 +134,12 @@
 					{
 						label: '团队业绩',
 						value: 0,
-						sort: 'id',
+						sort_by: 'id',
 					},
 					{
 						label: '成员业绩',
 						value: 1,
-						sort: 'follow_time',
+						sort_by: 'follow_time',
 					},
 				],
 				thList: ['名称','全年','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
@@ -156,8 +156,8 @@
 					},
 				],
 				parameter: {
-					sort: 'id',
-					order: 'desc',
+					sort_by: 'id',
+					sort_order: 'desc',
 				},
 				titleName: '',
 				inputVal: '',
@@ -225,7 +225,7 @@
 			},
 			// 获取数据
 			getGroupdata(){
-				this.$u.api.getAchievementIndex(this.parameter).then(res => {
+				this.$u.get('crm.achievement/index', this.parameter).then(res => {
 					if(res.code == 1 ) {
 						this.tdList = res.data.rows
 						this.editParame = res.data.extend
@@ -234,7 +234,7 @@
 			},
 			// 获取管理员数据
 			getAdminGroupdata(){
-				this.$u.api.getAchievementAdmin(this.parameter).then(res => {
+				this.$u.get('crm.achievement/admin', this.parameter).then(res => {
 					if(res.code == 1 ) {
 						console.log(res.data)
 						this.tdList = res.data.rows
@@ -281,7 +281,7 @@
 				console.log(obj)
 				if(this.current == 0) {
 					// 团队业绩编辑
-					this.$u.api.onAchievementEdit(obj).then(res => {
+					this.$u.post('crm.achievement/edit', obj).then(res => {
 						if(res.code == 1 ) {
 							console.log(res.data)
 								// 提示
@@ -296,7 +296,7 @@
 					})
 				} else {
 					// 成员业绩编辑
-					this.$u.api.onAchievementAedit(obj).then(res => {
+					this.$u.post('crm.achievement/aedit', obj).then(res => {
 						if(res.code == 1 ) {
 								// 提示
 								uni.showToast({

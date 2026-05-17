@@ -3,14 +3,12 @@
 namespace app\admin\controller\crm;
 
 use app\common\controller\AdminController;
-
 use think\App;
 use think\facade\Db;
 use think\facade\Request;
-use think\facade\View;
 
 /**
- * @ControllerAnnotation(title="crm_contract")
+ * 合同控制器
  */
 class Contract extends AdminController
 {
@@ -20,7 +18,7 @@ class Contract extends AdminController
     {
         parent::__construct($app);
 
-        $this->model = new \app\admin\model\CrmContract();
+        $this->model = new \app\common\model\CrmContract();
         
     }
 
@@ -178,7 +176,7 @@ WHERE
 
         $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
 
-        $this->assignconfig('getCheckStatus', $this->model->getCheckStatus());
+        $this->assignconfig('getCheckStatus', \app\service\CrmContractService::getCheckStatus());
         $this->assignconfig(['customer_id'=>$customer_id]);
         return $this->fetch();
     }
@@ -291,7 +289,8 @@ WHERE
     {
         $prefix=getDataBaseConfig('prefix');
         $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" order BY `sort` ASC,id ASC');
-        $row = $this->model->field(array_column($fields, 'field'))->find($id);
+
+        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','check_status','customer_id'])))->find($id);
         $this->modifyPermissions($row['owner_admin_id']);
         empty($row) && $this->error(fy('The data does not exist'));
         if($row['check_status']>=0){
@@ -447,7 +446,12 @@ WHERE
                     Db::name('crm_customer')->where([['id','=' ,$row['customer_id']],['issuccess','=',0]])->update($updatearr);
                     $result = $this->model->where('id', $id)->update(['check_status' => 3, 'audit_feedback' => $result_mess]);
                     $todoDate = ['result' => 'Approved', 'result_mess' => $result_mess, 'is_finish' => 1];
+                    //                    对应的商机也需要改成已成交
+                    if ($row['business_id']) {
+                        Db::name('crm_business')->where('id', $row['business_id'])->update(['status' => 1]);
+                    }
                     $msg = ['code' => 1, 'msg' => fy('Submitted successfully'), 'data' => []];
+
                 } else {
                     if($result_mess==''){
                         throw new \Exception('审核不通过必须填写原因', 0);
@@ -493,7 +497,7 @@ WHERE
         if(!$id){
             $this->error('访问参数非法');
         }
-        $row = $this->model->withJoin(['crmCustomer' => ['name'],'crmBusiness' => ['name'], 'ownerAdmin' => ['username']],'LEFT')->where('crm_contract.id',$id)->find();
+        $row = $this->model->alias('crm_contract')->withJoin(['crmCustomer' => ['name'],'crmBusiness' => ['name'], 'ownerAdmin' => ['username']],'LEFT')->where('crm_contract.id',$id)->find();
         empty($row) && $this->error('需要审核的合同不存在');
 
         $prefix=getDataBaseConfig('prefix');
@@ -509,7 +513,15 @@ WHERE
         $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
         $this->assign('crmCustomer', $crmCustomer);
         $this->assign('row', $row);
-        $this->assign('getCheckStatus', $this->model->getCheckStatus());
+
+        // 获取当前合同的回款计划列表
+        $receivablesPlans = Db::name('crm_contract_receivables_plan')
+            ->where('contract_id', $id)
+            ->order('id desc')
+            ->select();
+        $this->assign('receivablesPlans', $receivablesPlans);
+
+        $this->assign('getCheckStatus', \app\service\CrmContractService::getCheckStatus());
         return $this->fetch();
     }
 

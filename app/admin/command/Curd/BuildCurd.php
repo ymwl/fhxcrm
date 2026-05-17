@@ -295,7 +295,7 @@ class BuildCurd
         }
 
         // 初始化默认模型名
-        $this->modelFilename = ucfirst(\tools\hs::lineToHump($this->table));
+        $this->modelFilename = ucfirst(\tools\Hs::lineToHump($this->table));
 
         $this->buildViewJsUrl();
 
@@ -352,7 +352,7 @@ class BuildCurd
                 }
             }
 
-            $modelFilename = empty($modelFilename) ? ucfirst(\tools\hs::lineToHump($relationTable)) : $modelFilename;
+            $modelFilename = empty($modelFilename) ? ucfirst(\tools\Hs::lineToHump($relationTable)) : $modelFilename;
             $modelArray = explode($this->DS, $modelFilename);
             $modelName = array_pop($modelArray);
 
@@ -574,7 +574,7 @@ class BuildCurd
         $nodeArray = explode($this->DS, $this->controllerFilename);
         $formatArray = [];
         foreach ($nodeArray as $vo) {
-            $formatArray[] = \tools\hs::humpToLine(lcfirst($vo));
+            $formatArray[] = \tools\Hs::humpToLine(lcfirst($vo));
         }
         $this->controllerUrl = implode('.', $formatArray);
         $this->viewFilename = implode($this->DS, $formatArray);
@@ -680,9 +680,9 @@ class BuildCurd
      */
     protected function buildSelectController($field)
     {
-        $field = \tools\hs::lineToHump(ucfirst($field));
+        $field = \tools\Hs::lineToHump(ucfirst($field));
         $name = "get{$field}List";
-        $selectCode = \tools\hs::replaceTemplate(
+        $selectCode = \tools\Hs::replaceTemplate(
             $this->getTemplate("controller{$this->DS}select"),
             [
                 'name' => $name,
@@ -698,14 +698,14 @@ class BuildCurd
      */
     protected function buildSelectModel($field, $array)
     {
-        $field = \tools\hs::lineToHump(ucfirst($field));
+        $field = \tools\Hs::lineToHump(ucfirst($field));
         $name = "get{$field}List";
         $values = '[';
         foreach ($array as $k => $v) {
             $values .= "'{$k}'=>'{$v}',";
         }
         $values .= ']';
-        $selectCode = \tools\hs::replaceTemplate(
+        $selectCode = \tools\Hs::replaceTemplate(
             $this->getTemplate("model{$this->DS}select"),
             [
                 'name'   => $name,
@@ -725,7 +725,7 @@ class BuildCurd
         $relationArray = explode('\\', $relation);
         $name = end($relationArray);
         $name = "get{$name}List";
-        $selectCode = \tools\hs::replaceTemplate(
+        $selectCode = \tools\Hs::replaceTemplate(
             $this->getTemplate("model{$this->DS}relationSelect"),
             [
                 'name'     => $name,
@@ -743,9 +743,9 @@ class BuildCurd
      */
     protected function buildOptionView($field, $select = '')
     {
-        $field = \tools\hs::lineToHump(ucfirst($field));
+        $field = \tools\Hs::lineToHump(ucfirst($field));
         $name = "get{$field}List";
-        $optionCode = \tools\hs::replaceTemplate(
+        $optionCode = \tools\Hs::replaceTemplate(
             $this->getTemplate("view{$this->DS}module{$this->DS}option"),
             [
                 'name'   => $name,
@@ -762,9 +762,9 @@ class BuildCurd
      */
     protected function buildRadioView($field, $select = '')
     {
-        $formatField = \tools\hs::lineToHump(ucfirst($field));
+        $formatField = \tools\Hs::lineToHump(ucfirst($field));
         $name = "get{$formatField}List";
-        $optionCode = \tools\hs::replaceTemplate(
+        $optionCode = \tools\Hs::replaceTemplate(
             $this->getTemplate("view{$this->DS}module{$this->DS}radioInput"),
             [
                 'field'  => $field,
@@ -782,9 +782,9 @@ class BuildCurd
      */
     protected function buildCheckboxView($field, $select = '')
     {
-        $formatField = \tools\hs::lineToHump(ucfirst($field));
+        $formatField = \tools\Hs::lineToHump(ucfirst($field));
         $name = "get{$formatField}List";
-        $optionCode = \tools\hs::replaceTemplate(
+        $optionCode = \tools\Hs::replaceTemplate(
             $this->getTemplate("view{$this->DS}module{$this->DS}checkboxInput"),
             [
                 'field'  => $field,
@@ -978,10 +978,10 @@ class BuildCurd
         } else {
             $relationCode = '';
             foreach ($this->relationArray as $key => $val) {
-                $relation = \tools\hs::lineToHump($key);
+                $relation = \tools\Hs::lineToHump($key);
                 $relationCode = "->withJoin('{$relation}', 'LEFT')\r";
             }
-            $controllerIndexMethod = \tools\hs::replaceTemplate(
+            $controllerIndexMethod = \tools\Hs::replaceTemplate(
                 $this->getTemplate("controller{$this->DS}indexMethod"),
                 [
                     'relationIndexMethod' => $relationCode,
@@ -1002,7 +1002,7 @@ class BuildCurd
 
         $modelFilenameExtend = str_replace($this->DS,'\\',$this->modelFilename);
 
-        $controllerValue = \tools\hs::replaceTemplate(
+        $controllerValue = \tools\Hs::replaceTemplate(
             $this->getTemplate("controller{$this->DS}controller"),
             [
                 'controllerName'       => $this->controllerName,
@@ -1029,8 +1029,8 @@ class BuildCurd
         } else {
             $relationList = '';
             foreach ($this->relationArray as $key => $val) {
-                $relation = \tools\hs::lineToHump($key);
-                $relationCode = \tools\hs::replaceTemplate(
+                $relation = \tools\Hs::lineToHump($key);
+                $relationCode = \tools\Hs::replaceTemplate(
                     $this->getTemplate("model{$this->DS}relation"),
                     [
                         'relationMethod' => $relation,
@@ -1061,7 +1061,7 @@ class BuildCurd
             $extendNamespace = '\\' . implode('\\', $extendNamespaceArray);
         }
 
-        $modelValue = \tools\hs::replaceTemplate(
+        $modelValue = \tools\Hs::replaceTemplate(
             $this->getTemplate("model{$this->DS}model"),
             [
                 'modelName'      => $this->modelName,
@@ -1081,7 +1081,7 @@ class BuildCurd
             $relationModelClass = "\\app\\admin\\model\\{$val['modelFilename']}";
             if (class_exists($relationModelClass) && method_exists(new $relationModelClass, 'getName')) {
                 $tableName = (new $relationModelClass)->getName();
-                if (\tools\hs::humpToLine(lcfirst($tableName)) == \tools\hs::humpToLine(lcfirst($key))) {
+                if (\tools\Hs::humpToLine(lcfirst($tableName)) == \tools\Hs::humpToLine(lcfirst($key))) {
                     continue;
                 }
             }
@@ -1093,7 +1093,7 @@ class BuildCurd
                 $extendNamespace = '\\' . implode('\\', $extendNamespaceArray);
             }
 
-            $relationModelValue = \tools\hs::replaceTemplate(
+            $relationModelValue = \tools\Hs::replaceTemplate(
                 $this->getTemplate("model{$this->DS}model"),
                 [
                     'modelName'      => $val['modelName'],
@@ -1116,7 +1116,7 @@ class BuildCurd
     {
         // 列表页面
         $viewIndexFile = "{$this->rootDir}app{$this->DS}admin{$this->DS}view{$this->DS}{$this->viewFilename}{$this->DS}index.html";
-        $viewIndexValue = \tools\hs::replaceTemplate(
+        $viewIndexValue = \tools\Hs::replaceTemplate(
             $this->getTemplate("view{$this->DS}index"),
             [
                 'controllerUrl' => $this->controllerUrl,
@@ -1179,7 +1179,7 @@ class BuildCurd
                 $templateFile = "view{$this->DS}module{$this->DS}textarea";
             }
 
-            $addFormList .= \tools\hs::replaceTemplate(
+            $addFormList .= \tools\Hs::replaceTemplate(
                 $this->getTemplate($templateFile),
                 [
                     'comment'  => $val['comment'],
@@ -1189,7 +1189,7 @@ class BuildCurd
                     'define'   => $define,
                 ]);
         }
-        $viewAddValue = \tools\hs::replaceTemplate(
+        $viewAddValue = \tools\Hs::replaceTemplate(
             $this->getTemplate("view{$this->DS}form"),
             [
                 'formList' => $addFormList,
@@ -1255,7 +1255,7 @@ class BuildCurd
                 $value = '{$row.' . $field . '|raw|default=\'\'}';
             }
 
-            $editFormList .= \tools\hs::replaceTemplate(
+            $editFormList .= \tools\Hs::replaceTemplate(
                 $this->getTemplate($templateFile),
                 [
                     'comment'  => $val['comment'],
@@ -1265,7 +1265,7 @@ class BuildCurd
                     'define'   => $define,
                 ]);
         }
-        $viewEditValue = \tools\hs::replaceTemplate(
+        $viewEditValue = \tools\Hs::replaceTemplate(
             $this->getTemplate("view{$this->DS}form"),
             [
                 'formList' => $editFormList,
@@ -1316,6 +1316,8 @@ class BuildCurd
                 $templateValue = "{field: '{$field}', title: '{$val['comment']}', templet: ea.table.text}";
             } elseif (in_array($field, $this->sortFields)) {
                 $templateValue = "{field: '{$field}', title: '{$val['comment']}', edit: 'text'}";
+            } elseif($field=='id') {
+                $templateValue = "{field: '{$field}', title: '{$val['comment']}',width: 80}";
             } else {
                 $templateValue = "{field: '{$field}', title: '{$val['comment']}'}";
             }
@@ -1325,7 +1327,7 @@ class BuildCurd
 
         // 关联表
         foreach ($this->relationArray as $table => $tableVal) {
-            $table = \tools\hs::lineToHump($table);
+            $table = \tools\Hs::lineToHump($table);
             foreach ($tableVal['tableColumns'] as $field => $val) {
                 if ($val['formType'] == 'image') {
                     $templateValue = "{field: '{$table}.{$field}', title: '{$val['comment']}', templet: ea.table.image}";
@@ -1355,7 +1357,7 @@ class BuildCurd
 
         $indexCols .= $this->formatColsRow("{width: 250, title: '操作', templet: ea.table.tool},\r");
 
-        $jsValue = \tools\hs::replaceTemplate(
+        $jsValue = \tools\Hs::replaceTemplate(
             $this->getTemplate("static{$this->DS}js"),
             [
                 'controllerUrl' => $this->controllerUrl,

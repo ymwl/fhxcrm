@@ -1,4 +1,4 @@
-import {isWeiXinBrowser,} from './mUtils'
+import {isWeiXinBrowser} from './mUtils'
 
 export const tools = {
 	methods: {
@@ -7,14 +7,14 @@ export const tools = {
 			if (e.href && e.href.indexOf('http') == -1) { //不完整的链接					
 				// #ifdef MP
 				this.$util.uniCopy({
-					content: this.vuex_config.upload.cdnurl + e.href,
+					content: this.vuex_upload.cdnurl + e.href,
 					success: () => {
 						this.$u.toast('链接已复制,请在浏览器中打开')
 					}
 				})
 				// #endif
 				// #ifndef MP				
-				window.open(this.vuex_config.upload.cdnurl + e.href);
+				window.open(this.vuex_upload.cdnurl + e.href);
 				// #endif
 			}
 		},
@@ -33,8 +33,8 @@ export const tools = {
 		//cdnurl
 		cdnurl(url) {
 			if (!/^((?:[a-z]+:)?\/\/|data:image\/)(.*)/.test(url)) {
-				return this.vuex_config.upload.cdnurl + url;
-			};
+				return this.vuex_upload.cdnurl + url;
+			}
 			return url;
 		},
 		//页面跳转
@@ -46,6 +46,22 @@ export const tools = {
 			uni.navigateTo({
 				url: path
 			})
+		},
+		// 安全返回上一页：当页面栈为空时兜底跳转首页
+		safeBack() {
+			const pages = getCurrentPages();
+			if (pages.length <= 1) {
+				// 页面栈中只有当前页面，无法返回上一级，直接跳转首页
+				uni.switchTab({ url: '/pages/index/index' });
+			} else {
+				uni.navigateBack({
+					delta: 1,
+					fail: () => {
+						// navigateBack 失败时的兜底方案
+						uni.switchTab({ url: '/pages/index/index' });
+					}
+				});
+			}
 		}
 	}
 }
@@ -118,16 +134,16 @@ export const formRule = {
 							trigger: ['change', 'blur']
 						});
 						break;
-					// case 'email': //邮箱校验
-					// 	rule_arr.push({
-					// 		validator: (rule, value, callback) => {
-					// 			if(this.$u.test.empty(value))return true;
-					// 			return this.$u.test.email(value);
-					// 		},
-					// 		message: '请填写正确邮箱',
-					// 		trigger: ['change', 'blur']
-					// 	});
-					// 	break;
+					case 'email': //邮箱校验
+						rule_arr.push({
+							validator: (rule, value, callback) => {
+								if(this.$u.test.empty(value))return true;
+								return this.$u.test.email(value);
+							},
+							message: '请填写正确邮箱',
+							trigger: ['change', 'blur']
+						});
+						break;
 					case 'url': //网址
 						rule_arr.push({
 							validator: (rule, value, callback) => {
@@ -280,9 +296,19 @@ export const loginfunc = {
 		success(index) {
 			//不在H5
 			// #ifndef H5
-			uni.navigateBack({
-				delta: index
-			})
+			const pages = getCurrentPages();
+			if (pages.length <= 1) {
+				// 页面栈为空，直接跳转首页
+				uni.switchTab({ url: '/pages/index/index' });
+			} else {
+				uni.navigateBack({
+					delta: index,
+					fail: () => {
+						// navigateBack 失败时的兜底方案
+						uni.switchTab({ url: '/pages/index/index' });
+					}
+				});
+			}
 			// #endif
 			// 在H5 刷新导致路由丢失
 			// #ifdef H5
@@ -295,45 +321,55 @@ export const loginfunc = {
 		// #ifdef H5
 		async goAuth() {
 			if (isWeiXinBrowser()) {
-				let url = '',authUrl = ''
+				let url = ''
 				if (window.location.hash != '') {
 					url = window.location.origin + window.location.pathname + '#/pages/login/auth'
 				} else {
 					url = window.location.origin + window.location.pathname.replace(/pages.*/,'pages/login/auth');
 				};
 				console.log(url)
-				// return
-				// 获取配置信息，appid
-				this.$u.api.getInit().then(res => {
-					if(res.code == 1) {
-						let redirect_url = encodeURIComponent(url)
-						// 微信授权获取code地址
-						authUrl = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=' + res.data.app_id + '&redirect_uri=' + redirect_url + '&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect'
-						var pages = getCurrentPages()
-						let len = pages.length
-						if (len > 1) {
-							let url = pages[len - 1].route;
-							if (url.indexOf('login') != -1) {
-								//找到上一个不是登录页面
-								for (let i = len - 1; i >= 0; i--) {
-									if (pages[i].route.indexOf('login') == -1) {
-										this.$u.vuex('vuex_lasturl', '/' + pages[i].route + this.$u.queryParams(pages[i]
-											.options));
-										break;
-									}
-								}
-							} else {
-								this.$u.vuex('vuex_lasturl', '/' + url + this.$u.queryParams(pages[pages.length - 1]
-									.options))
-							}
+				// 优先从 Vuex 读取 app_id
+				let appId = this.vuex_app_id
+				if (appId) {
+					this.doWechatOAuth(url, appId)
+				} else {
+					// 兜底：Vuex 为空时调接口获取
+					this.$u.get('login/config').then(res => {
+						if(res.code == 1) {
+							// 同时缓存到 Vuex
+							this.$u.vuex('vuex_app_id', res.data.app_id || '')
+							this.doWechatOAuth(url, res.data.app_id)
+						} else {
+							this.$u.toast(res.msg);
 						}
-						// 跳转微信授权
-						window.location.href = authUrl
-					} else {
-						this.$u.toast(res.msg);
-					}
-				})
+					})
+				}
 			}
+		},
+		doWechatOAuth(url, appId) {
+			let redirect_url = encodeURIComponent(url)
+			// 微信授权获取code地址
+			let authUrl = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=' + appId + '&redirect_uri=' + redirect_url + '&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect'
+			var pages = getCurrentPages()
+			let len = pages.length
+			if (len > 1) {
+				let url = pages[len - 1].route;
+				if (url.indexOf('login') != -1) {
+					//找到上一个不是登录页面
+					for (let i = len - 1; i >= 0; i--) {
+						if (pages[i].route.indexOf('login') == -1) {
+							this.$u.vuex('vuex_lasturl', '/' + pages[i].route + this.$u.queryParams(pages[i]
+								.options));
+							break;
+						}
+					}
+				} else {
+					this.$u.vuex('vuex_lasturl', '/' + url + this.$u.queryParams(pages[pages.length - 1]
+						.options))
+				}
+			}
+			// 跳转微信授权
+			window.location.href = authUrl
 		},
 		// #endif
 	}

@@ -85,7 +85,7 @@
         <div class="layui-form-item  layui-row layui-col-xs12">
             <label class="layui-form-label required">{:fy('form types')}</label>
             <div class="layui-input-block">
-                <select name="formtype" class="layui-select" lay-search>
+                <select name="formtype" class="layui-select" lay-search lay-filter="formtype">
                     {if isset($alldata['field']['formtype']['option'])}
                     {foreach $alldata['field']['formtype']['option'] as $key=>$vo}
                     <?php if(!IS_DEV && in_array($key,['video','color','none','password','optgroup','json','lradio',"lcheckbox","lselect",'lselects',"treecheckbox",  "aselect","selectgroup","popup_selection"])){continue; }?>
@@ -99,7 +99,7 @@
                 </select>
             </div>
         </div>
-        <div class="layui-form-item">
+        <div class="layui-form-item" id="option-item" style="display:none;">
             <label class="layui-form-label">{:fy('Options')}</label>
             <div class="layui-input-block">
                 <textarea type="text" id="option" name="option" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Options')}" placeholder="{:fy('Please enter')}{:fy('Options')}" >{$row.option|raw}</textarea>
@@ -107,6 +107,7 @@
             </div>
         </div>
         <?php  if(IS_DEV){ ?>
+        <div id="linked-field-area" style="display:none;">
         <div class="layui-form-item">
             <label class="layui-form-label">{:fy('Drop down the request address')}</label>
             <div class="layui-input-block">
@@ -142,6 +143,7 @@
                 <input type="text" id="relationship_primary_key" name="relationship_primary_key" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Storage field')}" placeholder="{:fy('Please enter')}{:fy('Storage field')}" value="{$row.relationship_primary_key}">
 
             </div>
+        </div>
         </div>
         <?php } ?>
         <div class="layui-form-item">

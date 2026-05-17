@@ -6,7 +6,7 @@
         <div class="layui-form-item text-center">
             <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
             <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
-            <a class="layui-btn layui-btn-primary layui-btn-sm" data-open="crm.record/dialogue?id={$id}" data-title="{:fy('Write follow-up')}" data-full="true"><i class="fa fa-plus "></i> 写跟进</a>
+            <a class="layui-btn layui-btn-primary layui-btn-sm" data-open="crm.record/add?customer_id={$id}" data-title="{:fy('Write follow-up')}" data-full="true"><i class="fa fa-plus "></i> 写跟进</a>
         </div>
 
     </form>
@@ -29,7 +29,7 @@
                            data-auth-add="{:auth('crm.customer_contacts/add')}"
                            data-auth-edit="{:auth('crm.customer_contacts/edit')}"
                            data-auth-delete="{:auth('crm.customer_contacts/delete')}"
-                           data-auth-dialogue="{:auth('crm.record/dialogue')}"
+                           data-auth-record_add="{:auth('crm.record/add')}"
                            data-auth-record_index="{:auth('crm.record/index')}"
                            data-auth-sendEmail="{:auth('crm.customer_contacts/sendEmail')}"
                            lay-filter="currentTable">

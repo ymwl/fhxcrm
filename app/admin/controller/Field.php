@@ -35,7 +35,7 @@ class Field extends Common
     public function index(){
         if($this->request->isAjax()) {
             $pageSize =input('limit',config('app.pageSize'),'intval');
-            $sort_by = input('sort_order') ? input('sort_by') : 'id';
+            $sort_by = input('sort_by') ? input('sort_by') : 'id';
             $sort_order = input('sort_order') ? input('sort_order') : 'asc';
             $list = \think\facade\Db::name('module')->order($sort_by.' '.$sort_order)
                 ->paginate($pageSize)

@@ -251,9 +251,9 @@
 					op.owner_user_id = '='
 				}
 				
-				this.$u.api.getCluesList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.clues.index/index', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					search: this.keyword,
 					limit: this.pageSize,
@@ -314,7 +314,7 @@
 			},
 			// 获取负责人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
+				this.$u.get('ajax/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -420,7 +420,7 @@
 						})
 						return
 					}
-					this.$u.api.onShiftDivert({ids: this.idArr,admin_id: this.admin_id}).then(res => {
+					this.$u.post('crm.clues.index/divert', {ids: this.idArr,admin_id: this.admin_id}).then(res => {
 						if(res.code == 1 ) {
 							// 提示
 							uni.showToast({

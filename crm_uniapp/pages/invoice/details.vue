@@ -219,6 +219,7 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				moreShow: false,
 				labelPosition: 'left',
 				border: false,
@@ -425,7 +426,7 @@
 				} else {
 					param.next_admin_id = this.next_admin_id
 				}
-				this.$u.api.onBacklogVerify(param).then((res) => {
+				this.$u.post('crm.backlog/verify', param).then((res) => {
 					if(res.code == 1) {
 						// 提示
 						uni.showToast({
@@ -466,7 +467,7 @@
 			},
 			// 获取审批日志数据
 			getGroupdata(id){
-				this.$u.api.getlogList({
+				this.$u.get('crm.flow.log/index', {
 					flow_id: this.form.flow_id,
 					types_id: this.id,
 				}).then(res => {
@@ -485,7 +486,7 @@
 			},
 			// 获取发票详情
 			getInvoiceEdit() {
-				this.$u.api.getInvoiceEdit({
+				this.$u.get('crm.invoice/edit', {
 					ids: this.id,
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -511,7 +512,7 @@
 					}
 				}
 				// 获取审批人数据
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					keyField: 'id',
 					showField: 'realname',
 					keyValue: this.form.flow_admin_id,
@@ -525,7 +526,7 @@
 					}
 				})
 				// 获取已选合同
-				this.$u.api.onContractSelectpage({
+				this.$u.get('crm.contract.index/selectpage', {
 					keyField: 'id',
 					keyValue: this.form.contract_id,
 				}).then(res => {
@@ -536,13 +537,16 @@
 			},
 			// 审批人搜索
 			adminSearch() {
-				this.adminPage = 0
-				this.lastAdmin = false
-				this.onSelectpage()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.adminPage = 0
+					this.lastAdmin = false
+					this.onSelectpage()
+				}, 500)
 			},
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,

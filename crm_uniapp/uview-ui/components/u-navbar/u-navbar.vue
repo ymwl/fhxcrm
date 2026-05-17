@@ -231,7 +231,20 @@
 					// 通过bind()方法，绑定父组件的this，让this.customBack()的this为父组件的上下文
 					this.customBack.bind(this.$u.$parent.call(this))();
 				} else {
-					uni.navigateBack();
+					// 安全返回：当页面栈深度不足时，兜底跳转首页
+					const pages = getCurrentPages();
+					if (pages.length <= 1) {
+						// 页面栈中只有当前页面，无法返回上一级，直接跳转首页
+						uni.switchTab({ url: '/pages/index/index' });
+					} else {
+						uni.navigateBack({
+							delta: 1,
+							fail: () => {
+								// navigateBack 失败时的兜底方案
+								uni.switchTab({ url: '/pages/index/index' });
+							}
+						});
+					}
 				}
 			}
 		}

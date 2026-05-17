@@ -16,6 +16,20 @@
 				<view class="fa-column u-p-l-30 u-p-r-30 u-p-t-20 u-p-b-20 u-border-bottom">
 					<u-search placeholder="搜索" v-model="q_word" :show-action="false"></u-search>
 				</view>
+				<!-- 范围切换 tabs（仅 popup_selection + 后端返回 scopes 时显示） -->
+				<view class="fa-column scope-tabs u-border-bottom" v-if="href && scopeKeys.length > 0">
+					<scroll-view scroll-x="true" class="scope-scroll">
+						<view class="scope-tab u-flex">
+							<view
+								v-for="(label, key) in scopes"
+								:key="key"
+								class="scope-item"
+								:class="{ 'scope-item-active': activeScope == key }"
+								@click="switchScope(key)"
+							>{{ label }}</view>
+						</view>
+					</scroll-view>
+				</view>
 				<view class="fa-column u-flex-1 u-flex fa-scroll">
 					<scroll-view scroll-y="true" :style="{ height: scrollHg + 'px', width: '100vw' }" @scrolltolower="goLower">
 						<!-- 多选 -->
@@ -75,6 +89,11 @@ export default {
 			type: [Number, String],
 			default: ''
 		},
+		// 自定义请求地址（popup_selection 类型使用），优先级高于 faId
+		href: {
+			type: String,
+			default: ''
+		},
 		//显示字段
 		showField: {
 			type: String,
@@ -125,6 +144,11 @@ export default {
 				});
 				if (!this.list.length) {
 					this.page = 1;
+					// popup_selection 模式：每次打开弹窗重置 scopes 加载状态
+					if (this.href) {
+						this.scopesLoaded = false;
+						this.activeScope = '';
+					}
 					this.getlselects();
 				}
 			} else {
@@ -147,6 +171,24 @@ export default {
 			this.list = [];
 			this.page = 1;
 			this.getlselects();
+		},
+		// scope tabs 出现后重算滚动区域高度，确保所有 tab 下列表布局一致
+		scopeKeys(newKeys) {
+			if (newKeys.length > 0 && this.show) {
+				this.$nextTick(() => {
+					setTimeout(() => {
+						uni.createSelectorQuery()
+							.in(this)
+							.select('.fa-scroll')
+							.boundingClientRect(rect => {
+								if (rect) {
+									this.scrollHg = rect.height;
+								}
+							})
+							.exec();
+					}, 100);
+				});
+			}
 		}
 	},
 	data() {
@@ -164,44 +206,110 @@ export default {
 			page_lable: '',
 			pagesLable: [], //初始化的值
 			ids_ing: [], //已经加载的值
-			ids: []
+			ids: [],
+			// popup_selection 范围切换
+			scopes: {},           // 后端返回的范围配置 {'1':'我的','2':'下属的','3':'全部'}
+			activeScope: '',      // 当前选中的范围 key
+			scopesLoaded: false   // 是否已从后端加载过 scopes 配置
 		};
+	},
+	computed: {
+		// scopes 的 key 列表，用于 v-if 判断和默认值
+		scopeKeys() {
+			return Object.keys(this.scopes);
+		}
 	},
 	methods: {
 		close() {
 			this.show = false;
 		},
+		// 切换数据范围 tab（popup_selection 模式）
+		switchScope(key) {
+			if (this.activeScope == key) return;
+			this.activeScope = key;
+			// 重置分页和列表，重新加载
+			this.list = [];
+			this.page = 1;
+			this.pageNum = 0;
+			this.totalPage = 0;
+			this.status = 'loadmore';
+			this.getByHref();
+		},
 		//初始化值
 		getInitSelect() {
 			if (this.showValue) {
+				// popup_selection 模式：通过 href 获取初始显示值
+				if (this.href) {
+					this.getInitByHref();
+					return;
+				}
 				let param = {
 					id: this.faId,
 					pageNumber: this.page,
 					q_word: this.q_word,
 					keyValue: this.showValue
 				};
-				this.$u.api.getFieldslselect(param).then(res => {
-					if (this.checkeType == 'lselect') {
-						this.page_lable = res.data.list[0][this.showField];
-						this.radio_value = res.data.list[0][this.keyField] + '';
-					} else {
-						this.pagesLable = res.data.list;
-						let ids = [];
-						res.data.list.forEach(item => {
-							ids.push(item[this.keyField]);
-						});
-						this.ids = ids;
+				this.$u.get('fields/selectpage', param).then(res => {
+					if (res.data.list && res.data.list.length > 0) {
+						if (this.checkeType == 'lselect') {
+							this.page_lable = res.data.list[0][this.showField];
+							this.radio_value = res.data.list[0][this.keyField] + '';
+						} else {
+							this.pagesLable = res.data.list;
+							let ids = [];
+							res.data.list.forEach(item => {
+								ids.push(item[this.keyField]);
+							});
+							this.ids = ids;
+						}
 					}
 				});
 			}
 		},
+		// popup_selection 模式：通过 href 获取初始显示值
+		getInitByHref() {
+			const [basePath, queryStr] = this.href.split('?');
+			let params = {
+				offset: 0,
+				limit: 1
+			};
+			if (queryStr) {
+				queryStr.split('&').forEach(pair => {
+					const [k, v] = pair.split('=');
+					if (k) params[k] = decodeURIComponent(v || '');
+				});
+			}
+			// 通过 filter 按 keyField 精确查找初始值
+			params.filter = JSON.stringify({ [this.keyField]: this.showValue });
+			params.op = JSON.stringify({ [this.keyField]: '=' });
+			this.$u.get(basePath, params).then(res => {
+				if (res.code != 1) return;
+				let item = null;
+				if (res.data && res.data.rows && res.data.rows.length > 0) {
+					item = res.data.rows[0];
+				} else if (res.data && res.data.list && res.data.list.length > 0) {
+					item = res.data.list[0];
+				} else if (Array.isArray(res.data) && res.data.length > 0) {
+					item = res.data[0];
+				}
+				if (item) {
+					this.page_lable = item[this.showField];
+					this.radio_value = item[this.keyField] + '';
+				}
+			});
+		},
 		//获取数据
 		getlselects() {
+			// popup_selection 模式：使用 href 请求
+			if (this.href) {
+				this.getByHref();
+				return;
+			}
 			if (!this.faId) {
 				return;
 			}			
 			let param = { id: this.faId, pageNumber: this.page, q_word: this.q_word };
-			this.$u.api.getFieldsSelectpage(param).then(res => {
+			this.$u.get('fields/selectpage', param).then(res => {
 				this.status = res.data.total == 0 || this.page >= this.totalPage ? 'nomore' : 'loadmore';
 				let list = [];
 				if (this.checkeType == 'lselects') {
@@ -223,6 +331,68 @@ export default {
 					this.pageNum = list.length;
 				}
 				this.totalPage = Math.ceil(res.data.total / this.pageNum);
+				this.list = [...this.list, ...list];
+			});
+		},
+		// popup_selection 模式：通过 href 获取数据
+		getByHref() {
+			const pageSize = 10;
+			const offset = (this.page - 1) * pageSize;
+			let params = {
+				offset: offset,
+				limit: pageSize,
+				sort_by: 'id',
+				sort_order: 'desc'
+			};
+			// 传递当前选中的范围 scope
+			if (this.activeScope) {
+				params.scope = this.activeScope;
+			}
+			if (this.q_word) {
+				params.search = this.q_word;
+			}
+			// 从 href 中提取已存在的查询参数并合并
+			const [basePath, queryStr] = this.href.split('?');
+			if (queryStr) {
+				queryStr.split('&').forEach(pair => {
+					const [k, v] = pair.split('=');
+					if (k && !params[k]) {
+						params[k] = decodeURIComponent(v || '');
+					}
+				});
+			}
+			this.$u.get(basePath, params).then(res => {
+				if (res.code != 1) return;
+				// 首次加载时提取 scopes 范围配置
+				if (!this.scopesLoaded && res.scopes) {
+					this.scopes = res.scopes;
+					this.scopesLoaded = true;
+					// 默认选中第一个 scope
+					if (!this.activeScope) {
+						const keys = Object.keys(res.scopes);
+						if (keys.length > 0) {
+							this.activeScope = keys[0];
+						}
+					}
+				}
+				// 兼容多种返回格式：data.rows、data.list、data 直接为数组
+				let list = [];
+				let total = 0;
+				if (res.data && res.data.rows) {
+					list = res.data.rows;
+					total = res.data.count || res.data.total || 0;
+				} else if (res.data && res.data.list) {
+					list = res.data.list;
+					total = res.data.total || 0;
+				} else if (Array.isArray(res.data)) {
+					list = res.data;
+					total = res.count || 0;
+				}
+				if (!this.pageNum) {
+					this.pageNum = list.length || pageSize;
+				}
+				this.totalPage = Math.ceil(total / this.pageNum);
+				this.status = total == 0 || this.page >= this.totalPage ? 'nomore' : 'loadmore';
 				this.list = [...this.list, ...list];
 			});
 		},
@@ -349,6 +519,45 @@ export default {
 	height: 100%;
 	.fa-column {
 		width: 100%;
+	}
+}
+// 修复 u-radio-group 的 inline-flex 导致 u-cell-item 宽度塌陷，标题与图标紧贴
+.fa-scroll {
+	::v-deep .u-radio-group {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+	}
+}
+// popup_selection 范围切换 tabs
+.scope-tabs {
+	background-color: #ffffff;
+	.scope-scroll {
+		white-space: nowrap;
+		.scope-tab {
+			.scope-item {
+				display: inline-block;
+				padding: 16rpx 32rpx;
+				font-size: 28rpx;
+				color: #606266;
+				position: relative;
+				&.scope-item-active {
+					color: #2979ff;
+					font-weight: 600;
+					&::after {
+						content: '';
+						position: absolute;
+						bottom: 0;
+						left: 50%;
+						transform: translateX(-50%);
+						width: 48rpx;
+						height: 4rpx;
+						background-color: #2979ff;
+						border-radius: 2rpx;
+					}
+				}
+			}
+		}
 	}
 }
 </style>

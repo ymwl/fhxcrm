@@ -63,8 +63,9 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				sortName: '默认排序',
-				sort: 'id',
+				sort_by: 'id',
 				specClass: 'hide',
 				scopeName: '全部商机',
 				keyword: '',
@@ -79,27 +80,27 @@
 					{
 						label: '默认排序',
 						value: 0,
-						sort: 'id',
+						sort_by: 'id',
 					},
 					{
 						label: '下次跟进',
 						value: 1,
-						sort: 'next_time',
+						sort_by: 'next_time',
 					},
 					{
 						label: '状态',
 						value: 2,
-						sort: 'is_end',
+						sort_by: 'is_end',
 					},
 					{
 						label: '创建时间',
 						value: 3,
-						sort: 'create_time',
+						sort_by: 'create_time',
 					},
 					{
 						label: '更新时间',
 						value: 4,
-						sort: 'update_time',
+						sort_by: 'update_time',
 					}
 				],
 				dx: 0,
@@ -183,9 +184,9 @@
 			},
 			// 排序
 			optionsChange(){
-				this.sort = this.options1[this.value1].sort
+				this.sort_by = this.options1[this.value1].sort_by
 				this.sortName = this.options1[this.value1].label
-				console.log(this.sort)
+
 				this.page = 0,
 				this.lastPage = false
 				this.getList()
@@ -216,17 +217,17 @@
 						this.scopeName = this.vuex_bfilter.formName.scopeName
 					}
 				} else {
-					this.scopeName = '全部商机'
+					this.scopeName = '我的商机'
 				}
 				// 下次跟进排序筛选 next_time > 0
-				if(this.sort == 'next_time') {
+				if(this.sort_by == 'next_time') {
 					filterObj.next_time = '0'
 					opObj.next_time ='>'
 				}
-				this.$u.api.onBusinessList({
-					sort: this.sort,
+				this.$u.get('crm.business.index/index', {
+					sort_by: this.sort_by,
 					search:this.keyword,
-					order:  this.sort == 'next_time' ? 'asc' : 'desc',
+					sort_order:  this.sort_by == 'next_time' ? 'asc' : 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify(filterObj),
@@ -267,8 +268,11 @@
 			},
 			// 搜索
 			onSearch() {
-				this.page = 0
-				this.getList()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.getList()
+				}, 500)
 			},
 			// 查看详情
 			onItem(val) {

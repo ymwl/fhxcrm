@@ -144,7 +144,7 @@
 			},
 			// 获取客户详情
 			getCustomer() {
-				this.$u.api.getCustomer({id: this.customer_id}).then(res => {
+				this.$u.get('crm.customer/edit', {id: this.customer_id}).then(res => {
 					if(res.code == 1 ) {
 						this.customerData = res.data
 						// 标签数据赋值
@@ -164,19 +164,19 @@
 			addProvince() {
 				let name = ''
 				// 获取省
-				this.$u.api.getArea({province: '',city:''}).then((res) => {
+				this.$u.get('crm.common/area', {province: '',city:''}).then((res) => {
 					if(res.code == 1){
 						res.data.forEach((item,index)=>{
 							if(item.value == this.customerData.province){
 								name = item.name
 								// 获取市
-								this.$u.api.getArea({province: item.value,city:''}).then((resc) => {
+								this.$u.get('crm.common/area', {province: item.value,city:''}).then((resc) => {
 									if(res.code == 1){
 										resc.data.forEach((i,idx)=>{
 											if(i.value == this.customerData.city){
 												name = name + i.name
 												// 获取区
-												this.$u.api.getArea({province: item.value,city: i.value}).then((resd) => {
+												this.$u.get('crm.common/area', {province: item.value,city: i.value}).then((resd) => {
 													if(res.code == 1){
 														resd.data.forEach((c,idc)=>{
 															if(c.value == this.customerData.area){
@@ -241,7 +241,7 @@
 			// 自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: 'apply_order',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields', {table: 'apply_order',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.detail = res.data.info;
 						this.fields = res.data.fields;
@@ -386,7 +386,7 @@
 			},
 			// 获取配置字段
 			getBaseConfig() {
-				/*this.$u.api.getBaseConfig().then((res) => {
+				/*this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.levelList = this.onJson(res.data.levelList)
 						this.industryList = this.onJson(res.data.industryList)
@@ -419,7 +419,7 @@
 				if(this.$u.test.array(arrList)&&arrList.length>0) {
 					this.regionList = arrList
 				} else {
-					this.$u.api.getAllarea().then((res) => {
+					this.$u.get('ajax/getAllArea').then((res) => {
 						if(res.code == 1){
 							this.regionList = (res.data);
 							uni.setStorageSync('storage_getAllarea',res.data);
@@ -442,7 +442,7 @@
 			// 提交
 			onSubmit() {
 
-					this.$u.api.onApplyOrderAdd(this.form).then((res) => {
+					this.$u.post('apply.Order/add', this.form).then((res) => {
 						if(res.code == 1) {
 							// 提示
               uni.navigateTo({

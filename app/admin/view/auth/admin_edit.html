@@ -24,7 +24,7 @@
                 if($admin['group_id']==1){
                     $group_id=0;
                 }else{
-                    $group_id=\think\facade\Db::name('auth_group')->where('id','=',$admin['group_id'])->value('pid');
+                    $group_id=\think\facade\Db::name('auth_group')->where('id','=',$admin['group_id'])->value('id');
 
                 }
                 $authGroupTree = $nav->menu($authGroup,'|—',$group_id);
@@ -43,7 +43,13 @@
             <label class="layui-form-label">角色</label>
             <div class="layui-input-block">
                 <?php
-                $authRole = \think\facade\Db::name('auth_role')->field('id,name')->order('sort asc,id asc')->select();
+                $where= [];
+                $where[]= ['status','=',1];
+                if($admin['group_id']>1){
+                    $level=\think\facade\Db::name('auth_role')->where('id','=',$admin['role_id'])->value('level');
+                    $where[]= ['level','<',$level];
+                }
+                $authRole = \think\facade\Db::name('auth_role')->field('id,name')->where($where)->order('sort asc,id asc')->select();
 
 ?>
                 <select name="role_id" lay-verify="required">
@@ -62,8 +68,17 @@
                 if(!empty($row['admin_id'])){
                     $where[]=['admin_id','<>',$row['admin_id']];
                 }
+                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($admin,true);
+                if(empty($adminIds)){
+                    $adminLst=[];
+                }else{
+                if($adminIds!=='ALL'){
+                $where[] = ['admin_id', 'in', $adminIds];
+                }
                 $where[]=['is_open','=',1];
                 $adminLst = \think\facade\Db::name('admin')->field('admin_id,username')->where($where)->order('admin_id asc')->select();
+                }
+
 
                 ?>
                 <select name="parent_id" >

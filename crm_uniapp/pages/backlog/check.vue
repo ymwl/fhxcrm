@@ -188,6 +188,7 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				contractData: {
 					row: {
 						check_status: 0
@@ -238,14 +239,17 @@
 		methods: {
 			// 搜索
 			adminSearch(){
-				this.adminPage = 1
-				this.lastAdmin = false
-				this.onSelectpage()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.adminPage = 1
+					this.lastAdmin = false
+					this.onSelectpage()
+				}, 500)
 			},
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: 'contract',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields', {table: 'contract',id: ''}).then((res) => {
 					if(res.code == 1){
 						res.data.fields.forEach((item,index)=>{
 							// 复选框 数据格式化
@@ -330,7 +334,7 @@
 			getContractEdit() {
 				if(this.params.type == 'look'){
 					// 查看合同详情
-					this.$u.api.getContractEdit({
+					this.$u.get('crm.contract.index/edit', {
 						id: this.id,
 						types:'contract',
 					}).then(res => {
@@ -340,7 +344,7 @@
 					})
 				} else {
 					// 查看合同详情（审批的时候）
-					this.$u.api.getBacklogVerify({
+					this.$u.get('crm.backlog/verify', {
 						id: this.id,
 						types:'contract',
 					}).then(res => {
@@ -374,9 +378,9 @@
 				}
 				// 获取商机
 				if(this.contractData.row.business_id){
-					this.$u.api.onBusinessList({
-						sort: 'id',
-						order: 'desc',
+					this.$u.get('crm.business.index/index', {
+						sort_by: 'id',
+						sort_order: 'desc',
 						filter: JSON.stringify({id: this.contractData.row.business_id}),
 						op: JSON.stringify({id: '='})
 					}).then(res => {
@@ -389,7 +393,7 @@
 				}
 				// 获取审批人数据
 				if(this.contractData.row.flow_admin_id){
-					this.$u.api.getAllAdmin({
+					this.$u.get('crm.common/selectpage/model/admin/type/all', {
 						keyField: 'id',
 						showField: 'realname',
 						keyValue: this.contractData.row.flow_admin_id,
@@ -405,7 +409,7 @@
 				}
 				// 获取签约人数据
 				if(this.contractData.row.order_admin_id){
-					this.$u.api.getAllAdmin({
+					this.$u.get('crm.common/selectpage/model/admin/type/all', {
 						keyField: 'id',
 						showField: 'realname',
 						keyValue: this.contractData.row.order_admin_id,
@@ -420,7 +424,7 @@
 				}
 				if(this.contractData.row.customer_id){
 					// 获取已选的客户
-					this.$u.api.getCustomerSelectpage({
+					this.$u.post('crm.customer.index/selectpage', {
 						keyField: 'id',
 						showField: 'name',
 						"q_word": this.contractData.row.customer_id,
@@ -436,9 +440,9 @@
 				}
 				// 获取客户签约人
 				if(this.contractData.row.contacts_id) {
-					this.$u.api.getContactsList({
-						sort: 'id',
-						order: 'desc',
+					this.$u.get('crm.customer_contacts/index', {
+						sort_by: 'id',
+						sort_order: 'desc',
 						filter: JSON.stringify({id: this.contractData.row.contacts_id }),
 						op: JSON.stringify({id: '='})
 					}).then(res => {
@@ -478,7 +482,7 @@
 			},
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -571,7 +575,7 @@
 			},
 			// 获取商机数据详情
 			getBusinessEdit(id) {
-				this.$u.api.getBusinessEdit({id: id}).then(res => {
+				this.$u.get('crm.business.index/edit', {id: id}).then(res => {
 					if(res.code == 1 ) {
 						this.selectProduct = res.data.product
 					}
@@ -600,7 +604,7 @@
 				} else {
 					param.next_admin_id = this.next_admin_id
 				}
-				this.$u.api.onBacklogVerify(param).then((res) => {
+				this.$u.post('crm.backlog/verify', param).then((res) => {
 					if(res.code == 1) {
 						// 提示
 						uni.showToast({

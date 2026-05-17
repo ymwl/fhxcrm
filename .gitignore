@@ -37,6 +37,8 @@ md/
 
 # 构建输出
 crm_uniapp/unpackage/
+crm_uniapp/node_modules/
+
 
 # AI 项目指引
 CODEBUDDY.md

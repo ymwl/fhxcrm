@@ -116,7 +116,7 @@
 			},
 			// 页面数据
 			getThirdlist(isNextPage,pages) {
-				this.$u.api.getThirdlist().then(res => {
+				this.$u.get('index/thirdlist').then(res => {
 					if(res.code == 1 ) {
 						this.thirdlist = res.data
 					}
@@ -134,7 +134,7 @@
 					content: '确定解绑吗？',
 					success: function (res) {
 						if (res.confirm) {
-							_this.$u.api.onUnbind({platform: platform}).then(res => {
+							_this.$u.post('index/unbind', {platform: platform}).then(res => {
 								console.log(res)
 								if(res.code == 1) {
 									uni.showToast({

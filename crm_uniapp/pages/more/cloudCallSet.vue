@@ -44,7 +44,7 @@
 		methods: {
 			// 获取数据
 			getData(isNextPage,pages) {
-				this.$u.api.getCloudcallMode().then(res => {
+				this.$u.get('crm.setting.cloudcall/setup').then(res => {
 					if(res.code == 1 ) {
 						console.log(res)
 						this.value = res.data.callrow.exten_type
@@ -67,7 +67,7 @@
 			},
 			// 设置
 			onSet(type) {
-				this.$u.api.postCloudcallMode({exten_type: type}).then(res => {
+				this.$u.post('crm.setting.cloudcall/setup', {exten_type: type}).then(res => {
 					console.log(res)
 					if(res.code == 1) {
 						uni.showToast({

@@ -73,7 +73,7 @@
 				if(this.$u.test.array(arrList)) {
 					this.regionList = arrList
 				} else {
-					this.$u.api.getAllarea().then((res) => {
+					this.$u.get('ajax/getAllArea').then((res) => {
 						if(res.code == 1){
 							this.regionList = (res.data);
 							uni.setStorageSync('storage_getAllarea',res.data);

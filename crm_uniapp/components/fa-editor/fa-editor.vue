@@ -157,7 +157,7 @@ export default {
 					const tempFilePaths = chooseImageRes.tempFilePaths;
 					tempFilePaths.map(async item => {
 						try {
-							// let res = await this.$u.api.goUpload({ file: item })
+							// let res = await this.$u.post('crm.common/upload', { file: item })
 							let res = await uni.uploadFile({
 								url: this.action,
 								filePath: item,

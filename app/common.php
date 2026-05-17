@@ -7,6 +7,7 @@ use think\facade\Lang;
 use think\helper\Str;
 
 use think\exception\HttpResponseException;
+
 function myjson($arr){
     throw new HttpResponseException(json($arr));
 }
@@ -122,8 +123,118 @@ function getvalidate($info){
 }
 function string2array($info) {
     if($info == '') return array();
-    eval("\$r = $info;");
-    return $r;
+    // 兼容旧格式：如果是 var_export 格式，使用安全解析
+    if (is_string($info)) {
+        $info = trim($info);
+        // JSON 格式解析
+        if (strpos($info, '{') === 0 || strpos($info, '[') === 0) {
+            $decoded = json_decode($info, true);
+            return is_array($decoded) ? $decoded : array();
+        }
+        // 序列化格式解析
+        if (strpos($info, 'a:') === 0 || strpos($info, 's:') === 0) {
+            $decoded = @unserialize($info);
+            return is_array($decoded) ? $decoded : array();
+        }
+        // 尝试解析 var_export 格式（使用安全替代方案）
+        if (strpos($info, 'array') === 0) {
+            return parse_array_string($info);
+        }
+    }
+    return array();
+}
+
+/**
+ * 安全解析 array(...) 字符串为 PHP 数组
+ * 替代 eval() 的安全实现
+ */
+function parse_array_string($str) {
+    $str = trim($str);
+    if (!preg_match('/^array\s*\(/', $str)) {
+        return array();
+    }
+    
+    // 移除 array( 前缀和 ) 后缀
+    $content = preg_replace('/^array\s*\(|\)\s*$/', '', $str);
+    $result = array();
+    
+    if (empty($content)) {
+        return $result;
+    }
+    
+    // 使用 token 解析来避免 eval
+    $tokens = token_get_all('<?php ' . $str);
+    $arr = array();
+    $key = null;
+    $value = '';
+    $in_value = false;
+    $depth = 0;
+    
+    for ($i = 2; $i < count($tokens); $i++) {
+        $token = $tokens[$i];
+        if (is_array($token)) {
+            list($id, $text) = $token;
+            if ($id === T_DOUBLE_ARROW && $depth === 0) {
+                $key = trim($value);
+                // 去除引号
+                $key = trim($key, "'\"");
+                $value = '';
+                $in_value = true;
+            } elseif ($in_value && ($id === T_CONSTANT_ENCAPSED_STRING || $id === T_LNUMBER || $id === T_DNUMBER)) {
+                $value .= $text;
+            } elseif ($id === T_ARRAY) {
+                $depth++;
+                $value .= 'array';
+            }
+        } else {
+            if ($token === '(' && $in_value) {
+                $depth++;
+                $value .= $token;
+            } elseif ($token === ')') {
+                $depth--;
+                if ($depth < 0) {
+                    if ($in_value && $key !== null) {
+                        $val = trim($value);
+                        // 解析值
+                        if (strpos($val, "'") === 0 || strpos($val, '"') === 0) {
+                            $result[$key] = trim($val, "'\"");
+                        } elseif (is_numeric($val)) {
+                            $result[$key] = strpos($val, '.') !== false ? (float)$val : (int)$val;
+                        } elseif (strpos($val, 'array') === 0) {
+                            $result[$key] = parse_array_string($val);
+                        } else {
+                            $result[$key] = $val;
+                        }
+                    }
+                    break;
+                } else {
+                    $value .= $token;
+                }
+            } elseif ($token === ',' && $depth === 0 && $in_value) {
+                if ($key !== null) {
+                    $val = trim($value);
+                    if (strpos($val, "'") === 0 || strpos($val, '"') === 0) {
+                        $result[$key] = trim($val, "'\"");
+                    } elseif (is_numeric($val)) {
+                        $result[$key] = strpos($val, '.') !== false ? (float)$val : (int)$val;
+                    } elseif (strpos($val, 'array') === 0) {
+                        $result[$key] = parse_array_string($val);
+                    } else {
+                        $result[$key] = $val;
+                    }
+                }
+                $key = null;
+                $value = '';
+                $in_value = false;
+            } elseif ($in_value) {
+                $value .= $token;
+            } else {
+                $value .= $token;
+            }
+        }
+    }
+    
+    return $result;
 }
 function array2string($info) {
     if($info == '') return '';
@@ -291,11 +402,13 @@ function is_email($user_email)
 
 /**
  * 验证输入的手机号码是否合法
+ * 支持号段：13x, 14x, 15x, 16x, 17x, 18x, 19x
  */
 function is_mobile_phone($mobile_phone)
 {
-    $chars = "/^13[0-9]{1}[0-9]{8}$|15[0-9]{1}[0-9]{8}$|18[0-9]{1}[0-9]{8}$|17[0-9]{1}[0-9]{8}$/";
-    if (preg_match($chars, $mobile_phone)) {
+    // 中国大陆手机号正则，支持所有号段
+    $pattern = '/^1[3-9]\d{9}$/';
+    if (preg_match($pattern, $mobile_phone)) {
         return true;
     }
     return false;
@@ -423,11 +536,10 @@ function dir_delete($dir) {
  * @param bool|false $debug  调试开启 默认false
  * @return mixed
  */
-function httpRequest($url, $method, $postfields = null, $headers = array(), $debug = false) {
+function httpRequest($url, $method, $postfields = null, $headers = [], $debug = false) {
     $method = strtoupper($method);
     $ci = curl_init();
-    /* Curl settings */
-    curl_setopt($ci, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+    curl_setopt($ci, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1); // 避免HTTP/2导致SSL EOF错误
     curl_setopt($ci, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0");
     curl_setopt($ci, CURLOPT_CONNECTTIMEOUT, 60); /* 在发起连接前等待的时间，如果设置为0，则无限等待 */
     curl_setopt($ci, CURLOPT_TIMEOUT, 7); /* 设置cURL允许执行的最长秒数 */
@@ -448,11 +560,13 @@ function httpRequest($url, $method, $postfields = null, $headers = array(), $deb
     curl_setopt($ci, CURLOPT_URL, $url);
     if($ssl){
         curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, false); // https请求 不验证证书和hosts
-        curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, false); // 不从证书中检查SSL加密算法是否存在
+        curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, 0); // 不从证书中检查SSL加密算法是否存在
+        curl_setopt($ci, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2); // 强制TLS1.2，解决SSL_read unexpected eof
+
     }
     //curl_setopt($ci, CURLOPT_HEADER, true); /*启用时会将头文件的信息作为数据流输出*/
     //curl_setopt($ci, CURLOPT_FOLLOWLOCATION, 1);
-    curl_setopt($ci, CURLOPT_MAXREDIRS, 2);/*指定最多的HTTP重定向的数量，这个选项是和CURLOPT_FOLLOWLOCATION一起使用的*/
+    curl_setopt($ci, CURLOPT_MAXREDIRS, 6);/*指定最多的HTTP重定向的数量，这个选项是和CURLOPT_FOLLOWLOCATION一起使用的*/
     curl_setopt($ci, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ci, CURLINFO_HEADER_OUT, true);
     /*curl_setopt($ci, CURLOPT_COOKIE, $Cookiestr); * *COOKIE带过去** */
@@ -460,12 +574,14 @@ function httpRequest($url, $method, $postfields = null, $headers = array(), $deb
     $requestinfo = curl_getinfo($ci);
     $http_code = curl_getinfo($ci, CURLINFO_HTTP_CODE);
     if ($debug) {
-        echo "=====post data======\r\n";
-        var_dump($postfields);
-        echo "=====info===== \r\n";
-        print_r($requestinfo);
-        echo "=====response=====\r\n";
-        print_r($response);
+        $http_code = curl_getinfo($ci, CURLINFO_HTTP_CODE);
+       \think\facade\Log::debug('httpRequest debug: ' . json_encode([
+            'post_data'    => $postfields ?? '',
+            'request_info' => $requestinfo ?? '',
+            'response'     => $response ?? '',
+            'curl_error'   => curl_error($ci),
+            'http_code'    => $http_code ?? '',
+        ], JSON_UNESCAPED_UNICODE));
     }
     curl_close($ci);
     return $response;
@@ -597,9 +713,12 @@ function convert_arr_kv($arr,$key_name,$value){
  * @throws Exception
  * @throws phpmailerException
  */
-function send_email($to,$subject='',$content='',$exceptions=true,$record=0,$type=''){
+function send_email($to,$subject='',$content='',$exceptions=true,$record=0,$type='',$admin=[]){
     $mail = new \PHPMailer\PHPMailer\PHPMailer($exceptions);
-    $admin=session('admin');
+    if(!$admin){
+        $admin=session('admin');
+    }
+
     try {
 
         $arr = \think\facade\Db::name('config')->where('inc_type','smtp')->select();
@@ -807,29 +926,38 @@ function get_server_ip(){
     return $server_ip;
 }
 //后台鉴权是否有访问权限
-function auth($uri){
+// $admin 可选参数：API模块传入 $this->admin，admin模块走 session 兜底
+function auth($uri, $admin = null){
     if(!$uri)return 1;
-    //当前管理员权限
-    $admin=session('admin');
+    // 兼容两种场景：API模块传入admin数组，admin模块从session获取
+    if($admin === null) {
+        $admin = session('admin');
+    }
+    if(empty($admin) || empty($admin['admin_id'])) return 0;
 
-//    authopen
     $auth_rule_id = \think\facade\Db::name('auth_rule')->cache('auth_rule_'.$uri.'_'.$admin['admin_id'])->where(['href'=>$uri,'authopen'=>1])->value('id');
     if(!$auth_rule_id)return 1;
-    $prefix = getDataBaseConfig('prefix');
 
-    $map['a.admin_id'] = $admin['admin_id'];
-    $rules=\think\facade\Db::name('admin')->alias('a')->field('a.group_id,ag.rules')->cache($uri.'_'.$admin['admin_id'])
-        ->join($prefix.'auth_group ag','a.group_id = ag.id','left')
-        ->where($map)
-        ->find();
-    if($rules['group_id']==1)return 1;
-    $adminRules = explode(',',$rules['rules']);
-    if(!in_array($auth_rule_id,$adminRules)){
-//            说明无权限访问
-        return 0;
-    }else{
-        return 1;
+    // 复用 Common.php/Authority.php initialize() 中已缓存的 group_id，避免重复查询
+    $group_id = cache('admin_id_'.$admin['admin_id']);
+    if($group_id === null || $group_id === false) {
+        $group_id = \think\facade\Db::name('admin')->cache('admin_id_'.$admin['admin_id'])->where('admin_id',$admin['admin_id'])->value('group_id');
     }
+    if($group_id == 1)return 1;
+
+    // 复用 Common.php/Authority.php initialize() 中已缓存的 rules，避免重复 JOIN 查询
+    $rules = cache('rules_'.$admin['admin_id']);
+    if($rules === null || $rules === false) {
+        $prefix = getDataBaseConfig('prefix');
+        $rules = \think\facade\Db::name('admin')->alias('a')->cache('rules_'.$admin['admin_id'])
+            ->join($prefix.'auth_group ag','a.group_id = ag.id','left')
+            ->where('a.admin_id',$admin['admin_id'])
+            ->value('ag.rules');
+    }
+    if(empty($rules))return 0;
+
+    $adminRules = explode(',',$rules);
+    return in_array($auth_rule_id,$adminRules) ? 1 : 0;
 }
 
 //返回某个方法对应有权限的用户组
@@ -1016,12 +1144,18 @@ function post_convert($post,$fields){
                 $post[$v['field']]='';
             }
         }elseif($v['formtype']=='datetime' || $v['formtype']=='month' || $v['formtype']=='date'){
-            if(isset($post[$v['field']])){
+            if(isset($post[$v['field']]) && !is_numeric($post[$v['field']])){
                 $post[$v['field']]=strtotime($post[$v['field']]);
             }
             if(empty($post[$v['field']])){
                 $post[$v['field']]=null;
             }
+        }elseif($v['formtype']=='tel' && strpos($post[$v['field']],'****')!==false){
+            unset($post[$v['field']]);
+        }
+//        只读的也清除不需要保存
+        if($v['is_readonly']){
+            unset($post[$v['field']]);
         }
     }
     return $post;
@@ -1209,4 +1343,77 @@ function real_resourse($domain,$url){
     //   增加如果后台没有设置$domain，就获取当前访问域名和协议
     $domain=empty($domain)?request()->domain():$domain;
     return trim($domain,'/').$url;
+}
+
+/**
+ * 解析当前请求对应的模板文件完整路径
+ * 用于调试模式下显示当前使用的模板文件
+ * @param string $templateName 控制器传入的模板名（可为空）
+ * @return string 模板文件完整路径
+ */
+function resolve_template_path(string $templateName = ''): string
+{
+    $app = app();
+    $engine = $app->view->engine();
+    $request = $app->request;
+
+    // 获取模板引擎配置
+    $viewPath = $engine->getConfig('view_path');
+    $viewSuffix = $engine->getConfig('view_suffix') ?: 'html';
+    $viewDepr = $engine->getConfig('view_depr') ?: DIRECTORY_SEPARATOR;
+    $autoRule = $engine->getConfig('auto_rule');
+
+    // 若未设置 view_path，根据模块名计算默认视图路径
+    if (empty($viewPath)) {
+        $module = $app->http->getName();
+        $viewDirName = $engine->getConfig('view_dir_name') ?: 'view';
+        $viewPath = $app->getBasePath() . $module . DIRECTORY_SEPARATOR . $viewDirName . DIRECTORY_SEPARATOR;
+    }
+
+    // 如果模板名带扩展名，直接拼接路径
+    if (!empty($templateName) && pathinfo($templateName, PATHINFO_EXTENSION) !== '') {
+        if (str_starts_with($templateName, '/') || str_starts_with($templateName, '\\') || preg_match('/^[A-Z]:/i', $templateName)) {
+            return $templateName;
+        }
+        return $viewPath . $templateName;
+    }
+
+    // 按 ThinkPHP parseTemplate 规则解析控制器和操作名
+    // 处理 crm.ContractReceivables → crm\contract_receivables（只对最后一段做 snake_case）
+    $rawController = $request->controller();
+    if (str_contains($rawController, '.')) {
+        $pos = strrpos($rawController, '.');
+        $controller = substr($rawController, 0, $pos) . '.' . \think\helper\Str::snake(substr($rawController, $pos + 1));
+    } else {
+        $controller = \think\helper\Str::snake($rawController);
+    }
+    $controller = str_replace('.', DIRECTORY_SEPARATOR, $controller);
+
+    if (empty($templateName)) {
+        if ($autoRule == 2) {
+            $action = $request->action(true);
+        } elseif ($autoRule == 3) {
+            $action = $request->action();
+        } else {
+            $action = \think\helper\Str::snake($request->action());
+        }
+        $template = $controller . $viewDepr . $action;
+    } elseif (str_contains($templateName, '/') || str_contains($templateName, '\\')) {
+        // 模板名已包含目录分隔符
+        $template = str_replace(['/', '\\'], $viewDepr, $templateName);
+    } else {
+        $template = $controller . $viewDepr . $templateName;
+    }
+
+    return $viewPath . $template . '.' . ltrim($viewSuffix, '.');
+}
+
+function build_select_list($table,$primary_key,$foreign_key,$isJson= true){
+    $res=\think\facade\Db::name($table)->field($primary_key.','.$foreign_key)->where('status','=',1)->order('sort ASC,id DESC')->column($foreign_key,$primary_key);
+    if($isJson){
+        return json_encode($res,320);
+    }else{
+        return $res;
+    }
+
 }

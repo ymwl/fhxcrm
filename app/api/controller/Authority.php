@@ -16,6 +16,8 @@ class Authority extends Common
 
             define('CONTROLLER', strtolower($this->request->controller()));
             define('ACTION', strtolower($this->request->action()));
+            // 自动加载当前控制器对应的语言包（从 common/lang 共用目录）
+            $this->loadlang(CONTROLLER);
 
             if(in_array(ACTION,$this->noNeedLogin) || in_array('*', $this->noNeedLogin)){
 

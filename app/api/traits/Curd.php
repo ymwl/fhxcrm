@@ -79,7 +79,7 @@ trait Curd
             }
             $save ? $this->success(fy('Save successfully')) : $this->error(fy('Save failed'));
         }
-        return $this->fetch();
+
     }
 
     /**
@@ -101,7 +101,7 @@ trait Curd
             $save ? $this->success(fy('Save successfully')) : $this->error(fy('Save failed'));
         }
         $this->assign('row', $row);
-        return $this->fetch();
+
     }
 
     /**
@@ -221,19 +221,12 @@ trait Curd
         // 关键词搜索（使用 searchFields 配置）
         if (!empty($get['search']) && !empty($this->searchFields)) {
             $keyword = $get['search'];
-            $fields = is_array($this->searchFields) ? $this->searchFields : explode(',', $this->searchFields);
-            $searchConditions = [];
-            foreach ($fields as $field) {
-                $searchConditions[] = "{$field} LIKE '%{$keyword}%'";
-            }
-            if (!empty($searchConditions)) {
-                $where[] = ['', 'exp', Db::raw('(' . implode(' OR ', $searchConditions) . ')')];
-            }
+            $where[] = [$this->searchFields, 'LIKE', "%{$keyword}%"];
         }
 
 
         // 判断是否关联查询
-        $tableName = \tools\hs::humpToLine(lcfirst($this->model->getName()));
+        $tableName = \tools\Hs::humpToLine(lcfirst($this->model->getName()));
 
         foreach ($filters as $key => $val) {
             if (in_array($key, $excludeFields)) {
@@ -254,11 +247,11 @@ trait Curd
             if ($this->relationSearch && count(explode('.', $key)) == 1) {
                 $key = "{$tableName}.{$key}";
             }
-            if ($this->relationSearch && count(explode('.',  $sort_by )) == 2) {
-                $sort_by  = \tools\hs::humpToLine(lcfirst($sort_by));
-            }
+            /*if ($this->relationSearch && count(explode('.',  $sortBy )) == 2) {
+                $sortBy  = \tools\Hs::humpToLine(lcfirst($sortBy));
+            }*/
             if ($this->relationSearch && count(explode('.',  $key )) == 2) {
-                $key  = \tools\hs::humpToLine(lcfirst($key));
+                $key  = \tools\Hs::humpToLine(lcfirst($key));
             }
 
             switch (strtolower($op)) {
@@ -353,6 +346,17 @@ trait Curd
             if (!empty($diff)) {
                 $this->error(fy("无操作当前数据权限").'!');
             }
+        }
+        return true;
+    }
+
+    public function modifyPermissions($modifiedByAdminId,$withself=true){
+        $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,$withself);
+        if($adminIds=='ALL'){
+            return true;
+        }
+        if(!in_array($modifiedByAdminId,$adminIds)){
+            $this->error(fy("无操作当前数据权限").'!');
         }
         return true;
     }

@@ -127,9 +127,9 @@
 		methods: {
 			// 获取分类列表
 			getClassify() {
-				this.$u.api.getProductType({
-					sort: 'weigh',
-					order: 'desc',
+				this.$u.get('crm.product.type/index', {
+					sort_by: 'weigh',
+					sort_order: 'desc',
 				}).then(res => {
 					console.log(res)
 					if(res.code == 1 ) {
@@ -208,7 +208,7 @@
 				console.log(this.form)
 				// 进行必须填数据验证
 				this.form.image = this.classify_image.join(",")
-				this.$u.api.onProductTypeAdd(this.form).then((res) => {
+				this.$u.post('crm.product.type/add', this.form).then((res) => {
 					console.log(res)
 					if(res.code == 1){
 						// 提示

@@ -60,7 +60,7 @@ $groupLst=\think\facade\Db::name('system_config_group')->field('name,identificat
         <div class="layui-form-item  layui-row layui-col-xs12">
             <label class="layui-form-label required">{:fy('form types')}</label>
             <div class="layui-input-block">
-                <select name="formtype" class="layui-select" lay-search>
+                <select name="formtype" class="layui-select" lay-search  lay-filter="formtype">
 
                     {foreach $allData as $key=>$vo}
                     <option value="{$key}">{:fy($vo)}</option>
@@ -68,7 +68,7 @@ $groupLst=\think\facade\Db::name('system_config_group')->field('name,identificat
                 </select>
             </div>
         </div>
-        <div class="layui-form-item">
+        <div class="layui-form-item" id="option-item" style="display:none;">
             <label class="layui-form-label">{:fy('Options')}</label>
             <div class="layui-input-block">
                 <textarea type="text" id="option" name="option" class="layui-input" lay-reqtext="{:fy('Please enter')}{:fy('Options')}" placeholder="{:fy('Please enter')}{:fy('Options')}" ></textarea>

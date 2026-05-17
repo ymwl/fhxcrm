@@ -95,7 +95,7 @@
 		},
 		methods: {
 			getNoticeTpl() {
-				this.$u.api.getNoticeTpl().then(res => {
+				this.$u.get('crm.common/getNoticeTpl').then(res => {
 					console.log(res)
 					if(res.code == 1) {
 						console.log(res)
@@ -109,7 +109,7 @@
 					subscribe_order: this.list[2].checked ? 1 : 0,
 					subscribe_service: this.list[3].checked ? 1 : 0
 				}
-				this.$u.api.getNoticeTpl(param).then(res => {
+				this.$u.get('crm.common/getNoticeTpl', param).then(res => {
 					console.log(res)
 					if(res.code == 1) {
 						this.$u.vuex('vuex_subscribe', param)

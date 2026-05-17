@@ -107,7 +107,7 @@
 												title: '请稍后',
 												mask: true
 											});
-											_this.$u.api.onQywxMp({
+											_this.$u.post('qywx/wxlogin', {
 												code: res.code,
 												encrypted_data: e.encryptedData,
 												iv: e.iv,
@@ -189,7 +189,7 @@
 									title: '请稍后',
 									mask: true
 								});
-								_this.$u.api.onWxlogin({
+								_this.$u.post('index/wxlogin', {
 									code: res.code,
 									encrypted_data: e.encryptedData,
 									iv: e.iv,

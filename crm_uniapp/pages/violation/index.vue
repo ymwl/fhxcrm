@@ -67,8 +67,9 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				sortName: '默认排序',
-				sort: 'id',
+				sort_by: 'id',
 				keyword:'',
 				scopeName: '违章记录',
 				specClass: 'hide',
@@ -84,17 +85,17 @@
 					{
 						label: '默认排序',
 						value: 0,
-						sort: 'id',
+						sort_by: 'id',
 					},
 					{
 						label: '记录时间',
 						value: 1,
-						sort: 'create_time',
+						sort_by: 'create_time',
 					},
 					{
 						label: '更新时间',
 						value: 2,
-						sort: 'update_time',
+						sort_by: 'update_time',
 					}
 				],
 				consentShow: false,
@@ -180,7 +181,7 @@
       },
 			// 排序
 			optionsChange(){
-				this.sort = this.options1[this.value1].sort
+				this.sort_by = this.options1[this.value1].sort
 				this.sortName = this.options1[this.value1].label
 				this.page = 0,
 				this.lastPage = false
@@ -222,14 +223,14 @@
 					this.scopeName = '违章记录'
 				}
 				// 下次跟进排序筛选 next_time > 0
-				if(this.sort == 'next_time') {
+				if(this.sort_by == 'next_time') {
 					filterObj.next_time = '0'
 					opObj.next_time ='>'
 				}
         //violationList
-				this.$u.api.getViolationList({
-					sort: this.sort,
-					order: this.sort == 'next_time' ? 'asc' : 'desc',
+				this.$u.get('violation/index', {
+					sort_by: this.sort_by,
+					sort_order: this.sort_by == 'next_time' ? 'asc' : 'desc',
 					search:this.keyword,
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
@@ -274,9 +275,12 @@
 			},
 			// 点击搜索
 			onSearch() {
-				this.page = 0
-				this.lastPage = false
-				this.getCustomerList()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.lastPage = false
+					this.getCustomerList()
+				}, 500)
 			},
       // 编辑
       onEdit(id) {

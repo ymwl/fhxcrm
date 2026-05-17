@@ -69,7 +69,7 @@
 		methods: {
 			// 获取线索详情
 			getData() {
-				this.$u.api.getCluesEdit({ids: this.id}).then(res => {
+				this.$u.get('crm.clues.index/edit',{ids: this.id}).then(res => {
 					if(res.code == 1 ) {
 						this.form = res.data
 						// 获取自定义字段
@@ -82,7 +82,7 @@
 			// 自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: 'clues',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields',{table: 'clues',id: ''}).then((res) => {
 					if(res.code == 1){
 						res.data.fields.forEach((item,index)=>{
 							// 复选框 数据格式化
@@ -165,7 +165,7 @@
 			},
 			// 获取配置字段
 			getBaseConfig() {
-				this.$u.api.getBaseConfig().then((res) => {
+				this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.form.level = res.data.levelList[this.form.level]
 						this.form.industry = res.data.industryList[this.form.industry]
@@ -177,19 +177,19 @@
 			addProvince() {
 				let name = ''
 				// 获取省
-				this.$u.api.getArea({province: '',city:''}).then((res) => {
+				this.$u.get('crm.common/area',{province: '',city:''}).then((res) => {
 					if(res.code == 1){
 						res.data.forEach((item,index)=>{
 							if(item.value == this.form.province){
 								name = item.name
 								// 获取市
-								this.$u.api.getArea({province: item.value,city:''}).then((resc) => {
+								this.$u.get('crm.common/area',{province: item.value,city:''}).then((resc) => {
 									if(res.code == 1){
 										resc.data.forEach((i,idx)=>{
 											if(i.value == this.form.city){
 												name = name + i.name
 												// 获取区
-												this.$u.api.getArea({province: item.value,city: i.value}).then((resd) => {
+												this.$u.get('crm.common/area',{province: item.value,city: i.value}).then((resd) => {
 													if(res.code == 1){
 														resd.data.forEach((c,idc)=>{
 															if(c.value == this.form.area){

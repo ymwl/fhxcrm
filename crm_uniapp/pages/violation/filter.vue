@@ -92,6 +92,7 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				timeShow: false,
 				rankShow: false,
 				hangyeShow: false,
@@ -327,7 +328,7 @@
 			},
 			// 获取负责人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
+				this.$u.get('ajax/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -381,8 +382,11 @@
 			},
 			// 选择搜索
 			adminSearch() {
-				this.lastAdmin = false
-				this.onSelectpage()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.lastAdmin = false
+					this.onSelectpage()
+				}, 500)
 			},
 			// 重置
 			reset() {

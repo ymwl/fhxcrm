@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import {token_key,m_id} from '../common/config'
+import {token_key, attBaseUrl} from '../common/config'
 Vue.use(Vuex)
 
 let lifeData = {};
@@ -20,7 +20,10 @@ let saveStateKeys = [
 	'vuex_openid',
 	'vuex_notice_tpl',
 	'vuex_lasturl',
-	'vuex_theme'
+	'vuex_theme',
+	'vuex_upload',
+	'vuex_system',
+	'vuex_config',
 ];
 
 // 保存变量到本地存储中
@@ -58,8 +61,11 @@ const store = new Vuex.Store({
 		vuex_Cfilter: {},//数据中心筛选数据
 		vuex_Tfilter: {},//首页中心筛选数据
 		vuex_cluesfilter: {},//线索列表筛选数据
+		vuex_upload: { cdnurl: attBaseUrl },// 上传配置（cdnurl等，默认使用 config 中的 attBaseUrl，运行时由 login/config 接口覆盖）
 		vuex_config: {},// 系统配置数据
 		vuex_system: {},// 系统基础配置（web_logo, name等）
+		vuex_payConfig: {},// 支付配置（从 login/config 获取）
+		vuex_app_id: '',// 微信公众号 app_id（从 login/config 获取）
 		vuex_back: false,//首页tabBar 页面是否显示返回按钮
 	},
 	mutations: {

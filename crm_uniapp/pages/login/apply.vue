@@ -124,7 +124,7 @@
 						obj.captcha = this.captcha
 					}
 					// 绑定原来的账号
-					_this.$u.api.onBind(obj).then(res => {
+					_this.$u.post('index/bind', obj).then(res => {
 						if(res.code == 1) {
 							// vuex储存 token
 							_this.$u.vuex('vuex_token', res.data.token)
@@ -176,7 +176,7 @@
                 })
                 let tz = uni.getStorageSync('fullPath401');
 
-                if (!tz) {
+                if (!tz || tz=='/pages/login/index' || tz=='/pages/login/apply') {
                   tz='/pages/index/index';
                 }
                 setTimeout(() => {

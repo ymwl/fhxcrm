@@ -53,20 +53,9 @@ class Customer extends AdminController
     public function index()
     {
 
-        $fields=cache('crm_customer_fields');
-        if(!$fields){
-            $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query("SELECT  `field`, `jscol`,`show` FROM `{$prefix}system_field` WHERE `table`='crm_customer' AND `show`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
-            $field_str=$jscol_str='';
-            foreach ($fields as $key=>$value){
-                $field_str.=$value['field'].',';
-                if($value['show']==1){
-                    $jscol_str.=$value['jscol'].',';
-                }
-            }
-            $fields=['field_str'=>trim($field_str,','),'jscol_str'=>trim($jscol_str,',')];
-            cache('crm_customer_fields',$fields);
-        }
+
+        $fields=\tools\Cache::zdy_fields('crm_customer');
+
 
 
         if ($this->request->isAjax()) {
@@ -147,7 +136,7 @@ class Customer extends AdminController
                 $where[] = ['pr_user', '=', $this->admin['username']];
             }
             $where[]=['status','=',1];
-            if(!empty($this->system['chjkhdlzhsh'])){
+            if($this->system['chjkhdlzhsh']==1){
                 $where[]=['issuccess','=',0];
             }
             $count = $this->model
@@ -183,10 +172,13 @@ class Customer extends AdminController
                     ->order($sort)
                     ->select()->toArray();
 
-
-                if ($this->admin['isphone'] == 0 && $list) {
+                if ($this->admin['isphone'] == 0) {
                     foreach ($list as $key => $value) {
-                        $value['phone'] = mb_substr($value['phone'], 0, 3).'****'. mb_substr($value['phone'], 7, 11);
+                        foreach ($fields['tels'] as $tel_key => $tel_value){
+                            if($value[$tel_value]){
+                                $value[$tel_value] = mb_substr($value[$tel_value], 0, 3).'****'. mb_substr($value[$tel_value], 7, 11);
+                            }
+                        }
                         $list[$key] = $value;
                     }
                 }
@@ -205,11 +197,8 @@ class Customer extends AdminController
 
         $jscol_str= $fields['jscol_str'];
 
-
-
-
         $jscol_str=str_replace(['"已成交"','"未成交"'],['"'.fy('已成交').'"','"'.fy('未成交').'"'],$jscol_str);
-//
+
         $this->app->view->engine()->layout(false);
         $jscol_str=$this->display($jscol_str);
 
@@ -225,6 +214,8 @@ class Customer extends AdminController
      */
     public function seas()
     {
+        $where = "`show` = 1 OR `field` IN ('to_gh_time', 'pr_user_bef')";
+        $fields = \tools\Cache::zdy_fields('crm_customer', $where);
         if ($this->request->isAjax()) {
             $this->model->autoRecycle($this->system);
             $this->sort_by = 'to_gh_time';
@@ -239,16 +230,29 @@ class Customer extends AdminController
                 ->count();
             $list=[];
             if($count){
-                $list = $this->model
+                $field_str=empty($fields['field_str'])?'*':$fields['field_str'];
+                if (empty($fields['field_str'])){
+                    $field_str='*';
+                }else{
+                    $field_str_arr=explode(',',$fields['field_str']);
+                    if(!in_array('id',$field_str_arr)){
+                        $field_str='id,'.$field_str;
+                    }
+                }
+                $list = $this->model->field($field_str)
                     ->where($where)
                     ->page($page, $limit)
                     ->order($sort)
                     ->select();
             }
 
-            if ($this->admin['group_id'] != 1) {
+            if ($this->admin['isphone'] == 0) {
                 foreach ($list as $key => $value) {
-                    $value['phone'] = mb_substr($value['phone'], 0, 3).'****'. mb_substr($value['phone'], 7, 11);
+                    foreach ($fields['tels'] as $tel_key => $tel_value){
+                        if($value[$tel_value]){
+                            $value[$tel_value] = mb_substr($value[$tel_value], 0, 3).'****'. mb_substr($value[$tel_value], 7, 11);
+                        }
+                    }
                     $list[$key] = $value;
                 }
             }
@@ -263,19 +267,16 @@ class Customer extends AdminController
 
         //技术QQ3623820285
 
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`jscol` FROM `'.$prefix.'system_field` WHERE (`show`=1 AND `table`="crm_customer" AND `jscol` is not null) OR `field`="to_gh_time" OR `field`="pr_user_bef" order BY `sort` ASC,id ASC');
-        $fields_str='';
-        foreach ($fields as $v){
+        $jscol_str= $fields['jscol_str'];
 
-            $fields_str.=$v['jscol'].',';
-        }
-        $fields_str=str_replace(['"已成交"','"未成交"'],['"'.fy('已成交').'"','"'.fy('未成交').'"'],$fields_str);
+        $jscol_str=str_replace(['"已成交"','"未成交"'],['"'.fy('已成交').'"','"'.fy('未成交').'"'],$jscol_str);
+
         $this->app->view->engine()->layout(false);
-        $fields_str=$this->display(trim($fields_str,','));
+        $jscol_str=$this->display($jscol_str);
+
         $this->app->view->engine()->layout($this->layout);
-        $fields_str=str_replace(['":"{"','"}"'],['":{"','"}'],$fields_str);
-        $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
+        $jscol_str=str_replace(['":"{"','"}"'],['":{"','"}'],$jscol_str);
+        $this->assignconfig('cols_fields',json_decode('['.$jscol_str.']',true));
         $this->assignconfig('parameter',['scope'=>$this->request->get('scope',1,'intval')]);
         View::assign('grabCountMsg',$this->getGrabCount()['msg']);
         return $this->fetch();
@@ -307,7 +308,7 @@ class Customer extends AdminController
             return json($data);
         }
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `field` IN ('name','phone','contact','at_user','pr_user','last_up_time','issuccess','create_time','update_time') order BY `sort` ASC,id ASC");
+        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `table`='crm_customer' AND `field` IN ('name','phone','contact','at_user','pr_user','last_up_time','issuccess','create_time','update_time') order BY `sort` ASC,id ASC");
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=$v['jscol'].',';
@@ -331,6 +332,9 @@ class Customer extends AdminController
      */
     public function issuccess()
     {
+
+        $where = "`show` = 1 OR `field` = 'issuccess'";
+        $fields = \tools\Cache::zdy_fields('crm_customer', $where);
         if ($this->request->isAjax()) {
             $this->sort_by = 'success_time';
             $this->sort_order = 'DESC';
@@ -338,22 +342,74 @@ class Customer extends AdminController
                 return $this->selectList();
             }
             list($page, $limit, $where,$sort) = $this->buildTableParames();
-            $where[]=['issuccess','=',1];
-            if($this->admin['group_id']>1){
+            $scope=$this->request->get('scope', 1,'intval');
+            if($scope==2){
+//                    展示其他的  不包括自己
+                $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
+                if(empty($adminName)){
+                    return json([
+                        'code'  => 0,
+                        'msg'   => '',
+                        'count' => 0,
+                        'data'  => [],
+                    ]);
+                }
+                if($adminName!=='ALL'){
+                    $where[] = ['pr_user', 'in',$adminName];
+                }elseif($adminName=='ALL'){
+//                    展示其他的  不包括自己需要做排除
+                    $where[] = ['pr_user', '<>',$this->admin['username']];
+                }
+
+            }elseif($scope==3){
+//                    展示全部 包括自己
+                $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
+                if(empty($adminName)){
+                    return json([
+                        'code'  => 0,
+                        'msg'   => '',
+                        'count' => 0,
+                        'data'  => [],
+                    ]);
+                }
+                if($adminName!=='ALL'){
+                    $where[] = ['pr_user', 'in',$adminName];
+                }
+            }else{
+//                   限制展示自己的
                 $where[] = ['pr_user', '=', $this->admin['username']];
             }
+            $where[]=['issuccess','=',1];
+
 
             $count = $this->model
                 ->where($where)
                 ->count();
-            $list = $this->model
-                ->where($where)
-                ->page($page, $limit)
-                ->order($sort)
-                ->select();
+            $list=[];
+            if($count){
+                $field_str=empty($fields['field_str'])?'*':$fields['field_str'];
+                if (empty($fields['field_str'])){
+                    $field_str='*';
+                }else{
+                    $field_str_arr=explode(',',$fields['field_str']);
+                    if(!in_array('id',$field_str_arr)){
+                        $field_str='id,'.$field_str;
+                    }
+                }
+                $list = $this->model->field($field_str)
+                    ->where($where)
+                    ->page($page, $limit)
+                    ->order($sort)
+                    ->select();
+            }
+
             if ($this->admin['isphone'] == 0) {
                 foreach ($list as $key => $value) {
-                    $value['phone'] = mb_substr($value['phone'], 0, 3).'****'. mb_substr($value['phone'], 7, 11);
+                    foreach ($fields['tels'] as $tel_key => $tel_value){
+                        if($value[$tel_value]){
+                            $value[$tel_value] = mb_substr($value[$tel_value], 0, 3).'****'. mb_substr($value[$tel_value], 7, 11);
+                        }
+                    }
                     $list[$key] = $value;
                 }
             }
@@ -365,21 +421,17 @@ class Customer extends AdminController
             ];
             return json($data);
         }
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`jscol` FROM `'.$prefix.'system_field` WHERE `show`=1 AND `table`="crm_customer" AND `jscol` is not null order BY `sort` ASC,id ASC');
-        $fields_str='';
-        foreach ($fields as $v){
+        $jscol_str= $fields['jscol_str'];
 
-            $fields_str.=$v['jscol'].',';
-        }
-        $fields_str=str_replace(['"已成交"','"未成交"'],['"'.fy('已成交').'"','"'.fy('未成交').'"'],$fields_str);
-
+        $jscol_str=str_replace(['"已成交"','"未成交"'],['"'.fy('已成交').'"','"'.fy('未成交').'"'],$jscol_str);
 
         $this->app->view->engine()->layout(false);
-        $fields_str=$this->display(trim($fields_str,','));
+        $jscol_str=$this->display($jscol_str);
+
         $this->app->view->engine()->layout($this->layout);
-        $fields_str=str_replace(['":"{"','"}"'],['":{"','"}'],$fields_str);
-        $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
+        $jscol_str=str_replace(['":"{"','"}"'],['":{"','"}'],$jscol_str);
+        $this->assignconfig('cols_fields',json_decode('['.$jscol_str.']',true));
+
         $this->assignconfig('parameter',['scope'=>$this->request->get('scope',1,'intval')]);
         return $this->fetch();
     }
@@ -459,41 +511,29 @@ class Customer extends AdminController
     public function edit($id)
     {
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
-        $row = $this->model->field(array_column($fields, 'field'))->find($id);
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
+        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','pr_user','phone','name','contacts_id'])))->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
         $this->modifyPermissionsByName($row['pr_user']);
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
             $this->verifyFields($post,$fields,'crm_customer');
-            $prefix=getDataBaseConfig('prefix');
-            $fields =Db::query('SELECT `field`,`formtype`,`xsname`,`name` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `editinput` is not null ');
+
 
 //            针对多选无值赋空
             $fields_name=[];
             foreach ($fields as $v){
                 $name=!empty($v['xsname'])?$v['xsname']:$v['name'];
-                if($v['formtype']=='checkbox' || $v['formtype']=='lcheckbox'){
-                    if(!isset($post[$v['field']])){
-                        $post[$v['field']]='';
-                    }
-                }
                 $fields_name[$v['field']]=$name;
-
-
             }
             Db::startTrans();
             try {
                 $post=post_convert($post,$fields);
                 $post['update_time']=time();
-                if(strpos($post['phone'],'****')!==false){
-                    unset($post['phone']);
-                }
                 if(!empty($this->system['customer_record_fields'])){
 //                    不为空则记录变动的值
                     $record_fields=explode(',',$this->system['customer_record_fields']);
-                    $fields=Db::name('system_field')->where('`edit`=1 AND `table`="crm_customer" AND `editinput` is not null')->select();
                     $record=[];
                     $record['customer_id']=$row['id'];
 //                    转字符串
@@ -551,32 +591,20 @@ class Customer extends AdminController
             $save ? $this->success(fy('Save successfully')) : $this->error(fy('Save failed'));
         }
         $fields_str='';
-        foreach ($fields as $v){
-            $fields_str.=trim($v['editinput']);
+        foreach ($fields as $value){
+            $fields_str.=trim($value['editinput']);
+            if ($this->admin['isphone'] == 0 && $value['formtype']=='tel') {
+                $row[$value['field']] = mb_substr($row[$value['field']], 0, 3).'****'. mb_substr($row[$value['field']], 7, 11);
+            }
         }
         $fields_str=str_replace(['>已成交<','>未成交<'],['>'.fy('已成交').'<','>'.fy('未成交').'<'],$fields_str);
         $this->app->view->engine()->layout(false);
-        if ($this->admin['isphone'] == 0) {
-            $row['phone'] = mb_substr($row['phone'], 0, 3).'****'. mb_substr($row['phone'], 7, 11);
-        }
         $fields_str=$this->display($fields_str,['row'=>$row]);
         $this->app->view->engine()->layout($this->layout);
         $this->assign('fields_str', $fields_str);
 
-        $fields=cache('crm_customer_contacts_fields');
-        if(!$fields){
-            $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query("SELECT  `field`, `jscol`,`show` FROM `{$prefix}system_field` WHERE `table`='crm_customer_contacts' AND `show`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
-            $field_str=$jscol_str='';
-            foreach ($fields as $key=>$value){
-                $field_str.=$value['field'].',';
-                if($value['show']==1){
-                    $jscol_str.=$value['jscol'].',';
-                }
-            }
-            $fields=['field_str'=>trim($field_str,','),'jscol_str'=>trim($jscol_str,',')];
-            cache('crm_customer_contacts_fields',$fields);
-        }
+        $fields=\tools\Cache::zdy_fields('crm_customer_contacts');
+
         $jscol_str= $fields['jscol_str'];
         $this->app->view->engine()->layout(false);
         $jscol_str=$this->display($jscol_str);

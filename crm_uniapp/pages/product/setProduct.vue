@@ -237,7 +237,7 @@
 		methods: {
 			// 获取商品详情
 			getDetails() {
-				this.$u.api.getProductEdit({
+				this.$u.get('crm.product.product/edit', {
 					id: this.product_id,
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -275,7 +275,7 @@
 					})
 					return
 				}
-				this.$u.api.onProductUnitAdd({
+				this.$u.post('crm.product.unit/add', {
 					name: this.unitText
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -292,7 +292,7 @@
 			},
 			// 获取分类列表
 			getClassify(isNextPage,pages) {
-				this.$u.api.getProductTypeList({
+				this.$u.get('crm.product.product/get_type_list', {
 					showField:"name",
 					keyField:"id",
 					searchField:"name"
@@ -352,7 +352,7 @@
 			},
 			// 获取分类属性
 			getProductTypeProp(id) {
-				this.$u.api.getProductTypeProp({
+				this.$u.get('crm.product.product/get_type_prop', {
 					type_id: id,
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -366,7 +366,7 @@
 			},
 			// 获取单位
 			getProductUnit(isNextPage,pages) {
-				this.$u.api.getProductUnitList({
+				this.$u.get('crm.product.product/get_unit_list', {
 					showField:"name",
 					keyField:"id",
 					searchField:"name"
@@ -412,7 +412,7 @@
 				this.$refs.uForm.validate(valid => {
 					if (valid) {
 						if(this.type == 'add') {
-							this.$u.api.onProductAdd(param).then((res) => {
+							this.$u.post('crm.product.product/add', param).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({
@@ -426,7 +426,7 @@
 								}
 							})
 						} else {
-							this.$u.api.onProductEdit(param).then((res) => {
+							this.$u.post('crm.product.product/edit', param).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({

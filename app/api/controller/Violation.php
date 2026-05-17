@@ -2,7 +2,7 @@
 
 namespace app\api\controller;
 
-use app\common\controller\AdminController;
+use app\api\controller\Authority;
 
 use think\App;
 use think\facade\Db;

@@ -1,11 +1,11 @@
-import {imgBaseUrl,} from './config'
+import {attBaseUrl,} from './config'
 
 //获取图片真实地址
 export const getImgUrl = url => {
   if(url.substr(0,7).toLowerCase() == "http://"||url.substr(0,8).toLowerCase() == "https://"){
       return url;
   }else{
-      return imgBaseUrl + url;
+      return attBaseUrl + url;
   }
 }
 
@@ -15,7 +15,7 @@ export function processingImages(str_img) {
     let arr_img = str_img.split(",")
     arr_img.forEach((item, index) => {
       if (item.indexOf("http") < 0) {
-        arr_img[index] = imgBaseUrl + item
+        arr_img[index] = attBaseUrl + item
       }
     })
     return arr_img
@@ -25,11 +25,11 @@ export function processingImages(str_img) {
       arr_img.push(str_img)
       return arr_img
     } else {
-      arr_img.push(imgBaseUrl + '/' + str_img)
+      arr_img.push(attBaseUrl + '/' + str_img)
       return arr_img
     }
   }
-  // return imgBaseUrl + str_img
+  // return attBaseUrl + str_img
 }
 
 //判断对象，参数是否定义
@@ -223,17 +223,34 @@ export function getYear(type, dates) {
 }
 
 /**
+ * 下划线转驼峰 (首字母小写)
+ * @param {string} str - 输入字符串，如 'user_name'
+ * @returns {string} - 转换后的驼峰字符串，如 'userName'
+ */
+function UnderlineToHump(str = '') {
+    if (!str) return '';
+    const parts = str.split('_');
+    let result = parts[0] || '';               // 第一个片段
+    for (let i = 1; i < parts.length; i++) {
+        const part = parts[i];
+        if (part) {                            // 忽略空片段（连续下划线的情况）
+            result += part[0].toUpperCase() + part.slice(1);
+        }
+    }
+    return result;
+}
+/**
  * 处理字段真实值（对应 PHP real_field_val）
  * @param {Object} field - 字段配置对象 {formtype, option, field, title}
  * @param {Any} value - 字段值
- * @param {String} imgBaseUrl - 图片基础URL
+ * @param {String} attBaseUrl - 图片基础URL
  * @returns {Object} {type, text, urls, files}
  *   - type: 'text'|'image'|'images'|'file'|'files'|'datetime'|'date'
  *   - text: 文本显示值
  *   - urls: 图片URL数组（用于预览）
  *   - files: 文件数组 [{name, url}]
  */
-export function realFieldVal(field, value, imgBaseUrl) {
+export function realFieldVal(field, value,item, attBaseUrl) {
   if (value === '' || value === null || value === undefined) {
     return { type: 'text', text: '' }
   }
@@ -242,6 +259,11 @@ export function realFieldVal(field, value, imgBaseUrl) {
   let result = { type: 'text', text: value, urls: [], files: [] }
 
   switch (formtype) {
+    case 'popup_selection':
+        // 连表查询
+
+        result.text = item[UnderlineToHump(field.join_table)][field.foreign_key]
+        break
     case 'datetime':
       // 时间戳转 Y-m-d H:i:s
       result.type = 'datetime'
@@ -285,7 +307,7 @@ export function realFieldVal(field, value, imgBaseUrl) {
       // 单图
       result.type = 'image'
       if (value) {
-        const url = getFullUrl(value, imgBaseUrl)
+        const url = getFullUrl(value, attBaseUrl)
         result.urls = [url]
         result.text = '[图片]'
       }
@@ -296,7 +318,7 @@ export function realFieldVal(field, value, imgBaseUrl) {
       result.type = 'images'
       if (value) {
         const urls = String(value).split(/[,|]/).filter(v => v.trim())
-        result.urls = urls.map(url => getFullUrl(url.trim(), imgBaseUrl))
+        result.urls = urls.map(url => getFullUrl(url.trim(), attBaseUrl))
         result.text = `[${result.urls.length}张图片]`
       }
       break
@@ -305,7 +327,7 @@ export function realFieldVal(field, value, imgBaseUrl) {
       // 单文件
       result.type = 'file'
       if (value) {
-        const url = getFullUrl(value, imgBaseUrl)
+        const url = getFullUrl(value, attBaseUrl)
         const name = getFileName(value)
         result.files = [{ name, url }]
         result.text = name
@@ -318,7 +340,7 @@ export function realFieldVal(field, value, imgBaseUrl) {
       if (value) {
         const files = String(value).split(/[,|]/).filter(v => v.trim())
         result.files = files.map(f => {
-          const url = getFullUrl(f.trim(), imgBaseUrl)
+          const url = getFullUrl(f.trim(), attBaseUrl)
           return { name: getFileName(f), url }
         })
         result.text = `[${result.files.length}个文件]`
@@ -397,4 +419,24 @@ function parseOptions(optionStr) {
   } catch (e) {
     return []
   }
+}
+
+/**
+ * 根据字段表单类型返回对应的搜索操作符
+ * @param {string} formtype - 字段表单类型 (input/tel/textarea/city/district/datetime/date/number/select/radio/checkbox 等)
+ * @returns {string} '%*%' 模糊搜索 | 'RANGE' 范围搜索 | '=' 精确匹配
+ */
+export function getFieldOperator(formtype) {
+    switch (formtype) {
+        case 'datetime':
+        case 'date':
+            return 'RANGE';
+        case 'number':
+        case 'select':
+        case 'radio':
+        case 'checkbox':
+            return '=';
+        default:
+            return '%*%';
+    }
 }

@@ -19,14 +19,18 @@ import {scene_decode} from '@/common/mUtils'
 		methods: {
 			getInit(val){
 				// 获取基础配置信息
-				this.$u.api.getInit({preview:val}).then(res => {
+				this.$u.get('login/config', {preview:val}).then(res => {
           console.log(res);
 					if(res.code == 1) {
 						//主题做缓存
 						this.$u.vuex('vuex_theme',res.data.themeconfig.theme ? res.data.themeconfig.theme : {})
 						//系统配置做缓存
 						this.$u.vuex('vuex_config',res.data.themeconfig ? res.data.themeconfig : {})
+						this.$u.vuex('vuex_upload',res.data.upload ? res.data.upload : {})
 						this.$u.vuex('vuex_system',res.data.system ? res.data.system : {})
+						//支付配置和公众号 app_id 做缓存
+						this.$u.vuex('vuex_payConfig', res.data.payConfig || {})
+						this.$u.vuex('vuex_app_id', res.data.app_id || '')
 					} else {
 						this.$u.toast(res.msg);
 					}
@@ -34,7 +38,7 @@ import {scene_decode} from '@/common/mUtils'
 			},
 			// 消息订阅接口
 			getNoticeTpl() {
-				this.$u.api.getNoticeTpl().then(res => {
+				this.$u.get('crm.common/getNoticeTpl').then(res => {
 					if(res.code == 1) {
 						// 存储订阅消息数据
 						this.$u.vuex('vuex_notice_tpl', res.data)

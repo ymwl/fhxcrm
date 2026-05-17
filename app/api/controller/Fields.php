@@ -2,7 +2,6 @@
 namespace app\api\controller;
 use app\admin\model\publicuse\PublicUse;
 use app\admin\model\traits\TablHandle;
-use EasyAdmin\upload\Uploadfile;
 use fast\Tree;
 use think\App;
 use think\db\Query;
@@ -11,7 +10,7 @@ use think\facade\Lang;
 use app\common\model\SystemField;
 use think\Model;
 
-class Fields extends Common {
+class Fields extends Authority{
 
     public function __construct(App $app)
     {
@@ -24,34 +23,54 @@ class Fields extends Common {
    public function get_fields(){
        $table=$this->request->request('table','');
        $source=$this->request->request('source','');
+       $field='`id`,`open_sort`,`default` as value,`join_table`,`formtype`,`foreign_key`,`relationship_primary_key`,`field`,`rule`,if(`xsname`<>"",`xsname`,`name`) title,`option`,`width`';
        if($source=='index'){
           $where='`show`=1 AND `table`=:table';
        }else if($source=='addForm'){
            $where='`edit`=1 AND `table`=:table AND `addinput` is not null AND `is_key`<>1';
+           $field='`id`,`open_sort`,`default` as value,`join_table`,`formtype`,`foreign_key`,`relationship_primary_key`,`field`,`rule`,if(`xsname`<>"",`xsname`,`name`) title,`option`,`width`,`href`';
+
        }else if($source=='editForm'){
            $where='`edit`=1 AND `table`=:table AND `editinput` is not null AND `is_key`<>1';
+           $field='`id`,`open_sort`,`default` as value,`join_table`,`formtype`,`foreign_key`,`relationship_primary_key`,`field`,`rule`,if(`xsname`<>"",`xsname`,`name`) title,`option`,`width`,`href`';
+
        }else if($source=='search'){
            $where='`search`=1 AND `table`=:table';
+       }else{
+           $where='`edit`=1 AND `table`=:table AND `editinput` is not null AND `is_key`<>1';
        }
 
        $id = $this->request->param('id', 0, 'intval');
        $prefix=getDataBaseConfig('prefix');
-       $fields=Db::query('SELECT `id`,`open_sort`,`default` as value,`formtype`,`foreign_key`,`relationship_primary_key`,`field`,`rule`,if(`xsname`<>"",`xsname`,`name`) title,`option`,`width` FROM `'.$prefix.'system_field` WHERE '. $where .' order BY `sort` ASC,id ASC',['table'=>$table]);
+       $fields=Db::query('SELECT '.$field.' FROM `'.$prefix.'system_field` WHERE '. $where .' order BY `sort` ASC,id ASC',['table'=>$table]);
         foreach($fields as $ko => $vo){
             if($vo['formtype']=='lselect'){
 
             }elseif($vo['formtype']=='select' || $vo['formtype']=='checkbox' || $vo['formtype']=='radio'){
                 if(isset($vo['option'])&&$vo['option']){
-                    $vo['content_list'] = TablHandle::optionToArray($vo['option']);
+                    $vo['selectList'] = TablHandle::optionToArray($vo['option']);
                 }else{
-                    $vo['content_list'] = [];
+                    $vo['selectList'] = [];
                 }
             }
 //            rule
 //:
 //"require"  把require替换成required
             $vo['rule']=str_replace('require','required',$vo['rule']);
+
+            if($source=='search'){
+                if($vo['formtype']=='lselect'){
+                    $vo['selectList']=build_select_list($vo['join_table'],$vo['relationship_primary_key'],$vo['foreign_key'],0);
+                }elseif($vo['formtype']=='lselect'){
+                    $vo['selectList']=build_select_list($vo['join_table'],$vo['relationship_primary_key'],$vo['foreign_key'],0);
+                }elseif($vo['formtype']=='popup_selection'){
+                    $join_table=PublicUse::UnderlineToHump($vo['join_table']);
+                    $vo['field']=$join_table.'.'.$vo['foreign_key'];
+                }
+
+            }
             $fields[$ko]=$vo;
+
         }
 
        $this->jsonSuccess('',['fields'=> $fields]);
@@ -115,9 +134,8 @@ class Fields extends Common {
 
         //如果有primaryvalue,说明当前是初始化传值
         if ($primaryvalue !== null) {
-            $where = [$primarykey => ['in', $primaryvalue]];
-            $where = function ($query) use ($primaryvalue, $custom, $admin_id, $user_id) {
-                $query->where('id', 'in', $primaryvalue);
+            $where = function ($query) use ($primaryvalue, $custom, $admin_id, $user_id, $primarykey) {
+                $query->where($primarykey, 'in', $primaryvalue);
                 if ($custom && is_array($custom)) {
                     //替换暂位符
                     $search = ["{admin_id}", "{user_id}"];

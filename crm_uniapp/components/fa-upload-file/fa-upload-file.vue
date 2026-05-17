@@ -89,7 +89,7 @@ export default {
 		var input = document.createElement('input')
 		input.type = 'file'
 		input.onchange = (event) => {
-			// this.$u.api.goUpload({
+			// this.$u.post('crm.common/upload', {
 			// 	 file:event.target.files[0]
 			//  }).then(res=>{
 			//  	this.onSuccess(res)
@@ -133,15 +133,15 @@ export default {
 			// #endif
 			// #ifdef APP-PLUS
 				var formData = {};
-				let isObj = this.$u.test.object(this.vuex_config.upload.multipart);
+				let isObj = this.$u.test.object(this.vuex_upload.multipart);
 				if (isObj) {
-					formData = this.vuex_config.upload.multipart;
+					formData = this.vuex_upload.multipart;
 				}
 				this.$refs.lFile.upload({
 					// nvue页面使用时请查阅nvue获取当前webview的api，当前示例为vue窗口
 					currentWebview: this.$mp.page.$getAppWebview(),
 					//调试时ios有跨域，需要后端开启跨域并且接口地址不要使用http://localhost/
-					url: this.vuex_config.upload.uploadurl,
+					url: this.vuex_upload.uploadurl,
 					//默认file,上传文件的key
 					name: 'file',
 					header: {
@@ -199,7 +199,7 @@ export default {
 							// 	this.$emit('on-progress', res, index, this.lists, this.index);
 							// }
 						});
-						// this.$u.api.goUpload({file:filePath,}).then(res=>{
+						// this.$u.post('crm.common/upload', {file:filePath,}).then(res=>{
 						// 	this.onSuccess(res)
 						// })
 					},

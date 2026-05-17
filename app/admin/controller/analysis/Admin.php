@@ -20,6 +20,9 @@ class Admin extends AdminController
     public $customerModel;
     public $sort_by = 'admin_id';
     public $sort_order = 'DESC';
+    protected $sort = [
+        'admin_id'   => 'DESC',
+    ];
 
     public function __construct(App $app)
     {
@@ -96,8 +99,12 @@ class Admin extends AdminController
 
         $owner_admin_id = $this->request->param('admin_id','', 'intval');
         // 生成查询的开始和结束时间，默认取30日
-        !is_numeric($startDate) && $starttime = strtotime($startDate);
-        !is_numeric($endDate) && $endtime = strtotime($endDate);
+        if(!is_numeric($startDate) && $startDate){
+            $starttime = strtotime($startDate);
+        }
+        if(!is_numeric($endDate) && $endDate){
+            $endtime = strtotime($endDate);
+        }
         $isnotrangeDate = empty($starttime) && empty($endtime);
         $nearly = '30';
         if ($isnotrangeDate) {
@@ -108,7 +115,7 @@ class Admin extends AdminController
             $this->error = '起始时间要小于终止时间';
             return false;
         }
-        list($format,$column)=\tools\hs::format_lx_time($starttime,$endtime);
+        list($format,$column)=\tools\Hs::format_lx_time($starttime,$endtime);
         $where=[];
         //客户增量
         if ($owner_admin_id) {
@@ -250,10 +257,19 @@ class Admin extends AdminController
 
         $owner_admin_id = $this->request->param('admin_id','', 'intval');
         // 生成查询的开始和结束时间，默认取30日
-        !is_numeric($startDate) && $starttime = strtotime($startDate);
-        !is_numeric($endDate) && $endtime = strtotime($endDate);
+        if(!is_numeric($startDate) && $startDate){
+            $starttime = strtotime($startDate);
+        }
+        if(!is_numeric($endDate) && $endDate){
+            $endtime = strtotime($endDate);
+        }
 
-       if ($starttime && ($starttime > $endtime)) {
+        $isnotrangeDate = empty($starttime) && empty($endtime);
+
+        if ($isnotrangeDate) {
+            $endtime = time();
+            $starttime = strtotime("-1 month");  // 最近30天日期
+        } if ($starttime && ($starttime > $endtime)) {
             $this->error = '起始时间要小于终止时间';
             return false;
         }

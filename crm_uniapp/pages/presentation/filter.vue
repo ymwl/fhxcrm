@@ -276,9 +276,9 @@ import {getMonth,getYear} from '@/common/mUtils'
 			// 获取管理组列表
 			getData(isNextPage,pages) {
 				console.log(isNextPage,this.status)
-				this.$u.api.getGroupdata({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('auth/getGroupdata', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({username: this.keyword}),
@@ -320,7 +320,7 @@ import {getMonth,getYear} from '@/common/mUtils'
 
 			// 获取下级员工
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
+				this.$u.get('ajax/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,

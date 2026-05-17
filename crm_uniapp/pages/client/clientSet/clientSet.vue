@@ -1,9 +1,9 @@
 <template>
 	<view>
 		<view class="set-box" >
-			<u-form :model="form" v-model="form" :rules="rules" ref="uForm" :error-type="errorType">
+			<u-form :model="form" :rules="rules" ref="uForm" :error-type="errorType">
 				<!-- 自定义字段组件 -->
-				<fa-fields :fields="fields" :form="form" :model="form"  v-model="form" :rules="rules" :labelPosition="labelPosition" :border="border" ></fa-fields>
+				<fa-fields :fields="fields" :form="form" v-model="form" :rules="rules" :labelPosition="labelPosition" :border="border" ></fa-fields>
 			</u-form>
 			<!-- 底部浮动按钮 -->
 			<view class="bottom-btn u-border-top" >
@@ -80,7 +80,6 @@
 				// 获取自定义字段
 				this.getFields()
 				// 获取配置字段
-				this.getBaseConfig()
 			}
 			this.type = e.type
 			if(this.type == "edit") {
@@ -108,7 +107,7 @@
 			},
 			// 获取客户详情
 			getCustomer() {
-				this.$u.api.getCustomer({id: this.customer_id}).then(res => {
+				this.$u.get('crm.customer/edit',{id: this.customer_id}).then(res => {
 					if(res.code == 1 ) {
 						this.customerData = res.data
 						// 标签数据赋值
@@ -118,7 +117,7 @@
 						// 获取自定义字段
 						this.getFields()
 						// 获取配置字段
-						this.getBaseConfig()
+
 						// 地区获取赋值
 						// this.addProvince()
 					}
@@ -128,19 +127,19 @@
 			addProvince() {
 				let name = ''
 				// 获取省
-				this.$u.api.getArea({province: '',city:''}).then((res) => {
+				this.$u.get('crm.common/area',{province: '',city:''}).then((res) => {
 					if(res.code == 1){
 						res.data.forEach((item,index)=>{
 							if(item.value == this.customerData.province){
 								name = item.name
 								// 获取市
-								this.$u.api.getArea({province: item.value,city:''}).then((resc) => {
+								this.$u.get('crm.common/area',{province: item.value,city:''}).then((resc) => {
 									if(res.code == 1){
 										resc.data.forEach((i,idx)=>{
 											if(i.value == this.customerData.city){
 												name = name + i.name
 												// 获取区
-												this.$u.api.getArea({province: item.value,city: i.value}).then((resd) => {
+												this.$u.get('crm.common/area',{province: item.value,city: i.value}).then((resd) => {
 													if(res.code == 1){
 														resd.data.forEach((c,idc)=>{
 															if(c.value == this.customerData.area){
@@ -164,209 +163,56 @@
 				this.form.tags = this.tagList.join(",")
 				this.tagsShow = false
 			},
-			// 选择客户等级
-			levelClick(index) {
-				this.levelName = this.levelList[index].text
-				this.form.level = this.levelList[index].id
-			},
-			// 选择客户行业
-			industryClick(index){
-				this.industryName = this.industryList[index].text
-				this.form.industry = this.industryList[index].id
-			},
-			// 选择时间
-			createTimeChange(e){
-				this.form.next_time = e.year + '-' + e.month + '-' + e.day + ' ' + e.hour + ':' + e.minute
-			},
-			// 地区选择
-			addressChange(e) {
-				console.log(e)
-				this.form.province = e[0].value
-				this.form.city = e[1].value
-				this.form.area = e[2].value
-				this.addressName = e[0].label + e[1].label + e[2].label
-			},
-			// 来源选择
-			sourceClick(index) {
-				this.sourceName = this.sourceList[index].text
-				this.form.source = this.sourceList[index].id
-			},
-			// 添加标签
-			addTag(){
-				if(this.tagVal) {
-					this.tagList.push(this.tagVal)
-				}
-			},
-			// 移除标签
-			tagClick(index) {
-				this.tagList.splice(index,1)
-				this.form.tags = this.tagList.join(',')
-			},
 			// 自定义字段
 			getFields() {
-				let arr = [];let source='addForm';this.type == 'edit' ? source='editForm' : source='addForm';
-				this.$u.api.getFields({table: 'crm_customer',source: source}).then((res) => {
+				let source='addForm';this.type == 'edit' ? source='editForm' : source='addForm';
+				this.$u.get('fields/get_fields',{table: 'crm_customer',source: source}).then((res) => {
 					if(res.code == 1){
-						this.detail = res.data.info;
 						this.fields = res.data.fields;
-						//渲染自定义字段,默认字段
-						let custom_form = {
-						};
-						let rules = {
-							/*name: [
-								{
-									required: true,
-									message: '请输入客户名称',
-									// 可以单个或者同时写两个触发验证方式
-									trigger: ['change', 'blur']
+						let custom_form = {};
+						let rules = {};
+						this.fields.forEach(item => {
+							const isEdit = this.type == 'edit';
+							// 统一数据源：编辑取已有值，新增取默认值
+							const srcVal = isEdit ? this.customerData[item.field] : (item.value || item.default);
+			
+							// 表单赋值
+							if (isEdit) {
+								custom_form[item.field] = srcVal;
+								if (item.type != 'number') {
+									item.value = srcVal;
 								}
-							],
-							mobile: [
-								{
-									// 自定义验证函数，见上说明
-									validator: (rule, value, callback) => {
-										if(value == '') {
-											return true
-										}
-										return this.$u.test.mobile(value);
-									},
-									message: '手机号码不正确',
-									// 触发器可以同时用blur和change
-									trigger: ['change','blur'],
-								}
-							]*/
-						};
-						this.fields.map(item => {
-							// 编辑场景
-							if(this.type == 'edit') {
-								//表单赋值
-								if (item.type == 'number') {
-									custom_form[item.field] = this.customerData[item.field]
-								} else {
-									custom_form[item.field] = this.customerData[item.field]
-									item.value = this.customerData[item.field] // 默认值为已有的数据
-								}
-								//单图赋值
-								if (item.type == 'image') {
-									if (this.customerData[item.field]) {
-										item.value = [
-											{
-												url: getImgUrl(this.customerData[item.field])
-											}
-										];
-									} else {
-										item.value = [];
-									}
-								}
-								//多图赋值
-								if (item.type == 'images') {
-									if (this.customerData[item.field]) {
-										let images = this.customerData[item.field].split(',');
-										let urls = [];
-										images.forEach(it => {
-											urls.push({
-												url: getImgUrl(it)
-											});
-										});
-										item.value = urls;
-									} else {
-										item.value = [];
-									}
-								}
-								//单文件
-								if (item.type == 'file') {
-									item.value = this.customerData[item.field] ? [this.customerData[item.field]] : [];
-								}
-								//多文件
-								if (item.type == 'files') {
-									if (this.customerData[item.field]) {
-										item.value = this.customerData[item.field].split(',');
-									} else {
-										item.value = [];
-									}
-								}
+							} else if (item.type == 'number') {
+								custom_form[item.field] = srcVal || 0;
 							} else {
-								// 新增场景 表单赋值
-								if (item.type == 'number') {
-									custom_form[item.field] = item.value || item.default || 0;
-								} else {
-									custom_form[item.field] = item.value || item.default || '';
-								}
-								if(item.type == 'radio') {
-									item.value = this.customerData[item.field]
-								}
-								//单图赋值
-								if (item.type == 'image') {
-									if (item.value) {
-										item.value = [
-											{
-												url: getImgUrl(item.value)
-											}
-										];
-									} else {
-										item.value = [];
-									}
-								}
-								//多图赋值
-								if (item.type == 'images') {
-									if (item.value) {
-										let images = item.value.split(',');
-										let urls = [];
-										images.forEach(it => {
-											urls.push({
-												url: getImgUrl(it)
-											});
-										});
-										item.value = urls;
-									} else {
-										item.value = [];
-									}
-								}
-								//单文件
-								if (item.type == 'file') {
-									item.value = item.value ? [item.value] : [];
-								}
-								//多文件
-								if (item.type == 'files') {
-									if (item.value) {
-										item.value = item.value.split(',');
-									} else {
-										item.value = [];
-									}
-								}
+								custom_form[item.field] = srcVal || '';
 							}
+			
+							// 图片/文件类型：统一转换为子组件需要的格式
+							if (item.type == 'image') {
+								item.value = srcVal ? [{ url: getImgUrl(srcVal) }] : [];
+							}
+							if (item.type == 'images') {
+								item.value = srcVal ? String(srcVal).split(',').map(it => ({ url: getImgUrl(it) })) : [];
+							}
+							if (item.type == 'file') {
+								item.value = srcVal ? [srcVal] : [];
+							}
+							if (item.type == 'files') {
+								item.value = srcVal ? String(srcVal).split(',') : [];
+							}
+			
 							//追加自定义表单验证
 							rules[item.field] = this.getRules(item)
 						});
-						this.form = custom_form // 表单字段数据合并
+						this.form = custom_form
 						this.rules = rules;
-						this.showForm = true;
-						//设置表单验证规则
-
-            console.log('this.form=',this.form)
-            console.log('this.rules=',this.rules)
-            console.log('this.fields=', this.fields)
 						this.$nextTick(() => {
 							this.$refs.uForm.setRules(this.rules);
 						});
+						this.showForm = true;
 					}
 				})
-			},
-			// 获取配置字段
-			getBaseConfig() {
-				/*this.$u.api.getBaseConfig().then((res) => {
-					if(res.code == 1){
-						this.levelList = this.onJson(res.data.levelList)
-						this.industryList = this.onJson(res.data.industryList)
-						this.sourceList = this.onJson(res.data.sourceList)
-						// 编辑 数据赋值
-						if(this.type == 'edit'){
-							this.levelName = res.data.levelList[this.customerData.level]
-							this.industryName = res.data.industryList[this.customerData.industry]
-							this.sourceName = res.data.sourceList[this.customerData.source]
-						}
-					}
-				})*/
 			},
 			// json 转化
 			onJson(data) {
@@ -387,7 +233,7 @@
 				if(this.$u.test.array(arrList)&&arrList.length>0) {
 					this.regionList = arrList
 				} else {
-					this.$u.api.getAllarea().then((res) => {
+					this.$u.get('ajax/getAllArea').then((res) => {
 						if(res.code == 1){
 							this.regionList = (res.data);
 							uni.setStorageSync('storage_getAllarea',res.data);
@@ -397,20 +243,17 @@
 			},
 			// 修确认提交
 			submit() {
-				console.log('提交数据=',this.form)
 				this.$refs.uForm.validate(valid => {
 					if (valid) {
 						// 提交
 						this.onSubmit()
-					} else {
-						console.log('验证失败');
 					}
 				});
 			},
 			// 提交
 			onSubmit() {
 				if(this.type == 'add') {
-					this.$u.api.onCustomerAdd(this.form).then((res) => {
+					this.$u.post('crm.customer/add',this.form).then((res) => {
 						if(res.code == 1) {
 							// 提示
 							uni.showToast({
@@ -427,7 +270,7 @@
 					})
 				} else {
 					this.form.id = this.customer_id
-					this.$u.api.onCustomerEdit(this.form).then((res) => {
+					this.$u.post('crm.customer/edit',this.form).then((res) => {
 						if(res.code == 1) {
 							// 提示
 							uni.showToast({

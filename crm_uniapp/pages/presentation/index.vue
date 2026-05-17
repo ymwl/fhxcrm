@@ -218,7 +218,7 @@
 				if(!this.$u.test.isEmpty(this.vuex_Afilter.filter)) {
 					params = Object.assign(params,this.vuex_Afilter.filter);
 				}
-				this.$u.api.onAchievementAnalysis(params).then(res => {
+				this.$u.get('crm.analysis.admin/achievement', params).then(res => {
 					if(res.code == 1) {
 						let series = res.data.achievement.data
 						// 清除已有的 series 数据
@@ -261,7 +261,7 @@
 				} else {
 					this.CtimeName = '本月'
 				}
-				this.$u.api.onAnalysis(params).then(res => {
+				this.$u.get('crm.analysis.admin/index', params).then(res => {
 					if(res.code == 1) {
 						// 清除已有的 series 数据
 						this.countChartData.series = []
@@ -319,9 +319,9 @@
 				if(type_id==2){
 					//回款
 					this.unit='笔';
-					this.$u.api.getReceivablesRanking({
-						sort: 'order_admin_id',
-						order: 'desc',
+					this.$u.get('crm.analysis.ranking/receivables', {
+						sort_by: 'order_admin_id',
+						sort_order: 'desc',
 						offset: 0,
 						limit: 20,
 						filter: JSON.stringify(filterObj),
@@ -349,9 +349,9 @@
 					})
 				}else{
 					this.unit='单';
-					this.$u.api.getContractRanking({
-						sort: 'order_admin_id',
-						order: 'desc',
+					this.$u.get('crm.analysis.ranking/contract', {
+						sort_by: 'order_admin_id',
+						sort_order: 'desc',
 						offset: 0,
 						limit: 20,
 						filter: JSON.stringify(filterObj),

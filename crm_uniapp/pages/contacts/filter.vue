@@ -3,124 +3,60 @@
 		<view class="slot-content">
 			<u-cell-group>
 				<u-cell-item  title="客户场景"  :value="formName.scopeName" @click="sceneShow = true"></u-cell-item>
-				<u-cell-item  title="负责人" :value="formName.companyName" @click="companyShow = true"></u-cell-item>
-
-				<u-cell-item  title="性别"  :value="formName.sexName" @click="sexShow = true"></u-cell-item>
-				<u-cell-item  title="决策人" :value="formName.decisionName" @click="decisionShow = true"></u-cell-item>
 			</u-cell-group>
+
+			<!-- 自定义字段搜索组件 -->
+			<fhx-field-search 
+				ref="fieldSearch"
+				:fields="fields"
+				:value="searchForm"
+				:value-name="searchFormName"
+				:theme="vuex_theme"
+				@change="onFieldSearchChange">
+			</fhx-field-search>
+
 			<view class="bottom-btn">
 				<u-button class="u-m-r-15" type="default" size="medium" @click="reset">重置</u-button>
 				<u-button type="primary" size="medium" @click="onConfirm" :custom-style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" :ripple="true">确定</u-button>
 			</view>
 		</view>
-		<!-- 选择负责人 -->
-		<u-popup class="popup-content" mode="bottom" border-radius="38"  v-model="companyShow" >
-			<view class="popup-title u-border-bottom">
-				<view class=""  style="width: 45px;">
-					<!-- <u-icon name="close"  color="#909399" size="30"></u-icon> -->
-				</view>
-				<text class="">选择负责人</text> 
-				<view class="" @click="companyShow = false" style="width: 45px;">
-					<u-icon name="close"  color="#909399" size="30"></u-icon>
-				</view>
-			</view>
-			<u-search margin="30rpx 20rpx" shape="square" v-model="adminkeyword" :show-action="false" :clearabled="true"  placeholder="输入名称搜索" @change="adminSearch"></u-search>
-			<scroll-view scroll-y style="height: 760rpx;width: 100%;" @scrolltolower="adminBottom">
-				<view class="list">
-					<block v-if="companyList.length > 0">
-						<view class="u-m-b-45">
-							<view class="item u-flex u-border-bottom" v-for="(item,index) in companyList" :key="index" @click="oncompany(item,index)">
-								<view class="title">{{item.realname}}</view>
-								<view class="check-icon">
-									<u-icon v-if="item.checked" name="checkmark" color="#2979ff" size="38"></u-icon>
-								</view>
-							</view>
-						</view>
-						<u-loadmore :status="adminStatus" ></u-loadmore>
-					</block>
-					<u-empty text="暂无数据" v-else  margin-top="100" mode="list"></u-empty>
-				</view>
-			</scroll-view>
-		</u-popup>
-		
-		<!-- 选择客户场景 -->
+
+		<!-- 选择所属客户场景 -->
 		<u-action-sheet :list="sceneList" v-model="sceneShow" @click="sceneClick"></u-action-sheet>
-		
-		<!-- 选择性别-->
-		<u-action-sheet :list="sexList" v-model="sexShow" @click="sexClick"></u-action-sheet>
-		<!-- 选择决策 -->
-		<u-action-sheet :list="decisionList" v-model="decisionShow" @click="decisionClick"></u-action-sheet>
 	</view>
 </template>
 
 <script>
+	import { getFieldOperator } from '@/common/mUtils.js';
+
 	export default {
 		data() {
 			return {
-
-				sexShow: false,
-				decisionShow: false,
 				sceneShow: false,
 				sceneList: [
-				],
-				companyList: [],
-				sexList: [
 					{
-						text: '男',
+						text: '我的',
 						id: 1
 					},
 					{
-						text: '女',
-						id: '0'
+						text: '下属的',
+						id: 2
 					},
 					{
-						text: '未知',
-						id:'-1'
+						text: '全部',
+						id: 3
 					}
 				],
-				decisionList: [
-					{
-						text: '是',
-						id: 1
-					},
-					{
-						text: '否',
-						id: '0'
-					},
-					{
-						text: '未知',
-						id:'-1'
-					}
-				],
-				params: {
-					year: true,
-					month: true,
-					day: true,
-					hour: true,
-					minute: true,
-					second: false
-				},
-			
-				adminPage: 1,
-				lastAdmin: false,
-				adminStatus: 'loadmore',
-				adminkeyword: '',
-				pageSize: 20,
-				companyShow: false,
-				timeType: '',
 				form: {
-					scope: '',
-					sex: '',
-					decision: '',
-
+					scope: '1',
 				},
 				formName: {
-					scopeName: '选择',
-					sexName: '选择',
-					decisionName: '选择',
-					companyName: '选择',
-			
-				}
+					scopeName: '我的',
+				},
+				// 自定义字段搜索相关
+				fields: [],
+				searchForm: {},
+				searchFormName: {},
 			};
 		},
 		onLoad(e) {
@@ -130,200 +66,141 @@
 				    this.sceneList.push({id:i,text:tempscene[i]}); 
 				}
 			}
-			this.getBaseConfig()
-			this.onSelectpage()
-		},
-		onShow(){
-		
+			this.getFields();
 		},
 		
 		methods: {
-			// 选择场景	
-			sceneClick(index) {
-				this.formName.scopeName =  this.sceneList[index].text
-				this.form.scope = this.sceneList[index].id
-				this.sceneList.forEach((item,i)=>{
-					if(index == i) {
-						item.color = '#2979ff'
-					} else {
-						item.color = ''
+			// 获取自定义字段
+			getFields() {
+				this.$u.get('fields/get_fields', { table: 'crm_customer_contacts', source: 'search' }).then(res => {
+					if (res.code == 1) {
+						this.fields = res.data.fields || [];
 					}
-				})
+					// 字段加载完成后再回显已保存的筛选条件
+					this.$nextTick(() => {
+						this.restoreFilter();
+					});
+				});
 			},
-			// 选择性别
-			sexClick(index) {
-				this.formName.sexName = this.sexList[index].text
-				this.form.sex = this.sexList[index].id
-				this.sexList.forEach((item,i)=>{
-					if(index == i) {
-						item.color = '#2979ff'
-					} else {
-						item.color = ''
+			// 回显已保存的筛选条件
+			restoreFilter() {
+				const filterData = uni.getStorageSync('contacts_filter');
+				if (filterData) {
+					// 回显固定字段（scope/scopeName 存储在顶层）
+					if (filterData.scope) {
+						this.form.scope = filterData.scope;
 					}
-				})
-			},
-			// 决策
-			decisionClick(index){
-				this.formName.decisionName = this.decisionList[index].text
-				this.form.decision = this.decisionList[index].id
-				this.decisionList.forEach((item,i)=>{
-					if(index == i) {
-						item.color = '#2979ff'
-					} else {
-						item.color = ''
+					if (filterData.scopeName && filterData.scopeName !== '选择') {
+						this.formName.scopeName = filterData.scopeName;
 					}
-				})
-			},
-			// 获取配置字段
-			getBaseConfig() {
-			
-			},
-			// json 转化
-			onJson(data) {
-				let arr = []
-				for (const key in data) {
-					if (Object.hasOwnProperty.call(data, key)) {
-						let obj = {}
-						obj.id = key
-						obj.text = data[key]
-						arr.push(obj)
+					// 高亮场景列表
+					this.sceneList.forEach((item, i) => {
+						item.color = (item.id == this.form.scope) ? '#2979ff' : '';
+					});
+					// 回显自定义字段 - 直接调用子组件 restoreData 避免 prop/watch 时序问题
+					if (filterData.filter && Object.keys(filterData.filter).length > 0) {
+						let restoredForm = {};
+						let restoredFormName = {};
+						for (let key in filterData.filter) {
+							restoredForm[key] = filterData.filter[key];
+							const formNameKey = 'search_' + key;
+							if (filterData.formName && filterData.formName[formNameKey]) {
+								restoredFormName[key] = filterData.formName[formNameKey];
+							}
+						}
+						// 同步到父组件状态
+						this.searchForm = restoredForm;
+						this.searchFormName = restoredFormName;
+						// 直接调用子组件方法确保 UI 同步
+						if (this.$refs.fieldSearch) {
+							this.$refs.fieldSearch.restoreData(restoredForm, restoredFormName);
+						}
 					}
 				}
-				return arr
 			},
-			// 获取
-			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
-					pageNumber: (pages || 1 ),
-					pageSize: this.pageSize,
-					name: this.adminkeyword,
-					keyField: 'id',
-					showField: 'realname',
-					"q_word": this.adminkeyword,
-					"searchField": "realname",
-					model:'admin'
-				}).then(res => {
-					if(res.code == 1 ) {
-						// 最后一页
-						if(res.data.list.length == 0) {
-							this.lastAdmin = true
-						} 
-						//不够一页
-						if (res.data.list.length < this.pageSize) {
-							this.adminStatus = 'nomore'
-						}
-						// 第二页开始
-						if(isNextPage) {
-							this.companyList = this.companyList.concat(res.data.list)
-							return 
-						}
-						this.companyList = res.data.list
-					}
-				})
+			// 自定义字段搜索值变化
+			onFieldSearchChange(form, formName) {
+				this.searchForm = form;
+				this.searchFormName = formName;
 			},
-			// 滚动到底部加载更多
-			adminBottom() {
-				if(this.lastAdmin || this.adminStatus == 'loading') return ;
-				this.adminStatus = 'loading'
-				setTimeout(() => {
-					if(this.lastAdmin) return ;
-					this.onSelectpage(true,++this.adminPage)
-					if(this.companyList.length >= 10) this.adminStatus = 'loadmore';
-					else this.adminStatus = 'loading';
-				}, 1200)
-			},
-			// 选择负责人
-			oncompany(val,index) {
-				this.companyList.forEach((item,index) => {
-					if(val.id == item.id) {
-						item.checked = true
-					} else {
-						item.checked = false
-					}
-				})
-				this.formName.companyName = val.realname
-				this.companyShow = false
-				this.form.owner_user_id = val.id
-			},
-			// 选择搜索
-			adminSearch() {
-				this.lastAdmin = false
-				this.onSelectpage()
+			
+			// 选择场景
+			sceneClick(index) {
+				this.formName.scopeName = this.sceneList[index].text;
+				this.form.scope = this.sceneList[index].id;
+				this.sceneList.forEach((item, i) => {
+					item.color = (index == i) ? '#2979ff' : '';
+				});
 			},
 			// 重置
 			reset() {
-				for (const key in this.form) {
-					if (this.form.hasOwnProperty.call(this.form, key)) {
-						if(!this.$u.test.isEmpty(this.form[key])){
-							switch (key) {
-								case 'scope':
-									this.sceneList.forEach((item,index)=>{
-										if(this.form[key] == item.id) {
-											item.color = ""
-										}
-									})
-									break;
-								case 'sex':
-									this.sexList.forEach((item,index)=>{
-										if(this.form[key] == item.id) {
-											item.color = ""
-										}
-									})
-									break;
-								case 'decision':
-									this.decisionList.forEach((item,index)=>{
-										if(this.form[key] == item.id) {
-											item.color = ""
-										}
-									})
-									break;
-	
-								default:
-									break;
+				this.form = {
+					scope: '1',
+				};
+				this.formName = {
+					scopeName: '选择',
+				};
+				// 高亮默认选中项「我的」
+				this.sceneList.forEach((item) => {
+					item.color = (item.id == '1') ? '#2979ff' : '';
+				});
+				// 重置自定义字段
+				this.searchForm = {};
+				this.searchFormName = {};
+				if (this.$refs.fieldSearch) {
+					this.$refs.fieldSearch.reset();
+				}
+				// 清除本地存储的筛选条件
+				uni.removeStorageSync('contacts_filter');
+			},
+			// 确定
+			onConfirm() {
+				// 从子组件直接读取最新数据，避免 input @change 失焦才触发的延迟问题
+				let searchData = { form: {}, formName: {} };
+				if (this.$refs.fieldSearch) {
+					searchData = this.$refs.fieldSearch.getSearchData();
+				}
+				const latestForm = searchData.form;
+				const latestFormName = searchData.formName;
+
+				let filterData = {
+          scope: this.form.scope,
+          scopeName: this.formName.scopeName,
+					filter: {},
+					op: {},
+					formName: {}
+				};
+				
+				// 处理固定字段 - 所属客户
+
+				if (this.formName.scopeName && this.formName.scopeName !== '选择') {
+					filterData.scopeName = this.formName.scopeName;
+				}
+
+				// 处理自定义字段
+				if (latestForm && Object.keys(latestForm).length > 0) {
+					for (let key in latestForm) {
+						if (latestForm[key] !== '' && latestForm[key] !== undefined && latestForm[key] !== null) {
+							filterData.filter[key] = latestForm[key];
+							// 找到对应字段获取操作符
+							let field = this.fields.find(f => f.field === key);
+							if (field) {
+								filterData.op[key] = getFieldOperator(field.formtype);
+							}
+							// 保存显示名
+							if (latestFormName[key]) {
+								filterData.formName['search_' + key] = latestFormName[key];
 							}
 						}
 					}
 				}
-				this.form = {
-					scope: '',
-					sex: '',
-					decision: '',
-					
-				}
-				this.formName = {
-					companyName: '选择',
-					scopeName: '选择',
-					sexName: '选择',
-					decisionName: '选择',
-				}
 
-			},
-			// 确定
-			onConfirm() {
-				let filterData = {
-					filter: {},
-					op: {},
-					formName: {}
-				}
-				
-				for (const key in this.form) {
-					if (this.form.hasOwnProperty.call(this.form, key)) {
-						if(!this.$u.test.isEmpty(this.form[key])){
-							filterData.op[key] = '='
-							filterData.filter[key] = this.form[key]
-						}
-					}
-				}
-				for (const key in this.formName) {
-					if (this.form.hasOwnProperty.call(this.formName, key)) {
-						if(this.formName[key] != '选择'){
-							filterData.formName[key] = this.formName[key]
-						}
-					}
-				}
-				console.log(filterData) 
+				console.log(filterData);
+				// 同步到父组件状态
+				this.searchForm = latestForm;
+				this.searchFormName = latestFormName;
 				// 储存
-				uni.setStorageSync('contacts_filter',filterData);
+				uni.setStorageSync('contacts_filter', filterData);
 				uni.navigateBack();
 			}
 		},

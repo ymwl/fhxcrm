@@ -40,7 +40,7 @@ export default {
 			let data = {
 				code: this.code,
 			}			
-			let res = await this.$u.api.onMplogin(data)
+			let res = await this.$u.get('index/mplogin', data)
 			if(res.code == 1) {
 				this.$u.vuex('vuex_token', res.data.token)
 				this.success()

@@ -255,9 +255,9 @@
 					op.pr_user = '='
 				}
         filter.scope=3
-				this.$u.api.getCustomerList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.customer/index', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify(filter),
@@ -317,7 +317,7 @@
 			},
 			// 获取负责人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
+				this.$u.get('ajax/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -427,7 +427,7 @@
 						})
 						return
 					}
-					this.$u.api.onDivert({ids: this.idArr,username: this.username}).then(res => {
+					this.$u.post('crm.customer/alter_pr_user', {ids: this.idArr,username: this.username}).then(res => {
 						if(res.code == 1 ) {
 							// 提示
 							uni.showToast({

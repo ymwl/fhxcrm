@@ -178,8 +178,8 @@
 				let apiUrl = this.types == 'all' ? 'getAllInvoice' : 'getInvoiceList'
 				// 查询全部发票
 				this.$u.api[apiUrl]({
-					sort: 'id',
-					order: 'desc',
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify(filterObj),

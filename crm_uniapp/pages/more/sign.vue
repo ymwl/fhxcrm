@@ -154,7 +154,7 @@
             _this.covers[0].longitude = res.longitude
             console.log('当前位置的经度：' + res.longitude);
             console.log('当前位置的纬度：' + res.latitude);
-            _this.$u.api.getGeocoder({
+            _this.$u.get('crm.common/geocoder', {
               lat: _this.form.lat, //'39.984154'
               lng: _this.form.lng,//'116.307490'
             }).then(res => {
@@ -216,7 +216,7 @@
 					obj.q_word= this.customer_id;
 					obj.searchField= 'id';
 				}
-				this.$u.api.getCustomerSelectpage(obj).then(res => {
+				this.$u.post('crm.customer.index/selectpage', obj).then(res => {
 					if(res.code == 1 ) {
 						// 最后一页
 						if(res.data.list.length == 0) {
@@ -326,7 +326,7 @@
           })
           return
         }
-        this.$u.api.onSignin(this.form).then(res => {
+        this.$u.post('crm.customer.record/signin', this.form).then(res => {
 					if(res.code == 1 ) {
             uni.showToast({
               title: res.msg,

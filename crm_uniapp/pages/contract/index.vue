@@ -283,6 +283,7 @@
 		mixins: [formRule],
 		data() {
 			return {
+				searchTimer: null,
 				showForm: false,
 				labelPosition: 'left',
 				border: true,
@@ -417,7 +418,7 @@
 			},
 			// 获取配置字段
 			getBaseConfig() {
-				this.$u.api.getBaseConfig().then((res) => {
+				this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.form.number = res.data.cprefix ? this.prefiex(res.data.cprefix) :  this.$u.timeFormat('','yyyymmddhhMMss')
 					}
@@ -425,12 +426,12 @@
 			},
 			// 获取合同审批配置
 			getContractAdd(){
-				this.$u.api.getContractAdd().then(res => {
+				this.$u.get('crm.contract.index/contractadd').then(res => {
 					if(res.code == 1) {
 						this.flowConfig = res.data
 						if(res.data.flow_admin_id && res.data.config == 1){
 							// 获取审批人数据
-							this.$u.api.getAllAdmin({
+							this.$u.get('crm.common/selectpage/model/admin/type/all', {
 								keyField: 'id',
 								keyValue: res.data.flow_admin_id,
 								showField: 'realname',
@@ -446,7 +447,7 @@
 			},
 			// 获取合同详情
 			getContractEdit() {
-				this.$u.api.getContractEdit({
+				this.$u.get('crm.contract.index/edit', {
 					id: this.contract_id
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -458,9 +459,9 @@
 						// 获取自定义字段
 						this.getFields()
 						// 获取商机
-						this.$u.api.onBusinessList({
-							sort: 'id',
-							order: 'desc',
+						this.$u.get('crm.business.index/index', {
+							sort_by: 'id',
+							sort_order: 'desc',
 							filter: JSON.stringify({id: this.contractData.business_id}),
 							op: JSON.stringify({id: '='})
 						}).then(res => {
@@ -471,7 +472,7 @@
 							}
 						})
 						// 获取审批人数据
-						this.$u.api.getAllAdmin({
+						this.$u.get('crm.common/selectpage/model/admin/type/all', {
 							keyField: 'id',
 							keyValue: this.contractData.flow_admin_id,
 							showField: 'realname',
@@ -483,7 +484,7 @@
 							}
 						})
 						// 获取公司签约人数据
-						this.$u.api.getAllAdmin({
+						this.$u.get('crm.common/selectpage/model/admin/type/all', {
 							keyField: 'id',
 							showField: 'realname',
 							"searchField": "realname",
@@ -502,9 +503,9 @@
 						}
 						// 获取客户签约人
 						if(this.contractData.contacts_id) {
-							this.$u.api.getContactsList({
-								sort: 'id',
-								order: 'desc',
+							this.$u.get('crm.customer_contacts/index', {
+								sort_by: 'id',
+								sort_order: 'desc',
 								filter: JSON.stringify({id: this.contractData.contacts_id }),
 								op: JSON.stringify({id: '='})
 							}).then(res => {
@@ -520,7 +521,7 @@
 			defaultCustomer(id) {
 				console.log(id)
 				// 获取已选的客户
-				this.$u.api.getCustomerSelectpage({
+				this.$u.post('crm.customer.index/selectpage', {
 					keyField: 'id',
 					q_word: id,
 					searchField: 'id',
@@ -539,7 +540,7 @@
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: 'contract',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields', {table: 'contract',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.fields = res.data.fields;
 						//渲染自定义字段,默认字段
@@ -755,20 +756,23 @@
 			},
 			// 搜索
 			onSearch(index) {
-				switch (index) {
-					case 0:
-						this.pages = 0
-						this.lastPage = false
-						this.getData()
-						break;
-					case 1:
-						this.businessPage = 0
-						this.lastBusiness = false
-						this.getBusiness()
-						break;
-					default:
-						break;
-				}
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					switch (index) {
+						case 0:
+							this.pages = 0
+							this.lastPage = false
+							this.getData()
+							break;
+						case 1:
+							this.businessPage = 0
+							this.lastBusiness = false
+							this.getBusiness()
+							break;
+						default:
+							break;
+					}
+				}, 500)
 
 			},
 			// 选择搜索
@@ -779,9 +783,12 @@
 			},
 			// 公司签约人搜索
 			signSearch() {
-				this.signPage = 1
-				this.lastSign = false
-				this.getAllAdmin()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.signPage = 1
+					this.lastSign = false
+					this.getAllAdmin()
+				}, 500)
 			},
 			// 选择产品
 			onSelectProduct() {
@@ -837,7 +844,7 @@
 					obj.searchField= 'id';
 				}
 			
-				this.$u.api.getCustomerSelectpage(obj).then(res => {
+				this.$u.post('crm.customer.index/selectpage', obj).then(res => {
 					if(res.code == 1 ) {
 						// 最后一页
 						if(res.data.list.length == 0) {
@@ -904,13 +911,13 @@
 
 			// 获取客户联系人
 			getContactsList(isNextPage,pages) {
-				this.$u.api.getContactsList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.customer_contacts/index', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
-					filter: JSON.stringify({scope: 4,customer_id: this.form.customer_id }),
-					op: JSON.stringify({scope: '=',customer_id: '='})
+					filter: JSON.stringify({customer_id: this.form.customer_id }),
+					op: JSON.stringify({customer_id: '='})
 				}).then(res => {
 					if(res.code == 1 ) {
 						// 不够一页
@@ -949,9 +956,9 @@
 			},
 			// 获取商机列表
 			getBusiness(isNextPage,pages) {
-				this.$u.api.onBusinessList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.business.index/index', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({name: this.businesskeyword,customer_id: this.form.customer_id }),
@@ -1004,7 +1011,7 @@
 
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -1052,7 +1059,7 @@
 			},
 			// 获取签约人
 			getAllAdmin(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.companykeyword,
@@ -1160,7 +1167,7 @@
 			},
 			// 获取商机数据详情
 			getBusinessEdit(id) {
-				this.$u.api.getBusinessEdit({id: id}).then(res => {
+				this.$u.get('crm.business.index/edit', {id: id}).then(res => {
 					if(res.code == 1 ) {
 						this.selectProduct = res.data.product
 						// 计算价格
@@ -1233,7 +1240,7 @@
 				this.$refs.uForm.validate(valid => {
 					if (valid) {
 						if(this.type == 'add') {
-							this.$u.api.onContractAdd(param).then((res) => {
+							this.$u.post('crm.contract.index/contractadd', param).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({
@@ -1248,7 +1255,7 @@
 							})
 						} else {
 							param.id = this.contractData.id
-							this.$u.api.onContractEdit(param).then((res) => {
+							this.$u.post('crm.contract.index/edit', param).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({

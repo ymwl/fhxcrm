@@ -26,6 +26,9 @@ return [
     'controller_suffix'     => false,
     // 默认的路由变量规则
     'default_route_pattern' => '[\w\.]+',
+    // 操作方法参数绑定来源: route仅路由参数, param所有请求参数(GET+POST+路由), 默认仅GET+路由
+    // 设置为param以支持POST请求中的参数绑定到控制器方法参数(如: edit($id)中的$id来自POST)
+    'action_bind_param'     => 'param',
     // 是否开启请求缓存 true自动缓存 支持设置请求缓存规则
     'request_cache_key'     => false,
     // 请求缓存有效期

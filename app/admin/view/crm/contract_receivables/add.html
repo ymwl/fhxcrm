@@ -22,6 +22,20 @@
 
         <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
             <div class="layui-form-item">
+                <label class="layui-form-label">回款计划</label>
+                <div class="layui-input-block">
+                    <select name="receivables_plan_id" lay-search="" lay-filter="receivables_plan_id">
+                        <option value="0">不关联回款计划</option>
+                        {foreach $receivablesPlans as $plan}
+                        <option value="{$plan.id}" data-money="{$plan.plan_money}">{$plan.plan_no} - 计划金额:{$plan.plan_money}元</option>
+                        {/foreach}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+            <div class="layui-form-item">
                 <label class="layui-form-label required">回款编号</label>
                 <div class="layui-input-block layuimini-upload">
                     <input type="text" name="numbering" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}回款编号" value="{$numbering}">

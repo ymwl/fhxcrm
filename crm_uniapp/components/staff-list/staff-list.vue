@@ -91,7 +91,7 @@ export default {
     },
     // 获取负责人
     onSelectpage(isNextPage,pages) {
-      this.$u.api.onCommonSelectpage({
+      this.$u.get('ajax/selectpage', {
         pageNumber: (pages || 1 ),
         pageSize: this.pageSize,
         name: this.adminkeyword,

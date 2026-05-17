@@ -1005,16 +1005,8 @@ class TablHandle
                 if(!empty($value['describe'])) $str .= '<tip>'.fy($value['describe']).'</tip>';
                 $str .= '</div>';
             }elseif ($value['formtype']=='aselect'){
-                $name = $value['foreign_key']??'name';
-                $name = explode(',',$name);
                 $str .= '<div class="layui-input-block">';
-                $str .= '<div class="layui-form-select">';
-                $str .= '<div class="layui-select-title">';
-                $str .= '<select '.$required.' name="'.$value['field'].'" '.$required.' lay-filter="'.$value['field'].'" data-select="'.($value['href']??'ajax/ajaxselect').'" data-fields="'.($value['relationship_primary_key']??'id').','.($value['foreign_key']??'name').'" data-value="{$row[\''.$value['field'].'\']|default=\'\'}">
-        </select>';
-                $str .= '</div>';
-                $str .= '<dl id="'.$value['field'].'" class="layui-anim layui-anim-upbit"><dd lay-value="" class="layui-select-tips" style="text-align: center"><i class="layui-icon layui-icon-loading layui-icon layui-anim layui-anim-rotate layui-anim-loop">{:fy("Please select")}</i></dd></dl>';
-                $str .= '</div>';
+               $str .= '<input '.$required.' name="'.$value['field'].'" data-toggle="selectPage" class="layui-input"  lay-filter="'.$value['field'].'" data-source="'.($value['href']??'ajax/ajaxselect').'" data-field="'.($value['foreign_key']??'name').'"   data-primary-key="'.($value['relationship_primary_key']??'id').'" placeholder="请选择'.$xsname.'"  >';
                 if(!empty($value['describe'])) $str .= '<tip>'.fy($value['describe']).'</tip>';
                 $str .= '</div>';
             }elseif ($value['formtype']=='treecheckbox'){
@@ -1352,8 +1344,8 @@ class TablHandle
                 $str .= '</div>';
             }elseif ($value['formtype']=='aselect'){
                 $str .= '<div class="layui-input-block">';
-                $str .= '<select '.$required.' name="'.$value['field'].'" '.$required.' lay-filter="'.$value['field'].'" data-select="'.($value['href']??'ajax/ajaxselect').'" data-fields="'.($value['relationship_primary_key']??'id').','.($value['foreign_key']??'name').'" data-value="{$row[\''.$value['field'].'\']|default=\'\'}">
-        </select>';
+               /* $str.='<input type="text" name="contract[business_id]" data-toggle="selectPage" class="layui-input" data-source="/admin.php/crm.business/selectpage.html"  data-field="'.($value['foreign_key']??'name').'"   data-primary-key="'.($value['relationship_primary_key']??'id').'"  placeholder="请选择"   >';*/
+                $str .= '<input '.$required.' name="'.$value['field'].'" data-toggle="selectPage" class="layui-input"  lay-filter="'.$value['field'].'" data-source="'.($value['href']??'ajax/ajaxselect').'" data-field="'.($value['foreign_key']??'name').'"   data-primary-key="'.($value['relationship_primary_key']??'id').'"  value="{$row[\''.$value['field'].'\']|default=\'\'}" placeholder="请选择'.$xsname.'"  >';
                 if(!empty($value['describe'])) $str .= '<tip>'.fy($value['describe']).'</tip>';
                 $str .= '</div>';
             }elseif ($value['formtype']=='radio'){
@@ -1414,8 +1406,9 @@ class TablHandle
                 $str .= '</div>';
             }elseif ($value['formtype']=='popup_selection'){
                 $join_table=PublicUse::UnderlineToHump($value['join_table']);
+                if(isset($value['edit_readonly']) && $value['edit_readonly'])$required=' disabled="disabled" ';
                 $str .= '<div class="layui-input-block">';
-                $str .= '<input type="hidden" name="'.$value['field'].'" lay-filter="'.$value['field'].'" value="{$'.$join_table.'.'.$value['relationship_primary_key'].'|default="'.$value['default'].'"}"><a href="javascript:void(0)" data-id="'.$value['field'].'" data-field="'.$value['foreign_key'].','.$value['relationship_primary_key'].'" data-title="'.$xsname.'" data-name="'.$value['foreign_key'].'" open-select="'.$value['href'].'" class="layui-input" >{$'.$join_table.'.'.$value['foreign_key'].'|default="【请点击选择】"}</a>';
+                $str .= '<input type="hidden" name="'.$value['field'].'" lay-filter="'.$value['field'].'" value="{$'.$join_table.'.'.$value['relationship_primary_key'].'|default="'.$value['default'].'"}"><a href="javascript:void(0)" '.$required.' data-id="'.$value['field'].'" data-field="'.$value['foreign_key'].','.$value['relationship_primary_key'].'" data-title="'.$xsname.'" data-name="'.$value['foreign_key'].'" open-select="'.$value['href'].'" class="layui-input" >{$'.$join_table.'.'.$value['foreign_key'].'|default="【请点击选择】"}</a>';
                 $str .= '</div>';
             }elseif ($value['formtype']=='editor'){
                 $str .= '<div class="layui-input-block">';
@@ -1557,7 +1550,7 @@ class TablHandle
                     }
                 }
             }
-        }elseif ($value['formtype']=='aselect' || $value['formtype']=='lselect'){
+        }elseif ($value['formtype']=='lselect'){
             if($value['search']==1){
 //
                 $field['search']='select';
@@ -1604,7 +1597,10 @@ class TablHandle
         }elseif($value['formtype']=='file' || $value['formtype']=='files'){
             $field['search']=false;
             $field['templet']="ea.table.file";
-        }elseif($value['formtype']=='popup_selection'){
+        }elseif($value['formtype']=='aselect' || $value['formtype']=='popup_selection'){
+            if($value['search']==1){
+                $field['search']=true;
+            }
             $join_table=PublicUse::UnderlineToHump($value['join_table']);
             $field['field']=$join_table.'.'.$value['foreign_key'];
 

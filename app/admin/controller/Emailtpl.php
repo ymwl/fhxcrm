@@ -3,7 +3,6 @@
 namespace app\admin\controller;
 
 use app\common\controller\AdminController;
-
 use think\App;
 
 
@@ -84,7 +83,7 @@ class Emailtpl extends AdminController
                 $contract=\think\facade\Db::name('crm_contract')->find($contract_id);
                 if ($contract) {
                     $contract_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
-                    $contract_fields=array_merge((new \app\admin\model\CrmContract())->defaultField(),$contract_fields);
+                    $contract_fields=array_merge((new \app\common\model\CrmContract())->defaultField(),$contract_fields);
                     foreach ($contract_fields as $key => $item) {
                         if(isset($contract[$item['field']])){
                             $row['contract_'.$item['field']] = real_field_val($item,$contract[$item['field']]);

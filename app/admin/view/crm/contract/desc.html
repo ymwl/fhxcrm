@@ -138,6 +138,7 @@
             <ul class="layui-tab-title">
                 <li class="layui-this">产品明细</li>
                 <li data-value="contract_receivables" data-open="{:myurl('crm.contract_receivables/index',['contract_id'=>$row['id']])}" data-title="关于客户【{$crmCustomer['name']}】合同【{$row['name']}】收款">合同收款</li>
+                <li>回款计划</li>
                 <li>审批信息</li>
             </ul>
             <div class="layui-tab-content">
@@ -189,6 +190,50 @@
                         };
                     </script>-->
 
+                </div>
+                <div class="layui-tab-item">
+                    <table class="layui-table">
+                        <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>计划名称</th>
+                            <th>金额</th>
+                            <th>状态</th>
+                            <th>备注</th>
+                            <th>计划时间</th>
+                            <th>创建时间</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {if isset($receivablesPlans) && count($receivablesPlans) > 0}
+                        {foreach $receivablesPlans as $plan}
+                        <tr>
+                            <td>{$plan.id}</td>
+                            <td>{$plan.plan_no|default=''}</td>
+                            <td>{$plan.plan_money|default='0.00'}</td>
+                            <td>
+                                {if $plan.status == 0}
+                                <span>计划中</span>
+                                {elseif $plan.status == 1}
+                                <span>进行中</span>
+                                {elseif $plan.status == 2}
+                                <span class="green">已回款</span>
+                                {elseif $plan.status == 3}
+                                <span class="red">到期未回款</span>
+                                {/if}
+                            </td>
+                            <td>{$plan.remark|default=''}</td>
+                            <td>{:date('Y-m-d', $plan.plan_date)}</td>
+                            <td>{:date('Y-m-d H:i', $plan.create_time)}</td>
+                        </tr>
+                        {/foreach}
+                        {else}
+                        <tr>
+                            <td colspan="7" style="text-align: center;">暂无回款计划数据</td>
+                        </tr>
+                        {/if}
+                        </tbody>
+                    </table>
                 </div>
                 <div class="layui-tab-item">
                     <table class="layui-table layui-table-form">

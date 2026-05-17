@@ -7,7 +7,7 @@
 					<u-avatar :src="vuex_admin.avatar" size="60"></u-avatar>
 				</view>
 				<view class="u-flex-1 u-line-1">
-					<view class="u-font-16 u-line-1" style="color:#fff;width:400rpx">{{vuex_admin.username}}({{vuex_admin.realname}})</view>
+					<view class="u-font-16 u-line-1" style="color:#fff;width:400rpx">{{vuex_admin.username}}({{vuex_admin.role_name}})</view>
 				</view>
 			</view>
 		</u-navbar>
@@ -21,7 +21,7 @@
 				<view class="u-flex-1">
 					<view class="u-font-16 u-flex" @click="onMore" >
 						<view class="u-line-1" style="color:#fff;max-width:180rpx">{{vuex_admin.username}}</view>
-            <view class="u-line-1" style="color:#fff;max-width:180rpx">({{vuex_admin.realname}})</view>
+            <view class="u-line-1" style="color:#fff;max-width:180rpx">({{vuex_admin.role_name}})</view>
 					</view>
 					<view class="u-font-14" @click="onGroups" v-if="vuex_admin.group_name">{{vuex_admin.group_name}}<u-icon name="arrow-right" color="#fff" size="28"></u-icon></view>
 				</view>
@@ -295,7 +295,7 @@ let systemInfo = uni.getSystemInfoSync();
 					}
 					params = Object.assign(params,this.vuex_Tfilter.filter)
 				}
-				this.$u.api.getHome(params).then(res => {
+				this.$u.get('crm.dashboard/index', params).then(res => {
 					if(res.code == 1 ) {
 						this.homeData = res.data
 						this.homeData.achievement.complete_money=this.homeData.achievement.config==1?this.homeData.achievement.contract_money:this.homeData.achievement.receivables_money
@@ -350,7 +350,7 @@ let systemInfo = uni.getSystemInfoSync();
 						}
 					}
 				})
-				this.$u.api.onGetNotice(params).then(res => {
+				this.$u.get('crm.dashboard/getNotice', params).then(res => {
 					if(res.code == 1) {
 						let count = 0
 						for (const key in res.data) {
@@ -367,7 +367,7 @@ let systemInfo = uni.getSystemInfoSync();
 			},
 			// 获取用户信息
 			getUser() {
-				this.$u.api.onGetInfo().then(res => {
+				this.$u.get('general.profile/getInfo').then(res => {
 					if(res.code == 1 ) {
 						// this.vuex_admin = res.data;
 						uni.setStorageSync('admin_info', res.data);

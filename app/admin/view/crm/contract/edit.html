@@ -38,7 +38,7 @@
                     <label class="layui-form-label">客户签约人</label>
                     <div class="layui-input-block">
 
-                        <input type="text" name="contract[customer_signer]"  data-toggle="selectPage" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}客户签约人真实姓名" data-source="{:url('crm.customerContacts/selectpage')}"  data-field="contact"  data-format-item="{contact}({phone})"  data-primary-key="contact"  placeholder="{:fy('Please select')}合同本公司签约人" data-params='{"custom[customer_id]":"{$row.customer_id}"}' value="{$row['customer_signer']}">
+                        <input type="text" name="contract[customer_signer]"  data-toggle="selectPage" class="layui-input" lay-verify="required" placeholder="{:fy('Please enter')}客户签约人真实姓名" data-source="{:url('crm.customerContacts/selectpage')}"  data-field="contact"  data-format-item="{contact}({phone})"  data-primary-key="contact"  placeholder="{:fy('Please select')}合同本公司签约人" data-no-result-clean="0" data-params='{"custom[customer_id]":"{$row.customer_id}"}' value="{$row['customer_signer']}">
                     </div>
                 </div>
             </div>

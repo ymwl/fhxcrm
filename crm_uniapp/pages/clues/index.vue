@@ -128,6 +128,7 @@
 		mixins: [formRule],
 		data() {
 			return {
+				searchTimer: null,
 				adminShow: false,
 				showForm: false,
 				labelPosition: 'left',
@@ -227,12 +228,15 @@
 			},
 			// 归属人搜索
 			adminSearch() {
-				this.adminPage = 0
-				this.onSelectpage()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.adminPage = 0
+					this.onSelectpage()
+				}, 500)
 			},
 			// 获取归属人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all',{
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -281,7 +285,7 @@
 			},
 			// 获取详情
 			getClues() {
-				this.$u.api.getCluesEdit({ids: this.clues_id}).then(res => {
+				this.$u.get('crm.clues.index/edit',{ids: this.clues_id}).then(res => {
 					if(res.code == 1 ) {
 						this.cluesData = res.data
 						console.log(this.cluesData)
@@ -296,7 +300,7 @@
 						// 地区获取赋值
 						this.addProvince()
 						// 获取归属人数据
-						this.$u.api.getAllAdmin({
+						this.$u.get('crm.common/selectpage/model/admin/type/all',{
 							keyField: 'id',
 							keyValue: res.data.owner_user_id,
 							showField: 'realname',
@@ -315,19 +319,19 @@
 			addProvince() {
 				let name = ''
 				// 获取省
-				this.$u.api.getArea({province: '',city:''}).then((res) => {
+				this.$u.get('crm.common/area',{province: '',city:''}).then((res) => {
 					if(res.code == 1){
 						res.data.forEach((item,index)=>{
 							if(item.value == this.cluesData.province){
 								name = item.name
 								// 获取市
-								this.$u.api.getArea({province: item.value,city:''}).then((resc) => {
+								this.$u.get('crm.common/area',{province: item.value,city:''}).then((resc) => {
 									if(res.code == 1){
 										resc.data.forEach((i,idx)=>{
 											if(i.value == this.cluesData.city){
 												name = name + i.name
 												// 获取区
-												this.$u.api.getArea({province: item.value,city: i.value}).then((resd) => {
+												this.$u.get('crm.common/area',{province: item.value,city: i.value}).then((resd) => {
 													if(res.code == 1){
 														resd.data.forEach((c,idc)=>{
 															if(c.value == this.cluesData.area){
@@ -392,7 +396,7 @@
 			// 自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: this.type == 'transform' ? 'customer' : 'clues',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields',{table: this.type == 'transform' ? 'customer' : 'clues',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.detail = res.data.info;
 						this.fields = res.data.fields;
@@ -550,7 +554,7 @@
 			},
 			// 获取配置字段
 			getBaseConfig() {
-				this.$u.api.getBaseConfig().then((res) => {
+				this.$u.get('crm.common/baseConfig').then((res) => {
 					if(res.code == 1){
 						this.levelList = this.onJson(res.data.levelList)
 						this.industryList = this.onJson(res.data.industryList)
@@ -583,7 +587,7 @@
 				if(this.$u.test.array(arrList)&&arrList.length>0) {
 					this.regionList = arrList
 				} else {
-					this.$u.api.getAllarea().then((res) => {
+					this.$u.get('ajax/getAllArea').then((res) => {
 						if(res.code == 1){
 							this.regionList = (res.data);
 							uni.setStorageSync('storage_getAllarea',res.data);
@@ -617,7 +621,7 @@
 				}
 				switch (this.type) {
 					case 'add':
-						this.$u.api.onCluesAdd(params).then((res) => {
+						this.$u.post('crm.clues.index/add',params).then((res) => {
 							if(res.code == 1) {
 								// 提示
 								uni.showToast({
@@ -633,7 +637,7 @@
 						break;
 					case 'edit':
 						params.ids = this.clues_id
-						this.$u.api.onCluesEdit(params).then((res) => {
+						this.$u.post('crm.clues.index/edit',params).then((res) => {
 							if(res.code == 1) {
 								// 提示
 								uni.showToast({
@@ -649,7 +653,7 @@
 						break;
 					case 'transform':
 						params['row[ids]'] = this.clues_id
-						this.$u.api.postCluesTransform(params).then((res) => {
+						this.$u.post('crm.clues.index/transform',params).then((res) => {
 							if(res.code == 1) {
 								// 提示
 								uni.showToast({

@@ -102,31 +102,18 @@ class Record extends AdminController
 
     //写跟进
     public function dialogue(){
-        $id=Request::param('id',0,'intval');
+        /*$id=Request::param('id',0,'intval');
         $result = (new \app\admin\model\CrmCustomer())->where(['id'=>$id])->find();
         if (empty($result)){
             $this->error(fy("Non-existent client information"));
 
-        }
+        }*/
         /*
         // 是否有查看手机号的权限
         if ($this->admin['isphone'] == 0) {
             $result['phone'] = mb_substr($result['phone'], 0, 3).'****'. mb_substr($result['phone'], 7, 11);
         }*/
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `editinput` FROM `'.$prefix.'system_field` WHERE (`edit`=1 AND `table`="crm_customer" AND `editinput` is not null) OR `field`="pr_user" OR `field`="at_user" OR `field`="last_up_time" OR `field`="last_up_records" OR `field`="at_user" OR `field`="create_time" order BY `sort` ASC,id ASC');
-        $fields_str='';
-        foreach ($fields as $v){
-            $fields_str.=trim($v['editinput']);
-        }
-        $fields_str=str_replace(['>已成交<','>未成交<'],['>'.fy('已成交').'<','>'.fy('未成交').'<'],$fields_str);
-        $this->app->view->engine()->layout(false);
-        $fields_str=$this->display($fields_str,['row'=>$result]);
-        $this->assign('fields_str', $fields_str);
-        $this->assign('result',$result);
-        $this->app->view->engine()->layout($this->layout);
-        $this->assign('next_url', $this->get_next_url($id));
-        return $this->fetch();
+
     }
 
     protected function get_next_url($id){
@@ -218,7 +205,7 @@ class Record extends AdminController
            $get = $this->request->get('', null, null);
            $get['page']=$page;
            $get['id']=$next_id;
-           return myurl('dialogue').'?'.http_build_query($get);
+           return myurl('add').'?'.http_build_query($get);
        }
 
 
@@ -230,15 +217,17 @@ class Record extends AdminController
     }
 
     public function add(){
+        $data['customer_id'] = Request::param('customer_id');
+        if(empty($data['customer_id'])){
+            $this->error(fy("Wrong request parameters"));
+
+        }
+        $customer_row=Db::name('crm_customer')->where(['id'=>$data['customer_id']])->find();
+        if(empty($customer_row)){
+            $this->error(fy("Non-existent client information"));
+        }
         if($this->request->post()){
-            $data['customer_id'] = Request::param('customer_id');
-            if(empty($data['customer_id'])){
-                return json(['code'=>0,'msg'=>fy("Wrong request parameters")]);
-            }
-            $customer_row=Db::name('crm_customer')->field('`name`,`phone`')->where(['id'=>$data['customer_id']])->find();
-            if(empty($customer_row)){
-                return json(['code'=>0,'msg'=>fy("Non-existent client information")]);
-            }
+
             $data['admin_id'] = $this->admin['admin_id'];
             $data['khname'] = $customer_row['name'];
             $data['khphone'] = $customer_row['phone'];
@@ -264,6 +253,21 @@ class Record extends AdminController
             }else{
                 return json(['code'=>0,'msg'=>fy("Submit failed")]);
             }
+        }else{
+            $prefix=getDataBaseConfig('prefix');
+            $fields=Db::query('SELECT `editinput` FROM `'.$prefix.'system_field` WHERE (`edit`=1 AND `table`="crm_customer" AND `editinput` is not null) OR `field`="pr_user" OR `field`="at_user" OR `field`="last_up_time" OR `field`="last_up_records" OR `field`="at_user" OR `field`="create_time" order BY `sort` ASC,id ASC');
+            $fields_str='';
+            foreach ($fields as $v){
+                $fields_str.=trim($v['editinput']);
+            }
+            $fields_str=str_replace(['>已成交<','>未成交<'],['>'.fy('已成交').'<','>'.fy('未成交').'<'],$fields_str);
+            $this->app->view->engine()->layout(false);
+            $fields_str=$this->display($fields_str,['row'=>$customer_row]);
+            $this->assign('fields_str', $fields_str);
+            $this->assign('result',$customer_row);
+            $this->app->view->engine()->layout($this->layout);
+            $this->assign('next_url', $this->get_next_url($data['customer_id']));
+            return $this->fetch();
         }
     }
 

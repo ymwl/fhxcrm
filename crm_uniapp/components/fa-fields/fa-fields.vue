@@ -48,7 +48,7 @@
 				:label="item.title + ':' "
 				v-if="item.formtype == 'checkbox'"
 			>
-				<fa-check-radio :faList="item.content_list" v-model="forms[item.field]" :checkValue="item.value || item.default"></fa-check-radio>
+					<fa-check-radio :faList="item.selectList || item.content_list" v-model="forms[item.field]" :checkValue="item.value || item.default"></fa-check-radio>
 			</u-form-item>
 			<!-- 单选框 -->
 			<u-form-item
@@ -60,7 +60,7 @@
 				v-if="item.formtype == 'radio'"
 			>
 				<fa-check-radio
-					:faList="item.content_list"
+					:faList="item.selectList || item.content_list"
 					type="radio"
 					v-model="forms[item.field]"
 					:checkValue="item.value || item.default"
@@ -90,7 +90,7 @@
 					:border="border"
 					type="select"
 					:select-open="showPicker && mode == 'date'"
-					v-model="forms[item.field]"
+					:value="forms[item.field]"
 					:placeholder="'请选择' + item.title"
 					@click="selectPicker('date', item.field)"
 				></u-input>
@@ -126,7 +126,7 @@
 					:border="border"
 					type="select"
 					:select-open="showPicker && mode == 'datetime'"
-					v-model="forms[item.field]"
+					:value="forms[item.field]"
 					:placeholder="'请选择' + item.title"
 					@click="selectPicker('datetime', item.field)"
 				></u-input>
@@ -183,7 +183,7 @@
 				v-if="item.formtype == 'select'"
 			>
 				<fa-selects
-					:fa-list="item.content_list"
+					:fa-list="item.selectList || item.content_list"
 					:title="item.title"
 					:checkeType="item.formtype"
 					:showValue="item.value || item.default"
@@ -200,7 +200,7 @@
 				v-if="item.formtype == 'selects'"
 			>
 				<fa-selects
-					:fa-list="item.content_list"
+					:fa-list="item.selectList || item.content_list"
 					:title="item.title"
 					:checkeType="item.formtype"
 					:showValue="item.value || item.default"
@@ -239,6 +239,25 @@
 					:fa-id="item.id"
 					:title="item.title"
 					:checkeType="item.formtype"
+					:showField="item.foreign_key"
+					:keyField="item.relationship_primary_key"
+					:showValue="(forms[item.field] ? forms[item.field] : item.value) || item.default"
+					v-model="forms[item.field]"
+				></fa-selectpages>
+			</u-form-item>
+			<!-- 弹窗选择（popup_selection） -->
+			<u-form-item
+				:label-position="labelPosition"
+				label-width="160"
+				:prop="item.field"
+				:required="item.rule.indexOf('require') != -1"
+				:label="item.title + ':'"
+				v-if="item.formtype == 'popup_selection'"
+			>
+				<fa-selectpages
+					:href="item.href"
+					:title="item.title"
+					checkeType="lselect"
 					:showField="item.foreign_key"
 					:keyField="item.relationship_primary_key"
 					:showValue="(forms[item.field] ? forms[item.field] : item.value) || item.default"
@@ -318,7 +337,7 @@
 			</u-form-item>
 		</block>
 		<!-- 时间选择 -->
-		<u-picker v-model="showPicker" mode="time" :params="params" @confirm="pickerResult"></u-picker>
+		<u-picker v-model="showPicker" mode="time" :params="params" :default-time="defaultTime" @confirm="pickerResult"></u-picker>
 		<!-- 日期区间 -->
 		<u-calendar v-model="calendarShow" mode="range" @change="calendarResult" max-date="3000-01-01"></u-calendar>
 		<!-- 城市 -->
@@ -359,6 +378,7 @@ export default {
 			cityShow: false,
 			showPicker: false,
 			params: {},
+			defaultTime: '',
 			city_field: '',
 			time_field: '',
 			forms: {
@@ -373,12 +393,30 @@ export default {
         this.$emit("input",this.forms)
       },
       deep:true
-    }
+    },
+		// 监听父组件传递的form prop变化，同步到内部forms数据
+		// 解决编辑模式等异步加载数据场景下表单数据不显示的问题
+		form: {
+			handler(val) {
+				if (val && Object.keys(val).length > 0) {
+					// 使用Object.assign保持响应式，合并新数据到现有forms
+					Object.keys(val).forEach(key => {
+						this.$set(this.forms, key, val[key]);
+					});
+					// 数据同步后格式化日期字段值，确保时间戳转为格式化字符串
+					this.syncDateFieldValues();
+				}
+			},
+			deep: true,
+			immediate: false
+		}
 	},
 	created() {
 		// 子组件不能修改props传过来的值，需要替换成data数据
 	this.forms = this.form;
     /*	  console.log('fa-fields----form=',this.form);*/
+		// 格式化日期/日期时间字段的值，将时间戳转为格式化字符串，保证 forms 内部值与显示一致
+		this.syncDateFieldValues();
 		// 子组件通过v-modal改变父组件中的值
     this.$emit("input",this.forms)
 	},
@@ -395,6 +433,9 @@ export default {
 		selectPicker(mode, field) {
 			this.mode = mode;
 			this.time_field = field;
+			// 将当前表单值作为选择器的默认时间，保证弹窗回显正确的当前值
+			const currentVal = this.forms[field];
+			this.defaultTime = (currentVal !== null && currentVal !== undefined && currentVal !== '') ? String(currentVal) : '';
 			switch (mode) {
 				case 'date':
 					this.params = {
@@ -450,6 +491,55 @@ export default {
 		//城市选择
 		cityResult(e) {
 			this.$set(this.forms, this.city_field, e[0].label + '/' + e[1].label+ '/' + e[2].label)
+		},
+		// 将 date/datetime 字段在 forms 中的时间戳值格式化为字符串，保证内部值与显示一致
+		syncDateFieldValues() {
+			if (!this.fields || !Array.isArray(this.fields)) return;
+			this.fields.forEach(item => {
+				const field = item.field;
+				if (!field) return;
+				const value = this.forms[field];
+				if (value === undefined || value === null) return;
+
+				if (item.formtype === 'date') {
+					const formatted = this.formatDateValue(value);
+					if (formatted !== value) {
+						this.$set(this.forms, field, formatted);
+					}
+				} else if (item.formtype === 'datetime') {
+					const formatted = this.formatDatetimeValue(value);
+					if (formatted !== value) {
+						this.$set(this.forms, field, formatted);
+					}
+				}
+			});
+		},
+		// 格式化日期值：将时间戳转换为 YYYY-MM-DD
+		formatDateValue(value) {
+			if (value === null || value === undefined || value === '') return '';
+			if (value && !isNaN(value) && !isNaN(parseFloat(value)) && isFinite(value) && String(value).length <= 10) {
+				const date = new Date(parseInt(value) * 1000);
+				const Y = date.getFullYear();
+				const m = String(date.getMonth() + 1).padStart(2, '0');
+				const d = String(date.getDate()).padStart(2, '0');
+				return `${Y}-${m}-${d}`;
+			}
+			return value;
+		},
+		// 格式化日期时间值：将时间戳转换为 YYYY-MM-DD HH:mm:ss
+		formatDatetimeValue(value) {
+			if (value === null || value === undefined || value === '') return '';
+			if (value && !isNaN(value) && !isNaN(parseFloat(value)) && isFinite(value) && String(value).length <= 10) {
+				const date = new Date(parseInt(value) * 1000);
+				const Y = date.getFullYear();
+				const m = String(date.getMonth() + 1).padStart(2, '0');
+				const d = String(date.getDate()).padStart(2, '0');
+				const H = String(date.getHours()).padStart(2, '0');
+				const min = String(date.getMinutes()).padStart(2, '0');
+				const s = String(date.getSeconds()).padStart(2, '0');
+				return `${Y}-${m}-${d} ${H}:${min}:${s}`;
+			}
+			return value;
 		},
 	}
 };

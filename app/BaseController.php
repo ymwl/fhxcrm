@@ -255,7 +255,28 @@ abstract class BaseController
             if($v['rule']){
                 $msg=!empty(trim($v['xsname']))?'|'.fy($v['xsname']):'|'.fy($v['name']);
                 $ruleKey=$v['field'].$msg;
-                $rule[$ruleKey]=str_replace('unique','unique:'.$table,str_replace(',','|',$v['rule']));
+                // 将 unique 替换为带表名的唯一验证
+                $ruleStr = str_replace('unique', 'unique:'.$table, $v['rule']);
+                // 仅替换规则间的逗号为竖线，保留 between/in/notin/等参数内的逗号
+                // 例如: "require|number|between:1,30" → "require|number|between:1,30"
+                // 例如: "require,in:1,2,3" → "require|in:1,2,3"
+                $ruleStr = preg_replace('/(?<![a-z\d_:])\s*,\s*(?![a-z\d_:])/i', '|', trim($ruleStr));
+                // 如果上述正则未匹配到（旧格式纯逗号分隔），使用安全替换：跳过冒号后的内容
+                if (strpos($ruleStr, '|') === false && strpos($ruleStr, ',') !== false) {
+                    $parts = explode(',', $ruleStr);
+                    $safeParts = [];
+                    foreach ($parts as $idx => $part) {
+                        // 如果当前部分以包含 : 且上一个部分是 between/in/notin 等，则合并
+                        if (preg_match('/^(between|notbetween|in|notin):.+/i', $part) && count($safeParts) > 0) {
+                            $last = array_pop($safeParts);
+                            $safeParts[] = $last . ',' . $part;
+                        } else {
+                            $safeParts[] = $part;
+                        }
+                    }
+                    $ruleStr = implode('|', $safeParts);
+                }
+                $rule[$ruleKey] = $ruleStr;
             }
 
         }
@@ -273,11 +294,8 @@ abstract class BaseController
      */
     protected function validater(array $data, $validate, array $message = [], bool $batch = false)
     {
-        try {
-            $this->validate($data, $validate, $message, $batch);
-        } catch (\Exception $e) {
-            $this->error($e->getMessage());
-        }
+        $this->validate($data, $validate, $message, $batch);
+
         return true;
     }
 

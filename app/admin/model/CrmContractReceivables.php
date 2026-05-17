@@ -30,7 +30,12 @@ class CrmContractReceivables extends TimeModel
     }
     public function crmContract()
     {
-        return $this->hasOne('app\admin\model\CrmContract', 'id','contract_id');
+        return $this->hasOne('app\common\model\CrmContract', 'id','contract_id');
+    }
+
+    public function receivablesPlan()
+    {
+        return $this->hasOne('app\admin\model\CrmContractReceivablesPlan', 'id','receivables_plan_id');
     }
 
     protected function setReturnTimeAttr($value){

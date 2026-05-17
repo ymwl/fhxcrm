@@ -241,7 +241,7 @@
 			},
 			// 获取通知数量
 			getData() {
-				this.$u.api.onGetNotice({
+				this.$u.get('crm.dashboard/getNotice', {
 					type: this.type
 				}).then(res => {
 					let inforData = res.data

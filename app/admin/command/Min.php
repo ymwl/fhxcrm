@@ -74,6 +74,7 @@ class Min extends Command
 
         if(in_array('js', $resourceArr)){
             $js = [
+                'plugs/easy-admin/easy-admin',
                 'plugs/webupload/uploader/webuploader',
                 'plugs/lay-module/selectPage/selectpage',
                 'plugs/echarts/echarts-theme',
@@ -90,8 +91,18 @@ class Min extends Command
                 'config-admin'
             ];
             // 检查 uglifyjs 是否可用
-            if (!\tools\hs::command_exists('uglifyjs')) {
-                die("错误: 未找到 uglifyjs 命令。请先安装 uglify-js:\n\nnpm install -g uglify-js\n");
+            if (!\tools\Hs::command_exists('uglifyjs')) {
+                echo "========================================\n";
+                echo "⚠️  缺少依赖：uglifyjs\n";
+                echo "----------------------------------------\n";
+                echo "未找到 uglifyjs 命令，无法压缩 JS 文件。\n\n";
+                echo "【解决方法】请安装 uglify-js 包：\n\n";
+                echo "  方式1 - 全局安装（推荐）:\n";
+                echo "    npm install -g uglify-js\n\n";
+                echo "  方式2 - 本地安装（当前项目）:\n";
+                echo "    npm install uglify-js --save-dev\n";
+                echo "========================================\n";
+                return;
             }
 
 // 开始压缩过程
@@ -132,7 +143,12 @@ class Min extends Command
                     echo "   压缩大小: " . format_bytes($minSize) . " (节省 $saved%)\n";
                 } else {
                     echo "❌ 压缩失败: $sourceFile\n";
-                    echo "   请检查 uglifyjs 是否正常工作\n";
+                    echo "   可能原因：\n";
+                    echo "   1. uglifyjs 命令执行异常\n";
+                    echo "   2. JS 文件存在语法错误\n";
+                    echo "   3. 文件路径包含特殊字符\n\n";
+                    echo "   请尝试手动执行以下命令排查问题：\n";
+                    echo "   uglifyjs \"$sourceFile\" -o \"$minFile\" --compress --comments \"/^!/\"\n";
                 }
                 echo "----------------------------------------\n";
             }
@@ -143,11 +159,23 @@ class Min extends Command
                 'plugs/lay-module/layuimini/layuimini',
                 'plugs/lay-module/layuimini/themes/default',
                 'plugs/zTree/css/zTreeStyle',
+                'plugs/lay-module/selectPage/selectpage',
 
             ];
-            // 检查 csso 是否可用
-            if (!\tools\hs::command_exists('csso')) {
-                die("错误: 未找到 csso 命令。请先安装 csso:\n\nnpm install -g csso\n");
+            // 检查 csso 是否可用（支持全局和本地安装）
+            $cssoCmd = \tools\Hs::findCommand('csso');
+            if (!$cssoCmd) {
+                echo "========================================\n";
+                echo "⚠️  缺少依赖：csso\n";
+                echo "----------------------------------------\n";
+                echo "未找到 csso 命令，无法压缩 CSS 文件。\n\n";
+                echo "【解决方法】请安装 csso-cli 包（注意：不是 csso）:\n\n";
+                echo "  方式1 - 全局安装（推荐）:\n";
+                echo "    npm install -g csso-cli\n\n";
+                echo "  方式2 - 本地安装（当前项目）:\n";
+                echo "    npm install csso-cli --save-dev\n";
+                echo "========================================\n";
+                return;
             }
 
 // 开始压缩过程
@@ -168,7 +196,7 @@ class Min extends Command
 
                 // 执行压缩命令
                 $command = sprintf(
-                    'csso -i "%s" -o "%s"',
+                    $cssoCmd . ' -i "%s" -o "%s"',
                     $sourceFile,
                     $minFile
                 );
@@ -190,7 +218,12 @@ class Min extends Command
                     echo "   压缩大小: " . format_bytes($minSize) . " (节省 $saved%)\n";
                 } else {
                     echo "❌ 压缩失败: $sourceFile\n";
-                    echo "   请检查 csso 是否正常工作\n";
+                    echo "   可能原因：\n";
+                    echo "   1. csso 命令执行异常（若提示 'could not determine executable'，请运行: npm install csso-cli --save-dev）\n";
+                    echo "   2. CSS 文件存在语法错误\n";
+                    echo "   3. 文件路径包含特殊字符\n\n";
+                    echo "   请尝试手动执行以下命令排查问题：\n";
+                    echo "   $cssoCmd -i \"$sourceFile\" -o \"$minFile\"\n";
                 }
                 echo "----------------------------------------\n";
             }

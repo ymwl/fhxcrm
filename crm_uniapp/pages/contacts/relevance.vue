@@ -143,7 +143,7 @@
 					})
 					return
 				}
-				this.$u.api.onContactsCorrelation({contacts_ids: idArr.join(','),business_id: this.business_id}).then(res => {
+				this.$u.post('crm.business.contacts/correlation', {contacts_ids: idArr.join(','),business_id: this.business_id}).then(res => {
 					if(res.code == 1 ) {
 						// 提示
 						uni.showToast({
@@ -167,13 +167,13 @@
 			},
 			// 获取联系人列表
 			getCommon(isNextPage,pages) {
-				this.$u.api.getContactsList({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('crm.customer_contacts/index', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify({customer_id: this.customer_id}),
-					op: JSON.stringify({scope: '=',customer_id: '='})
+					op: JSON.stringify({customer_id: '='})
 				}).then(res => {
 					if(res.code == 1 ) {
 						res.data.rows.forEach((item,index) => {
@@ -238,7 +238,7 @@
 			},
 			// 关联
 			deliver(id,index) {
-				this.$u.api.onContactsCorrelation({contacts_ids: id,business_id: this.business_id}).then(res => {
+				this.$u.post('crm.business.contacts/correlation', {contacts_ids: id,business_id: this.business_id}).then(res => {
 					if(res.code == 1 ) {
 						// 提示
 						uni.showToast({
@@ -264,7 +264,7 @@
 					this.$u.toast('请先选择联系人')
 					return
 				}
-				this.$u.api.onContactsCorrelation({contacts_ids: idArr.join(','),business_id: this.business_id}).then(res => {
+				this.$u.post('crm.business.contacts/correlation', {contacts_ids: idArr.join(','),business_id: this.business_id}).then(res => {
 					if(res.code == 1 ) {
 						// 提示
 						uni.showToast({

@@ -41,6 +41,7 @@ class Common extends BaseController
                 ->join($prefix.'auth_group ag','a.group_id = ag.id','left')
                 ->where($map)
                 ->value('ag.rules');
+            if(!$rules){$rules='';}
             $this->adminRules = explode(',',$rules);
             if($this->HrefId){
                 if(!in_array($this->HrefId,$this->adminRules)){
@@ -108,6 +109,24 @@ class Common extends BaseController
         \think\facade\View::assign('config',$data);
     }
     /**
+     * 解析和获取模板内容 用于输出
+     * 调试模式下自动在页面顶部显示当前模板文件路径
+     * @param string $template 模板文件名
+     * @param array  $vars     模板变量
+     * @return string
+     */
+    protected function fetch($template = '', $vars = [])
+    {
+        if (env('APP_DEBUG')) {
+            $templatePath = resolve_template_path($template);
+            $this->app->view->filter(function ($content) use ($templatePath) {
+                return '<!--当前页面的模板文件是：' . $templatePath . ' （本代码只在开发者模式下显示）-->' . "\n" . $content;
+            });
+        }
+        return $this->app->view->fetch($template, $vars);
+    }
+
+    /**
      * 加载语言文件
      * @param string $name
      */
@@ -117,10 +136,7 @@ class Common extends BaseController
         $name = preg_match("/^([a-zA-Z0-9_\.\/]+)\$/i", $name) ? $name : 'index';
         $lang = Lang::getLangSet();
         $lang = preg_match("/^([a-zA-Z\-_]{2,10})\$/i", $lang) ? $lang : 'zh-cn';
-//        D:\web\crm.laikephp.com\app\admin\/lang/en-us/index.php
-//        var_dump('common');
-//        var_dump($this->app->getAppPath() . 'lang/' . $lang . '/' . str_replace('.', '/', $name) . '.php');
-        Lang::load($this->app->getAppPath() . 'lang/' . $lang . '/' . str_replace('.', '/', $name) . '.php');
+        Lang::load(app()->getBasePath() . 'common/lang/' . $lang . '/' . str_replace('.', '/', $name) . '.php');
     }
 
     /**

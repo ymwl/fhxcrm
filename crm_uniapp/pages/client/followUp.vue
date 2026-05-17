@@ -5,8 +5,8 @@
 				<u-form-item label="跟进客户:"  label-width="180" prop="name">
 					<u-input v-model="form.name" disabled />
 				</u-form-item>
-				<u-form-item label="跟进方式:"  label-width="180" prop="record_type" :required="true">
-					<u-input v-model="record_type_name" type="select"  :select-open="selectShow" placeholder="选择跟进方式"  @click="selectShow = true" />
+				<u-form-item label="跟进类型:"  label-width="180" prop="record_type" :required="true">
+					<u-input v-model="record_type_name" type="select"  :select-open="selectShow" placeholder="选择跟进类型"  @click="selectShow = true" />
 				</u-form-item>
 				<u-form-item label="下次跟进:"  label-width="180" :required="true">
 					<u-input type="select" :select-open="nextTimeShow" v-model="form.next_time" placeholder="选择跟进时间" @click="nextTimeShow = true" />
@@ -14,11 +14,11 @@
 				<u-form-item label="跟进内容:" label-width="180" prop="content" :required="true">
 					<u-input type="textarea" :border="true" height="200" :auto-height="true" v-model="form.content" />
 				</u-form-item>
-				<u-form-item label="相关图片:"  label-width="180">
+				<u-form-item label="相关附件:"  label-width="180">
 					<u-upload :custom-btn="true" ref="uUpload" :header="param"  :show-upload-list="true" max-count="5" :action="action" @on-uploaded="finish" :auto-upload="true">
 						<view slot="addBtn" class="slot-btn" hover-class="slot-btn__hover" hover-stay-time="150">
-							<u-icon name="camera" size="60" color="#606266"></u-icon>
-							<view class="text">选择图片</view>
+							<u-icon name="attach" size="60" color="#606266"></u-icon>
+							<view class="text">选择附件</view>
 						</view>
 					</u-upload>
 				</u-form-item>
@@ -41,7 +41,6 @@
 		data() {
 			return {
 				showUploadList: false,
-				businessData: {},
 				selectShow: false,
 				nextTimeShow: false,
 				selectList: [],
@@ -58,6 +57,7 @@
 					next_time: '',
 					record_type: '',
 					content: '',
+					attachs: '',
 				},
 				params: {
 					year: true,
@@ -69,7 +69,7 @@
 				},
 				videoFilePath: '',
 				customer_id: '',
-				business_image: [],
+				attachFiles: [],
 				error_video: '',
 				errorType: ['message','toast'],
 				rules: {
@@ -112,12 +112,11 @@
 		methods: {
 			// 获取客户详情
 			getData() {
-				this.$u.api.getCustomer({
+				this.$u.get('crm.customer/edit',{
 					id: this.customer_id
 				}).then(res => {
 					if(res.code == 1 ) {
-						this.businessData = res.data
-						this.form.name = this.businessData.name
+						this.form.name = res.data.name
 					}
 				})
 			},
@@ -176,13 +175,14 @@
 					item.rename = '' 
 				});
 			},
-			// 所有图片上传完成
+			// 所有文件上传完成
 			finish(data, index, lists, name){
 				// 数据初始化，防止重复添加
-				this.business_image = []
+				this.attachFiles = []
 				this.lists.forEach((item,index) => {
-					this.business_image.push(item.response.data.url)
+					this.attachFiles.push(item.response.data.url)
 				});
+				this.form.attachs = this.attachFiles.join('|')
 			},
 			// 提交跟进
 			submit() {
@@ -198,16 +198,14 @@
 			},
 			// 开始提交跟进
 			onSubmit(){
-				// 进行必须填数据验证
-				this.form.image = this.business_image.join("|")
 				let param = {
-					'row[next_time]': this.form.next_time,
-					'row[record_type]': this.form.record_type,
-					'row[content]': this.form.content,
-					'row[images]': this.form.image,
 					customer_id: this.customer_id,
+					content: this.form.content,
+					record_type: this.form.record_type,
+					next_time: this.form.next_time,
+					attachs: this.form.attachs
 				}
-				this.$u.api.onRecordAdd(param).then((res) => {
+				this.$u.post('crm.record/add',param).then((res) => {
 					if(res.code == 1){
 						// 提示
 						uni.showToast({

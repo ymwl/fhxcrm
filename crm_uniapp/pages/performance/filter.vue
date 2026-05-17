@@ -169,9 +169,9 @@
 			},
 			// 获取管理组列表
 			getData(isNextPage,pages) {
-				this.$u.api.getGroupdata({
-					sort: 'id',
-					order: 'desc',
+				this.$u.get('auth/getGroupdata', {
+					sort_by: 'id',
+					sort_order: 'desc',
 					filter: JSON.stringify({username: this.keyword}),
 					op: JSON.stringify({username: 'LIKE'})
 				}).then(res => {
@@ -211,7 +211,7 @@
 			},
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.onCommonSelectpage({
+				this.$u.get('ajax/selectpage', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,

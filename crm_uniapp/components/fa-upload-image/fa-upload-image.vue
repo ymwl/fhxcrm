@@ -44,9 +44,9 @@ export default {
 			token: this.vuex_token || '',
 			uid: this.vuex_user.id || 0
 		};
-		// let isObj = this.$u.test.object(this.vuex_config.upload.multipart);
+		// let isObj = this.$u.test.object(this.vuex_upload.multipart);
 		// if (isObj) {
-		// 	this.formdata = this.vuex_config.upload.multipart;
+		// 	this.formdata = this.vuex_upload.multipart;
 		// }
 	},
 	data() {

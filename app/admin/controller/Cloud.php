@@ -87,7 +87,7 @@ class Cloud extends AdminController
                         $zip->close();//关闭处理的zip文件
                         $updateSql=app()->getRootPath().'update/'.$res_arr['version'].'.sql';
                         if(is_file($updateSql)){
-                            \tools\hs::sql($updateSql);
+                            \tools\Hs::sql($updateSql);
                         }
                         unlink($localFile);
                         $msg='升级完成';

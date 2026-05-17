@@ -70,8 +70,9 @@
 	export default {
 		data() {
 			return {
+				searchTimer: null,
 				sortName: '默认排序',
-				sort: 'id',
+				sort_by: 'id',
 				keyword:'',
 				scopeName: '全部线索',
 				specClass: 'hide',
@@ -87,22 +88,22 @@
 					{
 						label: '默认排序',
 						value: 0,
-						sort: 'id',
+						sort_by: 'id',
 					},
 					{
 						label: '下次跟进',
 						value: 1,
-						sort: 'next_time',
+						sort_by: 'next_time',
 					},
 					{
 						label: '创建时间',
 						value: 2,
-						sort: 'create_time',
+						sort_by: 'create_time',
 					},
 					{
 						label: '更新时间',
 						value: 3,
-						sort: 'update_time',
+						sort_by: 'update_time',
 					}
 				],
 				consentShow: false,
@@ -186,7 +187,7 @@
 			},
 			// 排序
 			optionsChange(){
-				this.sort = this.options[this.value].sort
+				this.sort_by = this.options[this.value].sort
 				this.sortName = this.options[this.value].label
 				this.page = 0,
 				this.lastPage = false
@@ -220,16 +221,16 @@
 						this.scopeName = this.vuex_cluesfilter.formName.scopeName
 					}
 				} else {
-					this.scopeName = '全部线索'
+					this.scopeName = '我的线索'
 				}
 				// 下次跟进排序筛选 next_time > 0
-				if(this.sort == 'next_time') {
+				if(this.sort_by == 'next_time') {
 					filterObj.next_time = '0'
 					opObj.next_time ='>'
 				}
-				this.$u.api.getCluesList({
-					sort: this.sort,
-					order: this.sort == 'next_time' ? 'asc' : 'desc',
+				this.$u.get('crm.clues.index/index',{
+					sort_by: this.sort_by,
+					sort_order: this.sort_by == 'next_time' ? 'asc' : 'desc',
 					search:this.keyword,
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
@@ -278,9 +279,12 @@
 			},
 			// 点击搜索
 			onSearch() {
-				this.page = 0
-				this.lastPage = false
-				this.getCluesList()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.lastPage = false
+					this.getCluesList()
+				}, 500)
 			},
 			// 查看客户详情
 			onItem(val) {

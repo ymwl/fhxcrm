@@ -19,7 +19,7 @@
 				</view>
 			</view>
 			<view class="bottom u-flex" @click="onCustomer(contactData.customer_id)">
-				<view class="">归属客户：{{contactData.customer.name}}</view>
+				<view class="">归属客户：{{contactData.customer && contactData.customer.name || '--'}}</view>
 				<view class="client_time">查看<u-icon name="arrow-right" :color="vuex_theme.color" :size="26"></u-icon></view>
 			</view>
 		</view>
@@ -30,31 +30,8 @@
 			</view>
 			<view class="details">
 				<u-form  ref="uForm" >
-					<u-form-item label="电话:" label-width="160" prop="number">
-						<u-input disabled v-model="contactData.telephone" />
-					</u-form-item>
-					<u-form-item label="邮箱：" label-width="160">
-						<u-input disabled v-model="contactData.email"  placeholder="暂无" />
-					</u-form-item>
-					<u-form-item label="微信：" label-width="160" >
-						<u-input disabled v-model="contactData.wechat"   placeholder="暂无"  />
-					</u-form-item>
-					<u-form-item label="职务：" label-width="160" prop="money">
-						<u-input disabled v-model="contactData.post" placeholder="暂无" />
-					</u-form-item>
-					<u-form-item label="生日：" label-width="160" prop="money">
-						<u-input disabled v-model="contactData.birthday" placeholder="暂无" />
-					</u-form-item>
-					<u-form-item label="决策人：" label-width="160" >
-						<u-input disabled v-model="contactData.decision" placeholder="暂无"/>
-					</u-form-item>
-					<u-form-item label="地址:" label-width="160" >
-						<u-input disabled v-model="contactData.detail_address" placeholder="暂无"  />
-					</u-form-item>
-					<u-form-item label="下次跟进:" label-width="160" >
-						<u-input disabled v-model="contactData.next_time" placeholder="暂无"  />
-					</u-form-item>
-					<!-- 自定义字段详细组件 -->
+					
+					<!-- 字段详情组件（含系统字段与自定义字段） -->
 					<f-details :fields="fields" :form="contactData"></f-details>
 				</u-form>
 			</view>
@@ -111,16 +88,13 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 			changeDecision(val){
 				switch (val) {
 					case -1:
-						return '未知'
-						break;
+						return '未知';
 					case 1:
-						return '是'
-						break;
+						return '是';
 					case 2:
-						return '否'
-						break;
-						return '--'
-						break;
+						return '否';
+					default:
+						return '--';
 				}
 			},
 			// 打电话
@@ -131,7 +105,7 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 			},
 			// 云呼叫
 			cloudcall(){
-				this.$u.api.onCloudcall({
+				this.$u.post('crm.setting.cloudcall/call', {
 					type: 'customer_contacts',
 					typeid: this.contactData.id,
 					field: this.contactData.mobile,
@@ -158,38 +132,83 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 			},
 			// 获取数据详情
 			getData() {
-				this.$u.api.getContactsEdit({id: this.id}).then(res => {
+				this.$u.get('crm.customer_contacts/edit', {id: this.id}).then(res => {
 					if(res.code == 1 ) {
 						this.contactData = res.data
-						this.contactData.decision = this.changeDecision(this.contactData.decision)
+						// 确保 customer 对象存在，防止模板渲染时报错
+						if (!this.contactData.customer) {
+							this.contactData.customer = { name: '--' }
+						}
+						// 格式化日期字段（时间戳 → 可读格式）
+						if (this.contactData.next_time) {
+							this.contactData.next_time = this.timeFormat(this.contactData.next_time)
+						}
+						if (this.contactData.birthday) {
+							this.contactData.birthday = this.timeFormat(this.contactData.birthday)
+						}
+						// 先获取字段定义，再根据字段定义解析关联数据
 						this.getFields()
+					}
+				})
+			},
+			// 根据 customer_id 获取客户名称（使用 crm.customer/index + filter 精确查找）
+			getCustomerName() {
+				if (!this.contactData.customer_id) return
+				const href = 'crm.customer/index?isselect=1'
+				const [basePath, queryStr] = href.split('?')
+				let params = {
+					offset: 0,
+					limit: 1
+				}
+				if (queryStr) {
+					queryStr.split('&').forEach(pair => {
+						const [k, v] = pair.split('=')
+						if (k) params[k] = decodeURIComponent(v || '')
+					})
+				}
+				params.filter = JSON.stringify({ id: this.contactData.customer_id })
+				params.op = JSON.stringify({ id: '=' })
+				this.$u.get(basePath, params).then(res => {
+					if (res.code != 1) return
+					let item = null
+					if (res.data && res.data.rows && res.data.rows.length > 0) {
+						item = res.data.rows[0]
+					} else if (res.data && res.data.list && res.data.list.length > 0) {
+						item = res.data.list[0]
+					} else if (Array.isArray(res.data) && res.data.length > 0) {
+						item = res.data[0]
+					}
+					if (item) {
+						// 更新底部"归属客户"区域
+						this.contactData.customer = item
+						// 回填 popup_selection 字段的显示值
+						const popupField = this.fields.find(f => f.field == 'customer_id' && f.formtype == 'popup_selection')
+						if (popupField) {
+							this.$set(popupField, 'values', item.name)
+						}
 					}
 				})
 			},
 			// 获取自定义字段
 			getFields() {
-				let arr = []
-				this.$u.api.getFields({table: 'customer_contacts',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields', {table: 'crm_customer_contacts', source: 'editForm'}).then((res) => {
 					if(res.code == 1){
-						this.fields = res.data.fields;
-						res.data.fields.forEach((item,index)=>{
-							
-						})
-						this.fields.map(item => {
-							//表单赋值
-							// 复选框 数据格式化
-							if(item.type == 'checkbox'|| item.type == 'radio') {
+						this.fields = res.data.fields
+						this.fields.forEach(item => {
+							// 复选框/单选框 数据格式化
+							if(item.formtype == 'checkbox'|| item.formtype == 'radio') {
 								let arr = []
 								let valArr = []
 								// 获取对应字段数据
-								if(this.contactData[item.name]) {
-									valArr = this.contactData[item.name].split(',')
+								if(this.contactData[item.field]) {
+									valArr = this.contactData[item.field].split(',')
 								}
-								for (const key in item.content_list) {
-									if (Object.hasOwnProperty.call(item.content_list, key)) {
+								const optionList = item.selectList || item.content_list;
+								for (const key in optionList) {
+									if (Object.hasOwnProperty.call(optionList, key)) {
 										valArr.forEach((i,s) => {
 											if(i == key) {
-												arr.push(item.content_list[key]) 
+												arr.push(optionList[key]) 
 											}
 										});
 									}
@@ -197,27 +216,28 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 								item.values = arr.join(',')
 							}
 							// 数据赋值
-							if(this.contactData[item.name]) {
-							 if ((item.type == 'image' || item.type == 'files') || (item.type == 'images' || item.type == 'files')) {
+							if(this.contactData[item.field]) {
+							if ((item.formtype == 'image' || item.formtype == 'images') || (item.formtype == 'file' || item.formtype == 'files')) {
 									let arr = []
-									 this.contactData[item.name].split(',').forEach((u,index) =>{
+									 this.contactData[item.field].split(',').forEach((u,index) =>{
 										arr.push(getImgUrl(u))
 									})
 									item.fileArr = arr 
 								} 
-								if(item.type == 'switch'){
-									item.values = this.contactData[item.name] == 1 ? true : false
+								if(item.formtype == 'switch'){
+									item.values = this.contactData[item.field] == 1 ? true : false
 								}
-								if((item.type == 'select' || item.type == 'selects') || (item.type == 'selectpage' || item.type == 'selectpages')){
-									let arrs = this.contactData[item.name].split(',')
+								if((item.formtype == 'select' || item.formtype == 'selects') || (item.formtype == 'lselect' || item.formtype == 'selectpages')){
+									let arrs = this.contactData[item.field].split(',')
 									let narrs = []
+									const optionList = item.selectList || item.content_list;
 									arrs.forEach((r,x) => {
-										narrs.push(item.content_list[r]) 
+										narrs.push(optionList[r]) 
 									});
 									item.values = narrs.join(',')
 								}
-								if(item.type == 'array') {
-									let val = this.contactData[item.name]
+								if(item.formtype == 'array') {
+									let val = this.contactData[item.field]
 									if (val) {
 										if (this.$u.test.object(val)) {
 											let arr = [];
@@ -227,9 +247,7 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 													value: val[i]
 												});
 											}
-											if (arr.length > 0) {
-												this.list = arr;
-											}
+											item.arrList = arr;
 										} else {
 											let o = JSON.parse(val);
 											let arr = [];
@@ -239,9 +257,7 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 													value: o[i]
 												});
 											}
-											if (arr.length > 0) {
-												item.arrList = arr;
-											}
+											item.arrList = arr;
 										}
 									} else {
 										item.arrList = []
@@ -251,6 +267,8 @@ import { processingImages,getImgUrl,get_date} from '@/common/mUtils'
 								item.values = ''
 							}
 						});
+						// 字段处理完后，解析 popup_selection 关联数据（如归属客户名称）
+						this.getCustomerName()
 					}
 				})
 			},

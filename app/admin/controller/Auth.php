@@ -27,8 +27,19 @@ class Auth extends AdminController
 
             //用户组1属于超级用户组不需要加范围
             if($this->admin['group_id']>1){
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
-                $where[] = ['admin_id', 'in', $adminIds];
+                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,false);
+                if(empty($adminIds)){
+                    return json([
+                        'code'  => 0,
+                        'msg'   => '',
+                        'count' => 0,
+                        'data'  => [],
+                    ]);
+                }
+                if($adminIds!=='ALL'){
+                    $where[] = ['admin_id', 'in', $adminIds];
+                }
+
             }
 
             $count = $this->model
@@ -79,9 +90,23 @@ class Auth extends AdminController
             $data['ip'] = getRealIp();
 
             if($this->admin['group_id']>1){
-                $groupIds=(new \app\admin\model\AuthGroup())->getChildrenGroupIds($this->admin,true);
+                $groupIds=(new \app\admin\model\AuthGroup())->getChildrenGroupIds($this->admin,false);
                 if(!in_array($data['group_id'],$groupIds)){
-                    return json(['code'=>0,'msg'=>fy("Illegally unauthorized selection of user groups")]);
+                    $this->error(fy("Illegally unauthorized selection of user groups"));
+                }
+                $level=\think\facade\Db::name('auth_role')->where('id','=',$this->admin['role_id'])->value('level');
+                $role_ids = \think\facade\Db::name('auth_role')->field('id,name')->where('level','<',$level)->column('id');
+                if(!in_array($data['role_id'],$role_ids)){
+                    $this->error('角色禁止越权选择');
+                }
+
+                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                if(empty($adminIds) && $data['parent_id']>0){
+                    $this->error('直属上级禁止越权赋值!');
+                }elseif($data['parent_id']>0) {
+                    if ($adminIds !== 'ALL' && !in_array($data['parent_id'],$adminIds)) {
+                        $this->error('直属上级禁止越权赋值!');
+                    }
                 }
 
             }
@@ -106,7 +131,7 @@ class Auth extends AdminController
 
             }
         }else{
-            return view();
+            return $this->fetch();
         }
     }
     //删除管理员
@@ -159,23 +184,45 @@ class Auth extends AdminController
     //更新管理员信息
     public function adminEdit(){
         $admin_id=$this->request->param('admin_id',0,'int');
-        $this->modifyPermissions($admin_id);
+        $this->modifyPermissions($admin_id,false);
+        $admin = new Admin();
+
+        $row = $admin->getInfo($admin_id);
         if($this->request->isPost()){
             $data = $this->request->post();
             $pwd=input('post.pwd');
             $map[] = ['admin_id','<>',$admin_id];
             $where['admin_id'] = $admin_id;
+            if($row['admin_id']==$data['parent_id']){
+                $this->error('直属上级不能设置成自己');
+
+            }
 
             if($this->admin['group_id']>1){
                 $adminIds=(new \app\admin\model\Admin())->getChildrenAdminIds($this->admin,true);
 
                 if(!in_array($admin_id,$adminIds)){
-                    return json(['code'=>0,'msg'=>fy("Illegal ultra vires operation")]);
+                    $this->error('非法越权操作');
                 }
                 $groupIds=(new \app\admin\model\AuthGroup())->getChildrenGroupIds($this->admin,true);
 
                 if(!in_array($data['group_id'],$groupIds)){
-                    return json(['code'=>0,'msg'=>fy("Illegally unauthorized selection of user groups")]);
+                    $this->error('部门岗位禁止越权赋值');
+                }
+
+                $level=\think\facade\Db::name('auth_role')->where('id','=',$this->admin['role_id'])->value('level');
+                $role_ids = \think\facade\Db::name('auth_role')->field('id,name')->where('level','<',$level)->column('id');
+                if(!in_array($data['role_id'],$role_ids)){
+                    $this->error('角色禁止越权选择');
+
+                }
+                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                if(empty($adminIds) && $data['parent_id']>0){
+                    $this->error('直属上级禁止越权赋值!');
+                }elseif($data['parent_id']>0) {
+                    if ($adminIds !== 'ALL' && !in_array($data['parent_id'],$adminIds)) {
+                        $this->error('直属上级禁止越权赋值!');
+                    }
                 }
 
             }
@@ -184,7 +231,7 @@ class Auth extends AdminController
                 $map[] = ['username','=',$data['username']];
                 $check_user = Admin::where($map)->find();
                 if ($check_user) {
-                    return json(['code'=>0,'msg'=>fy("The user name already exists, please re-enter the user name")]);
+                    $this->error(fy("The user name already exists, please re-enter the user name"));
                 }
             }
             if ($pwd){
@@ -209,13 +256,12 @@ class Auth extends AdminController
                 $admin=Db::name('admin')->withoutField('pwd,salt,ip')->where('admin_id', '=',$this->admin['admin_id'])->find();
                 session('admin',$admin);
             }
-            return json(['code'=>1,'msg'=>fy("Modification succeeded"),'url'=>myurl('adminList')]);
+            $this->success(fy("Modification succeeded"),myurl('adminList'));
         }else{
 
-            $admin = new Admin();
-            $row = $admin->getInfo($admin_id);
+
             View::assign('row', $row);
-            return view();
+            return $this->fetch();
         }
     }
     /*-----------------------用户组管理----------------------*/
@@ -225,7 +271,7 @@ class Auth extends AdminController
             $list = AuthGroup::select()->toArray();
             return json(['code'=>0,'msg'=>fy('Get successful').'!','data'=>$list,'rel'=>1]);
         }
-        return view();
+        return $this->fetch();
     }
     //删除管理员分组
     public function groupDel(){
@@ -292,10 +338,9 @@ class Auth extends AdminController
     }
     //分组配置规则
     public function groupAccess(){
-        $nav = new Leftnav();
         $admin_rule=\think\facade\Db::name('auth_rule')->field('id,pid,title')->order('sort asc')->select();
         $rules = \think\facade\Db::name('auth_group')->where('id',input('id'))->value('rules');
-        $arr = $nav->auth($admin_rule,$pid=0,$rules);
+        $arr = \clt\Leftnav::auth($admin_rule,$pid=0,$rules);
         $arr[] = [ "id"=>0,
             "pid"=>0,
             "title"=>fy("All"),
@@ -372,7 +417,7 @@ class Auth extends AdminController
             }
             $this->app->view->engine()->layout(false);
             View::assign('admin_rule',$arr);//权限列表
-            return View::fetch();
+            return $this->fetch();
         }
     }
     public function ruleOrder(){
@@ -391,9 +436,9 @@ class Auth extends AdminController
         $menustatus=input('post.menustatus');
         if(Db::name('auth_rule')->where('id='.$id)->update(['menustatus'=>$menustatus])!==false){
             Cache::clear();
-            return json(['status'=>1,'msg'=>fy("Setting succeeded")]);
+            return json(['code'=>1,'msg'=>fy("Setting succeeded")]);
         }else{
-            return json(['status'=>0,'msg'=>fy("Setting failed")]);
+            return json(['code'=>0,'msg'=>fy("Setting failed")]);
         }
     }
     //设置权限是否验证
@@ -402,9 +447,9 @@ class Auth extends AdminController
         $authopen=input('post.authopen');
         if(Db::name('auth_rule')->where('id='.$id)->update(['authopen'=>$authopen])!==false){
             Cache::clear();
-            return json(['status'=>1,'msg'=>fy("Setting succeeded")]);
+            return json(['code'=>1,'msg'=>fy("Setting succeeded")]);
         }else{
-            return json(['status'=>0,'msg'=>fy("Setting failed")]);
+            return json(['code'=>0,'msg'=>fy("Setting failed")]);
         }
     }
     public function ruleDel(){

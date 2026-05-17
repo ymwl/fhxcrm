@@ -201,15 +201,18 @@
 			},
 			// 基本设置
 			onGetInit(id) {
-				this.$u.api.getInit().then((res) => {
-					if(res.code == 1){
-						this.payConfig = res.data.payConfig
-					}
-				})
+				this.payConfig = this.vuex_payConfig
+				if (!this.payConfig || Object.keys(this.payConfig).length === 0) {
+					this.$u.get('login/config').then((res) => {
+						if(res.code == 1){
+							this.payConfig = res.data.payConfig
+						}
+					})
+				}
 			},
 			// 生成续费单
 			onGetRenewPayurl(id){
-				this.$u.api.getRenewPayurl({ids: id}).then((res) => {
+				this.$u.get('crm.contract.index/payurl', {ids: id}).then((res) => {
 					if(res.code == 1){
 						this.payUrlData = res.data
 						this.payShow = true
@@ -263,10 +266,10 @@
 					opObj.check_status = '='
 					
 				}
-				this.$u.api.getContractIndexList({
-					sort: 'id',
+				this.$u.get('crm.contract.index/lists', {
+					sort_by: 'id',
 					search:this.keyword,
-					order: 'desc',
+					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,
 					limit: this.pageSize,
 					filter: JSON.stringify(filterObj),
@@ -334,7 +337,7 @@
 			},
 			// 删除
 			onDel(id,index) {
-				this.$u.api.onContractDel({
+				this.$u.post('crm.contract.index/delete', {
 					ids: id,
 				}).then(res => {
 					if(res.code == 1 ) {

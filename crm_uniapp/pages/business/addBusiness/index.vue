@@ -122,6 +122,7 @@
 		mixins: [formRule],
 		data() {
 			return {
+				searchTimer: null,
 				labelPosition: 'left',
 				border: true,
 				keyword: '',
@@ -224,7 +225,7 @@
 			// 获取自定义字段
 			getFields() {
 				let arr = []
-				this.$u.api.getFields({table: 'business',id: ''}).then((res) => {
+				this.$u.get('fields/get_fields', {table: 'business',id: ''}).then((res) => {
 					if(res.code == 1){
 						this.detail = res.data.info;
 						this.fields = res.data.fields;
@@ -384,7 +385,7 @@
 			
 			// 获取商机数据详情
 			getBusiness() {
-				this.$u.api.getBusinessEdit({id: this.business_id}).then(res => {
+				this.$u.get('crm.business.index/edit', {id: this.business_id}).then(res => {
 					if(res.code == 1 ) {
 						this.businessData = res.data
 						this.customerName = res.data.customer.name
@@ -404,9 +405,12 @@
 			},
 			// 搜索
 			onSearch() {
-				this.page = 0
-				this.lastPage = false
-				this.getData()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.page = 0
+					this.lastPage = false
+					this.getData()
+				}, 500)
 			},
 			// 选择时间
 			nextTimeChange(e){
@@ -442,7 +446,7 @@
 						"searchField": "id"
 					}
 				}
-				this.$u.api.getCustomerSelectpage(obj).then(res => {
+				this.$u.post('crm.customer.index/selectpage', obj).then(res => {
 					if(res.code == 1 ) {
 						// 最后一页
 						if(res.data.list.length == 0) {
@@ -564,7 +568,7 @@
 				this.$refs.uForm.validate(valid => {
 					if (valid) {
 						if(this.type == 'add') {
-							this.$u.api.onBusinessAdd(parame).then((res) => {
+							this.$u.post('crm.business.index/add', parame).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({
@@ -579,7 +583,7 @@
 							})
 						} else {
 							parame.id = this.business_id
-							this.$u.api.onBusinessEdit(parame).then((res) => {
+							this.$u.post('crm.business.index/edit', parame).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({

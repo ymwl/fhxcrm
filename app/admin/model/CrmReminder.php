@@ -4,10 +4,10 @@ namespace app\admin\model;
 
 use app\common\model\TimeModel;
 
-class CrmHangye extends TimeModel
+class CrmReminder extends TimeModel
 {
 
-    protected $name = "crm_hangye";
+    protected $name = "crm_reminder";
 
     protected $deleteTime = false;
 

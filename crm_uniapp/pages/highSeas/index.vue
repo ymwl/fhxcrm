@@ -178,7 +178,7 @@
 					return
 				}
 				if(this.type == 'client') {
-					this.$u.api.getReceive({ids: idArr.join(',')}).then(res => {
+					this.$u.post('crm.liberum/robClient', {ids: idArr.join(',')}).then(res => {
 						if(res.code == 1 ) {
 							// 提示
 							uni.showToast({
@@ -196,7 +196,7 @@
 						}
 					})
 				} else {
-					this.$u.api.onCluesReceive({ids: idArr.join(',')}).then(res => {
+					this.$u.post('crm.clues.index/receive', {ids: idArr.join(',')}).then(res => {
 						if(res.code == 1 ) {
 							// 提示
 							uni.showToast({
@@ -229,9 +229,9 @@
 			  let that=this;
 				if(this.type == 'client') {
 					// 公海客户
-					this.$u.api.getCommon({
-						sort: 'id',
-						order: 'desc',
+					this.$u.get('crm.customer/seas', {
+						sort_by: 'id',
+						sort_order: 'desc',
 						offset: (pages || 0 ) * this.pageSize,
 						limit: this.pageSize,
 						search: this.keyword,
@@ -264,9 +264,9 @@
 					})
 				} else {
 					// 公共线索
-					this.$u.api.getCluesCommon({
-						sort: 'id',
-						order: 'desc',
+					this.$u.get('crm.clues.index/common', {
+						sort_by: 'id',
+						sort_order: 'desc',
 						offset: (pages || 0 ) * this.pageSize,
 						limit: this.pageSize,
 						search: this.keyword,
@@ -327,7 +327,7 @@
 			deliver(id,index) {
 				if(this.type == 'client'){
 					// 客户领取
-					this.$u.api.getReceive({ids: id}).then(res => {
+					this.$u.post('crm.liberum/robClient', {ids: id}).then(res => {
 						if(res.code == 1 ) {
 							// 提示
 							uni.showToast({
@@ -346,7 +346,7 @@
 					})
 				} else {
 					// 线索领取
-					this.$u.api.onCluesReceive({ids: id}).then(res => {
+					this.$u.post('crm.clues.index/receive', {ids: id}).then(res => {
 						if(res.code == 1 ) {
 							// 提示
 							uni.showToast({

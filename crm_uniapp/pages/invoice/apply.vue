@@ -176,6 +176,7 @@
 		mixins: [formRule],
 		data() {
 			return {
+				searchTimer: null,
 				setting: {},
 				contractData: '',
 				id: '',
@@ -377,14 +378,14 @@
 			},
 			// 获取发票配置
 			getInvoiceAdd() {
-				this.$u.api.getInvoiceAdd().then((res) => {
+				this.$u.get('crm.invoice/add').then((res) => {
 					if(res.code == 1){
 						this.setting = res.data.setting
 						this.form.tax_rate = res.data.setting.tax_rate1
 						this.form.invoice_body = res.data.setting.invoice_body
 						// 获取审批人数据
 						if(res.data.flow.flow_admin_id) {
-							this.$u.api.getAllAdmin({
+							this.$u.get('crm.common/selectpage/model/admin/type/all', {
 								keyField: 'id',
 								keyValue: res.data.flow.flow_admin_id,
 								showField: 'realname',
@@ -401,18 +402,24 @@
 			},
 			// 合同搜索
 			onContractSearch() {
-				this.contractPage = 0
-				this.lastContract = false
-				this.getContract()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.contractPage = 0
+					this.lastContract = false
+					this.getContract()
+				}, 500)
 			},
 			// 审批人搜索
 			adminSearch() {
-				this.adminPage = 0
-				this.onSelectpage()
+				clearTimeout(this.searchTimer)
+				this.searchTimer = setTimeout(() => {
+					this.adminPage = 0
+					this.onSelectpage()
+				}, 500)
 			},
 			// 获取发票详情
 			getInvoiceEdit() {
-				this.$u.api.getInvoiceEdit({
+				this.$u.get('crm.invoice/edit', {
 					ids: this.id
 				}).then(res => {
 					if(res.code == 1 ) {
@@ -437,7 +444,7 @@
 						console.log(this.form)
 						// 获取审批人数据
 						if(infoData.flow_admin_id) {
-							this.$u.api.getAllAdmin({
+							this.$u.get('crm.common/selectpage/model/admin/type/all', {
 								keyField: 'id',
 								keyValue: infoData.flow_admin_id,
 								showField: 'realname',
@@ -450,7 +457,7 @@
 							})
 						}
 						// 获取已选合同
-						this.$u.api.onContractSelectpage({
+						this.$u.get('crm.contract.index/selectpage', {
 							keyField: 'id',
 							keyValue: infoData.contract_id,
 						}).then(res => {
@@ -463,7 +470,7 @@
 			},
 			// 获取审批人
 			onSelectpage(isNextPage,pages) {
-				this.$u.api.getAllAdmin({
+				this.$u.get('crm.common/selectpage/model/admin/type/all', {
 					pageNumber: (pages || 1 ),
 					pageSize: this.pageSize,
 					name: this.adminkeyword,
@@ -522,7 +529,7 @@
 				if(this.customer_id != ''){
 					params['custom[customer_id]'] = this.customer_id
 				}
-				this.$u.api.onContractSelectpage(params).then(res => {
+				this.$u.get('crm.contract.index/selectpage', params).then(res => {
 					if(res.code == 1 ) {
 						// 最后一页
 						if(res.data.list.length == 0) {
@@ -569,7 +576,7 @@
 			},
 			// 获取发票历史记录，自动填写
 			getInvoiceHistory(val) {
-					this.$u.api.getInvoiceHistory({customer_id: val.customer_id,contract_id: val.id}).then(res => {
+					this.$u.get('crm.invoice/history', {customer_id: val.customer_id,contract_id: val.id}).then(res => {
 					if(res.code == 1 ) {
 						this.contractData = res.data.contract
 						// 赋值
@@ -668,7 +675,7 @@
 						}
 						// 添加和编辑操作
 						if(this.type == 'add') {
-							this.$u.api.postInvoiceAdd(params).then((res) => {
+							this.$u.post('crm.invoice/add', params).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({
@@ -688,7 +695,7 @@
 							})
 						} else {
 							params.ids = this.id
-							this.$u.api.onInvoiceEdit(params).then((res) => {
+							this.$u.post('crm.invoice/edit', params).then((res) => {
 								if(res.code == 1) {
 									// 提示
 									uni.showToast({

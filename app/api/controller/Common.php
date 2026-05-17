@@ -7,11 +7,8 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
-use think\App;
 use think\exception\HttpResponseException;
-use think\facade\Env;
-use think\facade\View;
-use think\facade\Db;
+use think\facade\Lang;
 use app\BaseController;
 use think\Request;
 use think\Response;
@@ -170,7 +167,62 @@ class Common extends BaseController
     }
 
 
+    /**
+     * 操作成功跳转的快捷方法
+     * @access protected
+     * @param  mixed $msg 提示信息
+     * @param  string $url 跳转的URL地址
+     * @param  mixed $data 返回的数据
+     * @param  integer $wait 跳转等待时间
+     * @param  array $header 发送的Header信息
+     * @return void
+     */
+    protected function success($msg = '', string $url = '', $data = '', int $wait = 3, array $header = [])
+    {
+        $result = [
+            'code' => 1,
+            'msg' => $msg,
+            'data' => $data,
+            'url' => $url,
+            'wait' => $wait,
+        ];
+            $response = Response::create($result, 'json')->header($header);
+        throw new HttpResponseException($response);
+    }
 
+    /**
+     * 操作错误跳转的快捷方法
+     * @access protected
+     * @param  mixed $msg 提示信息
+     * @param  string $url 跳转的URL地址
+     * @param  mixed $data 返回的数据
+     * @param  integer $wait 跳转等待时间
+     * @param  array $header 发送的Header信息
+     * @return void
+     */
+    protected function error($msg = '', string $url = '', $data = [], int $wait = 3, array $header = [],$code=0)
+    {
+        $result = [
+            'code' => $code,
+            'msg' => $msg,
+            'data' => $data,
+            'url' => $url,
+            'wait' => $wait,
+        ];
+            $response = Response::create($result, 'json')->header($header);
+        throw new HttpResponseException($response);
+    }
 
+    /**
+     * 加载语言文件（从 common/lang 共用目录）
+     * @param string $name 控制器路径，如 'auth' 或 'crm/customer'
+     */
+    protected function loadlang($name)
+    {
+        $name = preg_match("/^([a-zA-Z0-9_\.\/]+)\$/i", $name) ? $name : 'index';
+        $lang = Lang::getLangSet();
+        $lang = preg_match("/^([a-zA-Z\-_]{2,10})\$/i", $lang) ? $lang : 'zh-cn';
+        Lang::load(app()->getBasePath() . 'common/lang/' . $lang . '/' . str_replace('.', '/', $name) . '.php');
+    }
 
 }

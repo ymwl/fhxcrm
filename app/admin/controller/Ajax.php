@@ -50,6 +50,9 @@ class Ajax extends AdminController{
         $where[]=['status','=','1'];
         if($this->admin['group_id']>1){
             $rules=\think\facade\Db::name('auth_group')->where('id','=',$this->admin['group_id'])->value('rules');
+            if(!$rules){
+                $rules='';
+            }
             $rules=trim($rules,',');
             $where[]=['id','in',$rules];
         }

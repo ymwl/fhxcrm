@@ -6,5 +6,6 @@ return [
     'commands' => [
         'app\admin\command\Curd',
         'app\admin\command\Min',
+        'app\admin\command\Reminder',
     ],
 ];

@@ -171,7 +171,7 @@
 				switch (this.options.types) {
 					case 'customer':
 						// 客户
-						this.$u.api.getCustomer({
+						this.$u.get('crm.customer/edit', {
 							id: this.options.id
 						}).then(res => {
 							if(res.code == 1 ) {
@@ -183,7 +183,7 @@
 						break;
 					case 'business':
 						// 商机
-						this.$u.api.getBusinessEdit({
+						this.$u.get('crm.business.index/edit', {
 							id: this.options.id
 						}).then(res => {
 							if(res.code == 1 ) {
@@ -195,7 +195,7 @@
 						break;
 					case 'clues':
 						// 线索
-						this.$u.api.getCluesEdit({
+						this.$u.get('crm.clues.index/edit', {
 							ids: this.options.id
 						}).then(res => {
 							if(res.code == 1 ) {
@@ -219,7 +219,7 @@
 			getSelectList(isNextPage) {
 				// 邮箱模板
 				if(this.options.type == 'email'){
-					this.$u.api.getEmailList({
+					this.$u.get('crm.apps.email/selectpage', {
 						q_word: this.keyword,
 						pageNumber: this.page,
 						pageSize: this.pageSize,
@@ -243,7 +243,7 @@
 					return
 				}
 				// 短信模板
-				this.$u.api.getSmsList({
+				this.$u.get('crm.apps.sms/selectpage', {
           q_word: this.keyword,
           pageNumber: this.page,
           pageSize: this.pageSize,
@@ -270,7 +270,7 @@
 				switch (this.options.type) {
 					case 'email':
 						// 获取邮件模板详情
-						this.$u.api.getEmail({email_id: item.id}).then((res) => {
+						this.$u.get('crm.apps.email/send', {email_id: item.id}).then((res) => {
 							console.log(res)
 							if(res.code == 1){
 								this.form.title = res.data.row.describe
@@ -281,7 +281,7 @@
 						break;
 					case 'note':
 						// 获取短息模板详情
-						this.$u.api.getSendSms({sms_id: item.id}).then((res) => {
+						this.$u.get('crm.apps.sms/send', {sms_id: item.id}).then((res) => {
 							console.log(res)
 							if(res.code == 1){
 								this.form.content = res.data.row.values.tpl_content
@@ -329,7 +329,7 @@
 						"row[content]": this.form.content
 					} 
 					console.log(param)
-					this.$u.api.onSendSms(param).then((res) => {
+					this.$u.post('crm.apps.sms/send', param).then((res) => {
 						console.log(res)
 						if(res.code == 1){
 							// 提示
@@ -353,7 +353,7 @@
 						"row[content]": this.form.content
 					} 
 					console.log(param)
-					this.$u.api.onSendEmail(param).then((res) => {
+					this.$u.post('crm.apps.email/send', param).then((res) => {
 						console.log(res)
 						if(res.code == 1){
 							// 提示

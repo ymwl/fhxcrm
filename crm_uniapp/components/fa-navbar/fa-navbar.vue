@@ -108,14 +108,18 @@ export default {
 				}
 			});
 			if (status) return;
-			if (this.pageNum == 1) {
-				//只有当前页面了
-				this.$u.route({
+			if (this.pageNum <= 1) {
+				// 页面栈中只有当前页面，无法返回上一级，直接跳转首页（首页为 tabBar 页面需用 switchTab）
+				uni.switchTab({
 					url: '/pages/index/index'
 				});
 			} else {
 				uni.navigateBack({
-					delta: 1
+					delta: 1,
+					fail: () => {
+						// navigateBack 失败时的兜底方案
+						uni.switchTab({ url: '/pages/index/index' });
+					}
 				});
 			}
 		}

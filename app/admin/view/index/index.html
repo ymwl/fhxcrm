@@ -27,6 +27,14 @@ $l='';
     <link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/layuimini/layuimini.min.css" media="all">
     <link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/lay-module/layuimini/themes/default.min.css" media="all">
     <link rel="shortcut icon" href="{:attrUrl($system['favicon'])}" />
+    <style>
+        /* 用户下拉菜单中的部门和职务信息项 */
+        .layui-nav-child .user-info-item a {
+            cursor: default;
+            color: #999;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body class="layui-layout-body layuimini-all">
 <div class="layui-layout layui-layout-admin">
@@ -85,13 +93,21 @@ $l='';
                         <span class="layui-nav-more"></span>
                     </a>
                     <dl class="layui-nav-child">
+                        <?php
+                        $groupTitle = \think\facade\Db::name('auth_group')->where('id', $admin['group_id'])->value('title');
+                        $roleName = \think\facade\Db::name('auth_role')->where('id', $admin['role_id'])->value('name');
+                        ?>
+                        <dd class="user-info-item">
+                            <a href="javascript:;">部门：<?php echo $groupTitle ?: '未设置'; ?></a>
+                        </dd>
+                        <dd class="user-info-item">
+                            <a href="javascript:;">职务：<?php echo $roleName ?: '未设置'; ?></a>
+                        </dd>
 
                         <dd>
                             <a href="javascript:;" layuimini-content-href="{:url('general/profile')}" data-title="{:lang('Profile')}" data-icon="fa fa-gears">{:lang('Profile')}</a>
                         </dd>
-                        <dd>
-                            <hr>
-                        </dd>
+
                         <dd>
                             <a href="javascript:;" class="login-out">{:lang('Logout')}</a>
                         </dd>

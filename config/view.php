@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | 模板设置
 // +----------------------------------------------------------------------
-define('__MY_PUBLIC__', IS_ROOT_ACCESS? '/public':'');
+define('__MY_PUBLIC__', defined('IS_ROOT_ACCESS') && IS_ROOT_ACCESS? '/public':'');
 return [
     // 模板引擎类型使用Think
     'type'          => 'Think',

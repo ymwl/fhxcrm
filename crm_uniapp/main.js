@@ -168,7 +168,7 @@ const getPath = (path) => {
 	// 订阅消息（微信小程序）
 	const subscriptionInfo = (type) => {
 		let tmplIds = [],subscribe = uni.getStorageSync('lifeData').vuex_notice_tpl;
-		Vue.prototype.$u.api.getNoticeTpl({type:type}).then(res => {
+		Vue.prototype.$u.get('crm.common/getNoticeTpl', {type:type}).then(res => {
 			if(res.code == 1) {
 				subscribe=res.data;
 				// 是否有存储订阅消息数据
@@ -207,7 +207,7 @@ const getPath = (path) => {
 	 * @param {Any} value - 字段值
 	 * @returns {Object} 处理后的结果 {type, text, urls, files}
 	 */
-	Vue.prototype.$realFieldVal = function(field, value) {
+	Vue.prototype.$realFieldVal = function(field, value,item={}) {
 		// 获取图片基础URL：优先从 vuex_system.domain，其次 baseUrl
 		let domain = '';
 		try {
@@ -215,7 +215,7 @@ const getPath = (path) => {
 		} catch (e) {
 			domain = baseUrl;
 		}
-		return realFieldVal(field, value, domain);
+		return realFieldVal(field, value,item, domain);
 	};
 
 	/**

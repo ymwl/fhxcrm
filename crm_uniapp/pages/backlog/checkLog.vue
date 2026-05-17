@@ -94,7 +94,7 @@
 			},
 			// 获取数据
 			getGroupdata(){
-				this.$u.api.getlogList({
+				this.$u.get('crm.flow.log/index', {
 					flow_id: this.flow_id,
 					types_id: this.logId,
 				}).then(res => {
