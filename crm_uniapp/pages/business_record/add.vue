@@ -126,7 +126,7 @@
 		methods: {
 			// 获取商机详情
 			getData() {
-				this.$u.get('crm.business.index/edit', {
+				this.$u.get('crm.business/edit', {
 					id: this.business_id
 				}).then(res => {
 					if(res.code == 1 ) {

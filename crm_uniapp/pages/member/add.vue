@@ -155,7 +155,6 @@
 				status: 'loadmore',
 				groupName: '',
 				page: 1,
-				pageSize: 10,
 				lastPage: false,
 				adminList: [],
 				selectList: [],
@@ -280,7 +279,7 @@
 				this.$u.get('auth/getGroupdata', {
 					sort_by: 'id',
 					sort_order: 'desc',
-					offset: (pages || 0 ) * this.pageSize,
+					page: pages,
 					limit: this.pageSize,
 					filter: JSON.stringify({username: this.keyword}),
 					op: JSON.stringify({username: 'LIKE'})
@@ -327,7 +326,7 @@
 				this.$u.get('auth/adminList', {
 					sort_by: 'admin_id',
 					sort_order: 'asc',
-					offset: (pages || 0) * this.pageSize,
+					page: pages,
 					limit: this.pageSize,
 					filter: JSON.stringify({username: this.parentKeyword}),
 					op: JSON.stringify({username: 'LIKE'})

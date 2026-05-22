@@ -147,7 +147,7 @@
 			},
 			// 页面数据
 			getProductList(isNextPage,pages) {
-				this.$u.get('crm.product.product/index', {
+				this.$u.get('product/index', {
 					sort_by: 'id',
 					sort_order: 'desc',
 					offset: (pages || 0 ) * this.pageSize,

@@ -74,7 +74,6 @@
 				pH:0, //窗口高度
 				scrollHeight:0, //元素的所需高度
 				page: 1,
-				pageSize: 10,
 				lastPage: false,
 				listStatus: 'loadmore',
 				status: '',
@@ -264,14 +263,14 @@
 			},
 			// 编辑
 			onEdit(id) {
-				this.$u.route('pages/member/setMember',{
+				this.$u.route('pages/member/add',{
 					type: 'edit',
 					id: id
 				});
 			},
 			// 添加
 			onAdd(){
-				this.$u.route('pages/member/setMember',{
+				this.$u.route('pages/member/add',{
 					type: 'add'
 				})
 			},

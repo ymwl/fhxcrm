@@ -32,7 +32,6 @@
 				city_field: '',
 				listStatus: 'loadmore',
 				page: 1,
-				pageSize: 10,
 				keyword: '',
 				lastPage: false,
 				customerList: [],
@@ -75,7 +74,7 @@
 			} else {
 				this.getFields()
 			}
-			this.getData()
+
 		},
 		methods: {
 			// 优化微信小程序input、textarea快速删除时光标会跳到最后 处理：改用 textarea 失去焦点触发修改
@@ -88,7 +87,7 @@
 				this.searchTimer = setTimeout(() => {
 					this.page = 1
 					this.lastPage = false
-					this.getData()
+
 				}, 500)
 			},
 			// 获取联系人详情
@@ -158,55 +157,6 @@
 							this.$refs.uForm.setRules(this.rules);
 						});
 						console.log(this.form, this.rules, this.fields);
-					}
-				})
-			},
-			// 获取客户列表
-			getData(isNextPage,pages) {
-				// 筛选参数
-				let obj = {
-					pageNumber: (pages || 1 ),
-					pageSize: this.pageSize,
-					name: this.keyword,
-					keyField: 'id',
-					showField: 'name',
-					"q_word": this.keyword,
-					"searchField": "name"
-				}
-				if(this.customer_id) {
-					obj = {
-						keyField: 'id',
-						showField: 'name',
-						"q_word": this.customer_id,
-						"searchField": "id"
-					}
-				}
-				this.$u.post('crm.customer.index/selectpage', obj).then(res => {
-					if(res.code == 1 ) {
-						// 最后一页
-						if(res.data.list.length == 0) {
-							this.lastPage = true
-						} 
-						//不够一页
-						if (res.data.list.length < this.pageSize) {
-							this.listStatus = 'nomore'
-						}
-						// 第二页开始
-						if(isNextPage) {
-							this.customerList = this.customerList.concat(res.data.list)
-							return 
-						}
-						this.customerList = res.data.list
-						if(this.customer_id) {
-							this.customerList.forEach((item,index) => {
-								if(this.customer_id == item.id) {
-									item.checked = true
-									this.customerName = item.name
-								} else {
-									item.checked = false
-								}
-							})
-						}
 					}
 				})
 			},

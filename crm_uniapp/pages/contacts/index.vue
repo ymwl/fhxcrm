@@ -117,7 +117,6 @@ export default {
       pH: 0, //窗口高度
       scrollHeight: 0, //元素的所需高度
       page: 1,
-      pageSize: 10,
       lastPage: false,
       listStatus: 'loadmore',
       itemAuth: {edit: 0, delete: 0, sendEmail: 0},
@@ -252,7 +251,7 @@ export default {
         sort_order: this.sort_order,
         scope: this.scope,
         search: this.keyword,
-        offset: (pages || 0) * this.pageSize,
+        page: pages,
         limit: this.pageSize,
         filter: JSON.stringify(filterObj),
         op: JSON.stringify(opObj)

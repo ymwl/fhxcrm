@@ -151,7 +151,6 @@
 				classifyName: '',
 				unitText: '',
 				page: 0,
-				pageSize: 10,
 				lastPage: false,
 				classifyList: [],
 				unitList: [],
