@@ -18,12 +18,12 @@
 			<scroll-view scroll-y class="sv" :style="{height:scrollHeight+'px'}" :scroll-top="scrollTop" @scroll="scroll"  @scrolltolower="reachBottom">
 				<view class="page-box">
 					<block v-if="list.length > 0">
-						<u-checkbox-group @change="checkboxGroupChange">
+						<u-checkbox-group style="width:100%" @change="checkboxGroupChange">
 							<view class="client" v-for="(item, index) in list" :key="index">
 								<view class="top">
 									<view class="left">
 										<view class="store">
-											<u-checkbox 
+											<u-checkbox style="line-height: 1.5;"
 												@change="checkboxChange" 
 												v-model="item.checked" 
 												:name="item.id"
@@ -33,17 +33,18 @@
 									<!-- <view class="right">未成交<u-icon name="arrow-right" color="#FF7159" :size="26"></u-icon></view> -->
 								</view>
 								<view class="item">
-									<view class="content u-flex-1">
-										<view class="title u-line-2">规格：{{item.specification}}</view> 
-										<view class="type">编号：{{item.sku}}</view>
-									</view>
-									<view class="right u-flex-1">
-										<view class="title">库存：{{item.inventory}}</view>
-										<view class="decimal">价格：{{item.price}}</view>
+									<image class="product-thumb" :src="getImgUrl(item.thumb)" mode="aspectFill" v-if="item.thumb"></image>
+									<view class="client-info u-flex-1">
+										<view class="info-row"><text class="label">分类：</text><text class="value">{{item.type ? item.type.title : '--'}}</text></view>
+										<view class="info-row"><text class="label">型号：</text><text class="value">{{item.model || '--'}}</text></view>
+										<view class="info-row"><text class="label">规格：</text><text class="value">{{item.specification || '--'}}</text></view>
+										<view class="info-row"><text class="label">售价：</text><text class="value price-sale">¥{{item.sale_price}}</text></view>
+										<view class="info-row"><text class="label">成本：</text><text class="value price-cost">¥{{item.cost_price}}</text></view>
+										<view class="info-row"><text class="label">库存：</text><text :class="item.inventory <= item.min_warning ? 'value stock-warn' : 'value stock-ok'">{{item.inventory}}</text></view>
 									</view>
 								</view>
 								<view class="bottom">
-									<view class="client_time">添加时间: {{item.create_time}}</view>
+									<view class="client_time">添加时间: {{item.create_time_text}}</view>
 									<view class="u-flex">
 										<view class="btn u-m-l-15 entity" :style="{backgroundColor: vuex_theme.color,}" @click.stop="onSelect(item,index)">{{item.checked ? '取消':'选择'}}</view>
 									</view>
@@ -56,7 +57,7 @@
 				</view>
 			</scroll-view>
 			<view class="bottom_btn u-border-top">
-				<u-button size="medium" @click="selected = true">查看已选</u-button> 
+<!--				<u-button size="medium" @click="selected = true">查看已选</u-button> -->
 				<u-button class="u-m-l-15" type="primary"  @click="chosen" size="medium" :custom-style="{backgroundColor: vuex_theme.color, color: vuex_theme.bgColor}" :ripple="true">选好了</u-button>
 			</view>
 		</view>
@@ -115,12 +116,14 @@
 				dx: 0,
 				pH:0, //窗口高度
 				scrollHeight:0, //元素的所需高度
-				page: 0,
+				page: 1,
 				pageSize: 10,
 				lastPage: false,
 				listStatus: 'loadmore',
 				status: '',
 				order_id: '',
+				source: '',
+				preSelected: [],
 			};
 		},
 		filters: {
@@ -147,6 +150,22 @@
 			})
 		},
 		onLoad(e) {
+			if (e.source) {
+				this.source = e.source;
+			}
+			// 支持通过 URL 参数 pre_selected 传入已选产品 ID 列表（JSON 数组字符串）
+			if (e.pre_selected) {
+				try {
+					this.preSelected = JSON.parse(decodeURIComponent(e.pre_selected));
+				} catch (err) {
+					this.preSelected = [];
+				}
+			}
+			// 恢复 Vuex 中已选的产品（支持多次进出选择页追加模式）
+			if (!this.$u.test.isEmpty(this.vuex_selectProduct)) {
+				const existing = Array.isArray(this.vuex_selectProduct) ? this.vuex_selectProduct : [];
+				this.selectList = [...existing];
+			}
 			if(e.status) {
 				this.status = e.status;
 				switch (e.status) {
@@ -169,6 +188,7 @@
 			
 		},
 		methods: {
+			getImgUrl,
 			// 选中某个复选框时，由checkbox时触发
 			checkboxChange(e) {
 				this.checked = false 
@@ -251,10 +271,22 @@
 			},
 			// 选好了
 			chosen() {
-				// 储存
-				this.$u.vuex('vuex_selectProduct', this.selectList)
-				// console.log(this.vuex_selectProduct)
-				// 安全返回上一页
+				// 标准化输出数据格式，确保各调用页面能统一消费
+				const normalizedList = this.selectList.map(item => ({
+					id: item.id,
+					name: item.name || '',
+					specification: item.specification || '',
+					model: item.model || '',
+					cost_price: item.cost_price || 0,
+					sale_price: item.sale_price || 0,
+					nums: item.nums || 1,
+					discount: item.discount || 0,
+					remarks: item.remarks || '',
+					thumb: item.thumb || '',
+					inventory: item.inventory || 0,
+					type: item.type || null,
+				}))
+				this.$u.vuex('vuex_selectProduct', normalizedList)
 				const pages = getCurrentPages();
 				if (pages.length <= 1) {
 					uni.switchTab({ url: '/pages/index/index' });
@@ -272,16 +304,19 @@
 			},
 			// 页面数据
 			getProductList(isNextPage,pages) {
-				this.$u.get('crm.product.product/index', {
+				this.$u.get('product/index', {
 					sort_by: 'id',
 					sort_order: 'desc',
-					offset: (pages || 0 ) * this.pageSize,
+					page: pages,
 					limit: this.pageSize,
 					search:this.keyword,
 				}).then(res => {
+					console.log(res.data);
+					
 					if(res.code == 1 ) {
-						res.data.rows.forEach((item,index)=>{
-							item.create_time = this.timeFormats(item.create_time)
+						res.data.forEach((item,index)=>{
+							// 保留原始时间戳，仅添加格式化显示字段
+							item.create_time_text = this.timeFormats(item.create_time)
 							item.checked = false
 							// 设置默认数据
 							item.nums = 1
@@ -293,20 +328,21 @@
 							})
 						})
 						// 不够一页
-						if (res.data.rows.length < 10) {
+						if (res.data.length < 10) {
 							this.listStatus = 'nomore'
 						}
 						// 最后一页
-						if(res.data.rows.length == 0) {
+						if(res.data.length == 0) {
 							this.lastPage = true
 						} 
 						// 第二页开始
 						if(isNextPage) {
-							this.list = this.list.concat(res.data.rows)
+							this.list = this.list.concat(res.data)
+              console.log(this.list);
 							return 
 						}
-						this.list = res.data.rows
-						// console.log(this.list)
+						console.log(this.list);
+						this.list = res.data
 					}
 				})
 			},
@@ -358,15 +394,22 @@
 	box-sizing: border-box;
 	padding: 20rpx;
 	font-size: 28rpx;
+  width: 100%;
 	.top {
 		display: flex;
 		justify-content: space-between;
+		overflow: hidden;
 		.left {
 			display: flex;
 			align-items: center;
+			flex: 1;
+			min-width: 0;
+			overflow: hidden;
 			.store {
 				font-size: 28rpx;
 				font-weight: bold;
+				overflow: hidden;
+				text-overflow: ellipsis;
 			}
 		}
 		.right {
@@ -392,27 +435,80 @@
 		display: flex;
 		align-items: center;
 		margin: 20rpx 0 0;
-		.content {
-			font-size: 28rpx;
-			.title {
-				line-height: 50rpx;
-			}
-			.type {
-				margin: 10rpx 0;
-				// color: $u-tips-color;
+		overflow: hidden;
+		.product-thumb {
+			width: 120rpx;
+			height: 120rpx;
+			border-radius: 10rpx;
+			margin-right: 15rpx;
+			flex-shrink: 0;
+			background-color: #f5f5f5;
+		}
+		.client-info {
+			min-width: 0;
+			overflow: hidden;
+			.info-row {
+				float: left;
+				min-width: 50%;
+				align-items: flex-start;
+				line-height: 36rpx;
+				font-size: 26rpx;
+				box-sizing: border-box;
+				padding-right: 20rpx;
+				.label {
+					flex-shrink: 0;
+					color: #999;
+					min-width: 140rpx;
+				}
+				.value {
+					flex: 1;
+					color: #333;
+					word-break: break-all;
+					&.price-sale {
+						font-size: 28rpx;
+						font-weight: 700;
+						color: #fa3534;
+					}
+					&.price-cost {
+						font-size: 22rpx;
+						color: $u-tips-color;
+					}
+					&.stock-ok {
+						font-size: 24rpx;
+						color: #18a058;
+					}
+					&.stock-warn {
+						font-size: 24rpx;
+						color: #fa3534;
+						font-weight: 600;
+					}
+				}
 			}
 		}
 		.right {
 			margin-left: 10rpx;
-			.title {
-				line-height: 50rpx;
+			text-align: right;
+			min-width: 140rpx;
+			flex-shrink: 0;
+			.price-sale {
+				font-size: 28rpx;
+				font-weight: 700;
+				color: #fa3534;
+				line-height: 40rpx;
 			}
-			.decimal {
-				margin: 10rpx 0;
-			}
-			.number {
+			.price-cost {
+				font-size: 22rpx;
 				color: $u-tips-color;
+				margin: 2rpx 0 6rpx;
+			}
+			.stock-ok {
 				font-size: 24rpx;
+				color: #18a058;
+			}
+			.stock-warn {
+				font-size: 24rpx;
+				color: #fa3534;
+				font-weight: 600;
 			}
 		}
 	}
@@ -432,6 +528,8 @@
 		.client_time {
 			color: #777;
   		font-size: 26rpx;
+			flex-shrink: 0;
+			margin-right: 20rpx;
 		}
 		.btn {
 			line-height: 60rpx;
@@ -440,6 +538,7 @@
 			font-size: 26rpx;
 			text-align: center;
 			color: $u-type-info-dark;
+			flex-shrink: 0;
 		}
 		.sky {
 			color: #FF6146;
