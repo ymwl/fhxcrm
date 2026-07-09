@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="container" >
 		<view class="wrap">
 			<!-- 排序 -->
@@ -51,8 +51,10 @@
 </template>
 
 <script>
-	import { processingImages,getImgUrl} from '@/common/mUtils'
+import { tools } from '@/common/fa.mixin.js'
+	
 	export default {
+	mixins: [tools],
 		data() {
 			return {
 				searchTimer: null,
@@ -86,8 +88,7 @@
 				dx: 0,
 				pH:0, //窗口高度
 				scrollHeight:0, //元素的所需高度
-				page: 0,
-				pageSize: 20,
+				page: 1,
 				lastPage: false,
 				listStatus: 'loadmore',
 			};
@@ -96,7 +97,7 @@
 			//图片地址url 拼接
 			changImg(val) {
 				if (val) {
-					return getImgUrl(val)
+					return this.cdnurl(val)
 				} else {
 					return '' 
 				}
@@ -200,7 +201,7 @@
 				this.$u.get('crm.customer.index/reduplicate',{
 					sort_by: this.sort_by,
 					sort_order: 'desc',
-					offset: (pages || 0 ) * this.pageSize,
+					page: pages,
 					limit: this.pageSize,
 					filter: JSON.stringify( this.keyword ? filterObj : {}),
 					op: JSON.stringify( this.keyword ? opObj : {})
@@ -291,19 +292,19 @@
 			},
 			// 查看客户详情
 			onItem(val) {
-				this.$u.route('pages/client/customerDetails',{
+				this.$u.route('pages/customer/customerDetails',{
 					id: val.id
 				});
 			},
 			// 跟进
 			follow(id) {
-				this.$u.route('pages/client/followUp',{
+				this.$u.route('pages/customer/followUp',{
 					id: id
 				});
 			},
 			// 添加客户
 			onAdd(){
-				this.$u.route('pages/client/clientSet/clientSet',{type:'add'})
+				this.$u.route('pages/customer/add',{type:'add'})
 			},
 		},
 	}
@@ -311,7 +312,7 @@
 
 <style lang="scss">
 .container {
-	background-color: #F7F7F7;
+	background-color: #F3F3F3;
 	// min-height: 100vh;
 }
 .slot-wrap {
@@ -424,7 +425,7 @@
 		}
 		.sky {
 			color: #FF6146;
-			background-color: #F7F7F7;
+			background-color: #F3F3F3;
 		}
 		.entity {
 			color: #fff;
@@ -475,7 +476,7 @@
 .floatBtn {
 	font-size: 23rpx;
 	bottom: 100px;
-	right: 10px;
+  left: 10px;
 	border-radius: 5000px;
 	z-index: 9;
 	opacity: 1;
