@@ -10,7 +10,7 @@
         background: transparent;
     }
 </style>
-<div class="layuimini-container" id="app" v-cloak>
+<div class="layuimini-container">
     <form id="app-form" class="layui-form layuimini-form">
         <div class="layui-row form-readonly">
 
@@ -38,7 +38,7 @@
                 <div class="layui-form-item">
                     <label class="layui-form-label">关联客户</label>
                     <div class="layui-input-block">
-                       <a href="javascript:void(0)" class="layui-input">{$row['crmCustomer']['name']}</a>
+                       <a href="javascript:void(0)" class="layui-input">{$row['crmCustomer']['name']|default=''}</a>
                     </div>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                 <div class="">
                     <label class="layui-form-label">合同生效时间</label>
                     <div class="layui-input-block">
-                        <input type="text"  class="layui-input"   value="{:date('Y-m-d H:i',$row['start_time'])}" readonly>
+                        <input type="text"  class="layui-input"   value="{:date('Y-m-d',$row['start_time'])}" readonly>
                     </div>
                 </div>
             </div>
@@ -105,7 +105,7 @@
                 <div class="layui-form-item">
                     <label class="layui-form-label">合同到期时间</label>
                     <div class="layui-input-block">
-                        <input type="text" class="layui-input" value="{:date('Y-m-d H:i',$row['end_time'])}" readonly>
+                        <input type="text" class="layui-input" value="{:date('Y-m-d',$row['end_time'])}" readonly>
                     </div>
                 </div>
             </div>
@@ -130,14 +130,14 @@
 
     </form>
 
-    <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+    <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12" id="app" v-cloak>
 
 
 
         <div class="layui-tab" lay-filter="tabMore">
             <ul class="layui-tab-title">
                 <li class="layui-this">产品明细</li>
-                <li data-value="contract_receivables" data-open="{:myurl('crm.contract_receivables/index',['contract_id'=>$row['id']])}" data-title="关于客户【{$crmCustomer['name']}】合同【{$row['name']}】收款">合同收款</li>
+                <li data-value="contract_receivables" data-open="{:myurl('crm.contract_receivables/index',['contract_id'=>$row['id']])}" data-title="关于客户【{$crmCustomer['name']|default=''}】合同【{$row['name']}】收款">合同收款</li>
                 <li>回款计划</li>
                 <li>审批信息</li>
             </ul>
@@ -261,7 +261,7 @@ if($row['check_status']==0){
                                 <ul class="layui-timeline flow-record pt-2">
                                     <?php
 $list=\think\facade\Db::name('audit_management')->field('m.mess,m.createtime,m.audittime
-                                    ,m.result,m.result_mess,m.reviewer')->alias('m')->where('m.table_id',$row['id'])->where('m.table_name','crm_contract_receivables')->order('m.id desc')->select();
+                                    ,m.result,m.result_mess,m.reviewer')->alias('m')->where('m.table_id',$row['id'])->where('m.table_name','crm_contract')->order('m.id desc')->select();
                                     foreach($list as $v){
 
                                     ?>
