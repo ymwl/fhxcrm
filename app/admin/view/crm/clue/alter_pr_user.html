@@ -1,0 +1,30 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Clue')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="id" disabled data-toggle="selectPage" class="layui-input" data-source='<?php echo json_encode($cus_lst,256); ?>'  data-field="name"  data-format-item="{name}"  data-multiple="true"    data-primary-key="id"   value="{$ids}" >
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Responsible Person')}</label>
+            <div class="layui-input-block" >
+                <input type="text" name="username" data-toggle="selectPage" class="layui-input" data-source='<?php echo json_encode($adminResult,256); ?>'  data-field="username"  data-format-item="{username}"  data-multiple="true"    data-primary-key="username">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">分配方式</label>
+            <div class="layui-input-block" >
+                <select  name="type" >
+                    <option value="1">平均分配</option>
+                    <option value="2">随机分配</option>
+                </select>
+            </div>
+        </div>
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+    </form>
+</div>

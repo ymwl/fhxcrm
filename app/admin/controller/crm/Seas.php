@@ -22,7 +22,7 @@ class Seas  extends AdminController{
             $this->error('请选择客户');
         }
 
-        $res=$this->getGrabCount();
+        $res = \app\service\CrmCustomerService::getGrabCount($this->system, $this->admin['admin_id']);
         if(!$res['code']){
             $this->error($res['msg']);
 

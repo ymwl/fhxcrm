@@ -18,7 +18,7 @@ class System extends Common
             $smtp = Db::name('config')->where('inc_type','smtp')->select();
             $info = convert_arr_kv($smtp,'name','value');
             View::assign('info', json_encode($info,true));
-            return View::fetch();
+            return $this->fetch();
         }
     }
     public function trySend(){

@@ -1,0 +1,47 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <input type="hidden" name="clue_id" value="{$clue_id}">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Follow-up content')}</label>
+            <div class="layui-input-block">
+                <textarea name="content" class="layui-textarea" lay-verify="required" placeholder="{:fy('Please enter follow-up content')}"></textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Follow-up type')}</label>
+            <div class="layui-input-block">
+                <select name="record_type">
+                    <option value="">{:fy('Please select')}</option>
+                    {volist name='recordTypes' id='vo'}
+                    <option value="{$vo.name}">{$vo.name}</option>
+                    {/volist}
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Next follow-up time')}</label>
+            <div class="layui-input-block">
+                <input type="text" name="next_time"  class="layui-input datetime"  data-date="yyyy-MM-dd HH:mm" lay-verify="required" id="next_time" placeholder="{:fy('Please select next follow-up time')}" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Attachments')}</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="attachs" class="layui-input layui-col-xs6" placeholder="{:fy('Please upload attachments')}" value="">
+                <div class="layuimini-upload-btn">
+                    <a class="layui-btn" data-upload="attachs" data-upload-number="one" data-upload-exts="jpg,png,gif,jpeg,webp,bmp,doc,docx,xls,xlsx,pdf,txt,rar,zip,ppt,pptx" data-upload-accept="file"><i class="fa fa-upload"></i> {:fy('Upload')}</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+    </form>
+</div>

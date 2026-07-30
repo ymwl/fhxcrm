@@ -26,6 +26,15 @@ return [
             // 序列化机制 例如 ['serialize', 'unserialize']
             'serialize'  => [],
         ],
+        // 跨应用共享文件缓存（admin与api应用runtime缓存目录相互隔离，扫码登录等跨应用数据用此通道）
+        'share' => [
+            'type'   => 'File',
+            'path'   => root_path() . 'runtime/cache/share/',
+            'prefix' => '',
+            'expire' => 0,
+            'tag_prefix' => 'tag:',
+            'serialize'  => [],
+        ],
         // 更多的缓存连接
     ],
 ];

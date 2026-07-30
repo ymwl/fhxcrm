@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
+    <title>xm-select</title>
+</head>
+<body>
+<div id="demo1"></div>
+<script type="text/javascript" src="./xm-select.js"></script>
+<script type="text/javascript">
+    var demo1 = xmSelect.render({
+        el: '#demo1',
+        language: 'zn',
+        data: [
+            {name: '张三', value: 1},
+            {name: '李四', value: 2},
+            {name: '王五', value: 3},
+        ]
+    })
+
+    "object" === ("undefined" == typeof exports ? "undefined" : _typeof(exports)) ? e.exports = t.c : "function" == typeof define && n(221) ? define(xmSelect) : window.layui && layui.define && layui.define((function (e) {
+        e("xmSelect", t.c)
+    }))
+
+    "object" === ("undefined" == typeof exports ? "undefined" : _typeof(exports)) ? e.exports = t.c : "function" == typeof define && n(221) ? define(function () {
+        return t.c
+    }) : window.layui && layui.define && layui.define((function (e) {
+        e("xmSelect", t.c)
+    }))
+</script>
+
+</body>
+</html>

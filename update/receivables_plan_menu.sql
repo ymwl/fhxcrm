@@ -30,7 +30,7 @@ VALUES ('crm.contract_receivables_plan/delete', '删除', @plan_menu_id, 1, 1, 3
 
 -- 插入子权限（查看详情）
 INSERT INTO `ymwl_auth_rule` (`href`, `title`, `pid`, `type`, `status`, `sort`, `authopen`, `menustatus`) 
-VALUES ('crm.contract_receivables_plan/desc', '查看', @plan_menu_id, 1, 1, 4, 1, 0);
+VALUES ('crm.contract_receivables_plan/detail', '查看', @plan_menu_id, 1, 1, 4, 1, 0);
 
 -- 插入子权限（导出）
 INSERT INTO `ymwl_auth_rule` (`href`, `title`, `pid`, `type`, `status`, `sort`, `authopen`, `menustatus`) 

@@ -9,6 +9,10 @@
 .env
 .env.local
 
+# 离线授权文件（客户现场生成，不随源码发布）
+/license.php
+config/license.dat
+
 # IDE 配置
 .codebuddy/
 .idea/
@@ -33,7 +37,9 @@ Thumbs.db
 
 # Node 模块
 node_modules/
+#个人开发笔记
 md/
+update/
 
 # 构建输出
 crm_uniapp/unpackage/
@@ -48,3 +54,21 @@ auto-commit.bat
 auto-commit-watcher.ps1
 
 git.md
+
+# 插件目录（本地独立版本控制）
+addons/
+
+# API模块（手机端接口，不发布到线上）
+app/api/
+/api.php
+public/api.php
+
+# 手机端uniapp项目
+crm_uniapp/
+
+# 上传目录
+public/upload/
+public/temp/
+
+# Qoder AI 配置
+.qoder/

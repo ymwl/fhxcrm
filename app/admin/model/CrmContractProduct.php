@@ -4,7 +4,7 @@ namespace app\admin\model;
 
 use think\Model;
 
-class CrmBusinessProduct extends Model
+class CrmContractProduct extends Model
 {
 
 

@@ -53,11 +53,9 @@ $typeList=think\facade\Db::name('crm_record_type')->field('`id`,`name`')->where(
                         </div>
                     </div>
                     <div class="layui-form-item layui-form-text">
-                        <label class="layui-form-label"> {:fy('Next follow-up time')}:</label>
+                        <label class="layui-form-label"> {:fy('Next follow-up time')}7:</label>
                         <div class="layui-input-inline">
-
-                            <input  lay-verify="required"  type="text"   class="layui-input" name="next_time" autocomplete="off" value="{:date('Y-m-d H:i:s',strtotime('+1 day'))}">
-
+                            <input  lay-verify="required"  type="text"  data-date="yyyy-MM-dd HH:mm"  class="layui-input" name="next_time" autocomplete="off" value="{:date('Y-m-d H:i',strtotime('+1 day'))}">
                         </div>
                     </div>
                     <div class="layui-form-item text-center">

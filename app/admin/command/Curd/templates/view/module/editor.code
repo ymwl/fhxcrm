@@ -1,7 +1,8 @@
 
         <div class="layui-form-item">
-            <label class="layui-form-label">{{comment}}</label>
+            <label class="layui-form-label" title="{{comment}}">{{comment_short}}</label>
             <div class="layui-input-block">
                 <textarea name="{{field}}" rows="20" class="layui-textarea editor" {{comment}} placeholder="请输入{{comment}}">{{value}}</textarea>
+                {{comment_hint}}
             </div>
         </div>

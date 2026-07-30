@@ -30,7 +30,7 @@ class Log extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
 //            不是管理员只能看到自己的
             if($this->admin['group_id']>1){
                 $where[]=['admin_id','=',$this->admin['admin_id']];
@@ -43,13 +43,13 @@ class Log extends AdminController
                 $list = $this->model
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
             }
 
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,

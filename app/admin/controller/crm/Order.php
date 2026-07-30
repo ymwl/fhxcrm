@@ -12,7 +12,7 @@ class Order extends AdminController {
     {
         parent::__construct($app);
 
-        $this->model = new \app\admin\model\CrmClientOrder();
+        $this->model = new \app\admin\model\CrmOrder();
 
     }
 
@@ -21,11 +21,11 @@ class Order extends AdminController {
         $customer_id=$this->request->param('customer_id',0);
 //        判断当前的登录者是否有操作权限
         if($customer_id){
-            $pr_user=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('pr_user');
-            if(empty($pr_user)){
+            $owner_admin_id=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('owner_admin_id');
+            if(empty($owner_admin_id)){
                 $this->error('当前客户不存在或已移入公海！');
             }
-            $this->modifyPermissionsByName($pr_user);
+            $this->modifyPermissionsByIds($owner_admin_id);
         }
         if($this->request->isAjax()){
             if (input('selectFields')) {
@@ -35,6 +35,43 @@ class Order extends AdminController {
             if($customer_id){
                 $where[]=['customer_id','=',$customer_id];
             }
+            $scope=$this->request->get('scope', 1,'trim');
+
+            if($scope==2){
+//                    展示其他的  不包括自己 owner_admin_id
+                $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+                if (empty($adminIds)) {
+                    return json([
+                        'code'  => 1,
+                        'msg'   => '',
+                        'count' => 0,
+                        'data'  => [],
+                    ]);
+                }
+                if ($adminIds !== 'ALL') {
+                    $where[] = ['owner_admin_id', 'in', $adminIds];
+                }else{
+                    $where[] = ['owner_admin_id', '<>', $this->admin['admin_id']];
+                }
+
+            }elseif($scope==3){
+//                    展示全部 包括自己
+                $adminIds = \app\service\AdminService::getViewAdminIds($this->admin, true);
+                if (empty($adminIds)) {
+                    return json([
+                        'code'  => 1,
+                        'msg'   => '',
+                        'count' => 0,
+                        'data'  => [],
+                    ]);
+                }
+                if ($adminIds !== 'ALL') {
+                    $where[] = ['owner_admin_id', 'in', $adminIds];
+                }
+            }else{
+//                   限制展示自己的
+                $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
+            }
             $count = $this->model
                 ->where($where)
                 ->count();
@@ -48,7 +85,7 @@ class Order extends AdminController {
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -56,7 +93,7 @@ class Order extends AdminController {
             return json($data);
         }
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `show`=1 AND `table`='crm_client_order' AND `jscol` is not null order BY `sort` ASC,id ASC");
+        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `list`=1 AND `table`='crm_order' AND `jscol` is not null order BY `sort` ASC,id ASC");
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=$v['jscol'].',';
@@ -69,97 +106,40 @@ class Order extends AdminController {
         $fields_str=str_replace(['":"{"','"}"'],['":{"','"}'],$fields_str);
 
         $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
-
-        //查询所有管理员（去除admin）
-        $adminResult = Db::name('admin')->where('group_id','<>', 1)->field('admin_id,username')->select();
+        $adminResult = Db::name('admin')->where('is_open','=', 1)->field('admin_id,username')->select();
         View::assign('adminResult',$adminResult);
 
         $this->assignconfig('statusList',$this->model->getStatusList());
         $this->assignconfig(['customer_id'=>$customer_id]);
-        return View::fetch();
+        return $this->fetch();
     }
-
-    //订单列表
-    public function personindex(){
-        if($this->request->isAjax()){
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
-            list($page, $limit, $where,$sort) = $this->buildTableParames();
-            $where[]=['pr_user','=',$this->admin['username']];
-            $count = $this->model
-                ->where($where)
-                ->count();
-            $list=[];
-            if($count){
-                $list = $this->model
-                    ->where($where)
-                    ->page($page, $limit)
-                    ->order($sort)
-                    ->select();
-            }
-            $data = [
-                'code'  => 0,
-                'msg'   => '',
-                'count' => $count,
-                'data'  => $list,
-            ];
-            return json($data);
-        }
-        $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `show`=1 AND `table`='crm_client_order' AND `jscol` is not null order BY `sort` ASC,id ASC");
-        $fields_str='';
-        foreach ($fields as $v){
-            $fields_str.=$v['jscol'].',';
-        }
-        $this->app->view->engine()->layout(false);
-        $fields_str=$this->display(trim($fields_str,','));
-
-        $this->app->view->engine()->layout($this->layout);
-        $fields_str=str_replace(['":"{"','"}"'],['":{"','"}'],$fields_str);
-
-        $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
-
-        //查询所有管理员（去除admin）
-        $adminResult = Db::name('admin')->where('group_id','<>', 1)->field('admin_id,username')->select();
-        View::assign('adminResult',$adminResult);
-
-        $this->assignconfig('statusList',$this->model->getStatusList());
-        return View::fetch();
-    }
-
 
     //新建订单号
     public function add(){
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`addinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`addinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_order" order BY `sort` ASC,id ASC');
         if($this->request->isPost()){
 
             $data=$this->request->post();
             $data=$this->param_to_str($data);
-            $this->verifyFields($data,$fields,'crm_client_order');
+            $this->verifyFields($data,$fields,'crm_order');
 
-            if(empty($data['owner_admin_id'])){
-                $this->error('订单负责人必须指定');
-            }
-            if(empty($data['pr_user'])){
-                $data['pr_user'] = \think\facade\Db::name('admin')->where('admin_id',$data['owner_admin_id'])->value('username');
-            }
+            $data['owner_admin_id']=$this->admin['admin_id'];
+            $data['pr_user']=$this->admin['username'];
+
             $data['create_time']=$data['update_time'] = time();
             $data['status'] = 0;
 
 
             Db::startTrans();
             try {
-                $data=post_convert($data,$fields);
-            $crmClientOrderModel=new \app\admin\model\CrmClientOrder();
-            //$crmClientOrderModel->getTableFields() 获取表字段
+                $data=post_convert($data,$fields,'add');
+            $crmClientOrderModel=new \app\admin\model\CrmOrder();
                $customerInfo= \think\facade\Db::name('crm_customer')->field('name,phone')->where('id','=',$data['customer_id'])->find();
                if(empty($customerInfo)){
                    $this->error('Customer does not exist');
                }
-                $data['cname']=$customerInfo['name'];
-                $data['cphone']=$customerInfo['phone'];
+                $data['cname'] = $customerInfo['name'];
                 $data=array_intersect_key($data, array_flip($crmClientOrderModel->getTableFields()));
             $id=$crmClientOrderModel->insertGetId($data);
 
@@ -168,12 +148,14 @@ class Order extends AdminController {
                     'title'=>'Order review',
                     'event'=>'Add Order',
                     'mess'=>$this->admin['username'].'添加订单'.$data['orderno'],
-                    'url'=>'crm.order/editAudit.html?id='.$id,
+                    'url'=>'crm.order/audit.html?id='.$id,
                     'createtime'=>time(),
                     'result'=>'To be reviewed',
-                    'table_name'=>'crm_client_order',
+                    'create_username'=>$this->admin['username'],
+                    'create_admin_id'=>$this->admin['admin_id'],
+                    'table_name'=>'crm_order',
                     'table_id'=>$id,
-                    'show_auth_group_id'=>actiongroup('crm.order/editAudit'),
+                    'auditor_group_ids'=>actiongroup('crm.order/audit'),
                 ]);
                 $this->model->where('id','=',$id)->update(['audit_management_id'=>$audit_management_id]);
                 $msg = ['code' => 1,'msg'=>fy('Submitted successfully').'！','data'=>[]];
@@ -206,10 +188,18 @@ class Order extends AdminController {
         View::assign('admin',$this->admin);
 
         $customer_id=$this->request->param('customer_id',0,'intval');
+        $row_customer=[];
+        if($customer_id){
+            $row_customer=\think\facade\Db::name('crm_customer')->field('name,phone,owner_admin_id,contact,area,address')->where('id','=', $customer_id)->find();
+            if(!empty($row_customer['owner_admin_id']) && $row_customer['owner_admin_id']>0){
+                $this->modifyPermissionsByIds($row_customer['owner_admin_id']);
+            }
+        }
         $orderno=$this->model->autoNo($this->system['order_format']);
         $this->assign(['orderno'=>$orderno]);
+        $this->assign(['row_customer'=>$row_customer]);
         View::assign('customer_id',$customer_id);
-        return View::fetch();
+        return $this->fetch();
     }
 
     public function create_orderno(){
@@ -217,31 +207,31 @@ class Order extends AdminController {
         $this->success('生成成功','',['numbering'=>$numbering]);
     }
 //我的订单编辑
-    public function myedit(){
-        $id=$this->request->param('id',0,'intval');
+    public function edit($id){
         if(!$id){
-            $msg = ['code' => -200,'msg'=>fy('Wrong request parameters').'!','data'=>[]];
-            return json($msg);
+            $this->error(fy('Wrong request parameters').'!');
         }
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" order BY `sort` ASC,id ASC');
-        $result = $this->model ->where(['id' => $id])->where('pr_user','=',$this->admin['username'])->find();
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_order" order BY `sort` ASC,id ASC');
+        $result = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','owner_admin_id','pr_user','status','customer_id','orderno','ccontact','cphone','cname','address','money','freight','remark']))) ->where(['id' => $id])->where('pr_user','=',$this->admin['username'])->find();
         if(empty($result)){
-            $msg = ['code' => -200,'msg'=>fy('The order does not exist').'！','data'=>[]];
-            return json($msg);
+            $this->error(fy('The order does not exist').'！');
+
         }
         if($result['status']!==-1){
-            $msg = ['code' => -200,'msg'=>fy('The current order status cannot be edited'),'data'=>[]];
-            return json($msg);
+            $this->error(fy('The current order status cannot be edited'));
         }
+//
+        $this->modifyPermissionsByIds($result['owner_admin_id']);
+
 
         if($this->request->isPost()){
 
             $data=$this->request->post();
             $data=$this->param_to_str($data);
-            $this->verifyFields($data,$fields,'crm_client_order');
+            $this->verifyFields($data,$fields,'crm_order');
             foreach ($fields as $v){
-                if($v['edit_readonly']){
+                if($v['edit']){
 //                    只读的数据无需保存
                     unset($data[$v['field']]);
                 }
@@ -250,14 +240,13 @@ class Order extends AdminController {
             $data['status'] = 0;
             unset($data['id']);
 
-            $crmClientOrderModel=new \app\admin\model\CrmClientOrder();
+            $crmClientOrderModel=new \app\admin\model\CrmOrder();
             $data=post_convert($data,$fields);
             $customerInfo= \think\facade\Db::name('crm_customer')->field('name,phone')->where('id','=',$data['customer_id'])->find();
             if(empty($customerInfo)){
                 $this->error('Customer does not exist');
             }
-            $data['cname']=$customerInfo['name'];
-            $data['cphone']=$customerInfo['phone'];
+            $data['cname'] = $customerInfo['name'];
             $crmClientOrderModel->update($data,['id'=>$id],$crmClientOrderModel->getTableFields());;
 
             $audit_management_id=Db::name('audit_management')->insertGetId([
@@ -266,17 +255,17 @@ class Order extends AdminController {
 
                 'mess'=>$this->admin['username'].'编辑订单'.$data['orderno'],
 
-                'url'=>'crm.order/editAudit.html?id='.$id,
+                'url'=>'crm.order/audit.html?id='.$id,
                 'createtime'=>time(),
                 'result'=>'To be reviewed',
-                'table_name'=>'crm_client_order',
+                'table_name'=>'crm_order',
                 'table_id'=>$id,
-                'admin_id'=>$this->admin['admin_id'],
-                'show_auth_group_id'=>actiongroup('crm.order/editAudit'),
+                'create_username'=>$this->admin['username'],
+                'create_admin_id'=>$this->admin['admin_id'],
+                'auditor_group_ids'=>actiongroup('crm.order/audit'),
             ]);
             $this->model->where('id','=',$id)->update(['audit_management_id'=>$audit_management_id]);
-            $msg = ['code' => 1,'msg'=>fy('Edit successfully'),'data'=>[]];
-            return json($msg);
+            $this->success(fy('Edit successfully'));
         }
         $fields_str='';
         foreach ($fields as $v){
@@ -287,7 +276,7 @@ class Order extends AdminController {
         $this->app->view->engine()->layout($this->layout);
         $this->assign('fields_str', $fields_str);
 
-        $userlist = \think\facade\Db::name('admin')->where('group_id','<>', 1)->field('admin_id,username')->select();
+        $userlist = \think\facade\Db::name('admin')->where('is_open','=', 1)->field('admin_id,username')->select();
         View::assign('result',$result);
         View::assign('userlist',$userlist);
 
@@ -295,7 +284,7 @@ class Order extends AdminController {
         return View::fetch('edit');
     }
 
-    public function desc(){
+    public function detail(){
         $id=$this->request->param('id',0,'intval');
         if(!$id){
             $msg = ['code' => -200,'msg'=>fy('Wrong request parameters').'!','data'=>[]];
@@ -306,10 +295,11 @@ class Order extends AdminController {
             $msg = ['code' => -200,'msg'=>fy('The order does not exist').'！','data'=>[]];
             return json($msg);
         }
+        $this->modifyPermissionsByIds($result['owner_admin_id']);
 
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" AND `editinput` is not null order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_order" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
@@ -319,13 +309,13 @@ class Order extends AdminController {
         $this->app->view->engine()->layout($this->layout);
         $this->assign('fields_str', $fields_str);
 
-        $userlist = \think\facade\Db::name('admin')->where('group_id','<>', 1)->field('admin_id,username')->select();
+        $userlist = \think\facade\Db::name('admin')->where('is_open','=', 1)->field('admin_id,username')->select();
         View::assign('result',$result);
         View::assign('userlist',$userlist);
 
         View::assign('username',$this->admin['username']);
         $this->assign('statusList',$this->model->getStatusList());
-        return View::fetch('desc');
+        return $this->fetch();
     }
     public function changeyewu(){
         if($this->request->isAjax()){
@@ -352,28 +342,13 @@ class Order extends AdminController {
             $this->success($res);
         }
     }
+
+
     //删除订单
-    public function del(){
-        $id = Request::param('id');
-//        判断是不是管理员组做删除
-            // 对应的客户修改状态
-            $orderinfo = $this->model->field('customer_id')->where('id',$id)->find();
-            $customer_id = $orderinfo['customer_id'];
-        change_success_customer($customer_id);
-            $result = $this->model->where('id',$id)->delete();
-//            如果删除了则没有审核完成的标记为完成
-        Db::name('audit_management')->where('table_id',$id)->where('is_finish',0)->where('table_name','crm_client_order')->update(['is_finish'=>1]);
-        if ($result){
-            $this->success(fy('Delete succeeded'));
-        }else{
-            $this->error(fy('Delete failed'));
 
-        }
-
-    }
 
     //我的订单删除
-    public function mydel(){
+    public function delete(){
         $id = Request::param('id');
          // 对应的客户修改状态
             $orderinfo = $this->model->field('customer_id')->where('id','=',$id)->where('pr_user','=',$this->admin['username'])->find();
@@ -381,10 +356,10 @@ class Order extends AdminController {
                 $this->error(fy('The order you want to delete does not exist, or does not belong to you'));
             }
             $customer_id = $orderinfo['customer_id'];
-        change_success_customer($customer_id);
-        $result = \think\facade\Db::name('crm_client_order')->where('id',$id)->delete();
+        \app\service\CrmCustomerService::change_success_customer($customer_id);
+        $result = \think\facade\Db::name('crm_order')->where('id',$id)->delete();
         //            如果删除了则没有审核完成的标记为完成
-        Db::name('audit_management')->where('table_id',$id)->where('is_finish',0)->where('table_name','crm_client_order')->update(['is_finish'=>1]);
+        Db::name('audit_management')->where('table_id',$id)->where('is_finish',0)->where('table_name','crm_order')->update(['is_finish'=>1]);
         if ($result){
             $this->success(fy('Delete succeeded'));
         }else{
@@ -394,68 +369,8 @@ class Order extends AdminController {
 
     }
 
-
-
-//    订单审核删除
-    public function delAudit(){
-        //        status 1 审核通过  -1审核不通过
-        $id = Request::param('id',0,'intval');
-        if(!$id){
-            return json(['code' => -200,'msg'=>fy('Parameter error'),'data'=>[]]);
-        }
-        if($this->request->isAjax()){
-            $status= Request::param('status',-1);
-            $audit_management_id= $this->request->post('audit_management_id',0);
-            if(!$audit_management_id){
-                return json(['code' => -200,'msg'=>fy('Parameter error'),'data'=>[]]);
-            }
-            $result_mess= $this->request->post('result_mess','','trim');
-            $todoDate=[];
-            if($status>0){
-//            允许删除
-                $customer_id = $this->model->where('id',$id)->value('customer_id');
-
-                if($customer_id){
-                    $updatearr = [];
-                    $updatearr['issuccess'] = 0;
-                    $C=\think\facade\Db::name('crm_client_order')->where([['customer_id','=',$customer_id],['status','=',1]])->count();
-                    if($C){
-//            如果存在说明是已经成交的客户
-                        $updatearr['issuccess'] = 1;
-                    }
-                    Db::name('crm_customer')->where('id',$customer_id)->update($updatearr);
-                }
-
-                $result = $this->model->where('id',$id)->delete();
-                if ($result){
-                    $todoDate=['result'=>'同意删除','result_mess'=>$result_mess,'is_finish'=>1];
-                    $msg = ['code' => 0,'msg'=>fy('Delete succeeded').'！','data'=>[]];
-                }else{
-                    $msg = ['code' => -200,'msg'=>fy('Delete failed').'！','data'=>[]];
-                }
-            }else{
-                $todoDate=['result'=>'拒绝删除','result_mess'=>$result_mess,'is_finish'=>1];
-                $this->model->where('id',$id)->update(['isdel'=>-1]);
-                $msg = ['code' => 0,'msg'=>'拒绝删除成功！','data'=>[]];
-            }
-            if($todoDate){
-                $todoDate['audittime']=time();
-                $todoDate['reviewer']=$this->admin['username'];
-                Db::name('audit_management')->where('id','=',$audit_management_id)->update($todoDate);
-            }
-            return json($msg);
-        }else{
-            $result = $this->model ->where(['id' => $id])->find();
-            View::assign('result',$result);
-            $this->app->view->engine()->layout(false);
-            return View::fetch();
-        }
-
-
-    }
-
     //    订单审核是否通过
-    public function editAudit(){
+    public function audit(){
         //        status 1 审核通过  -1审核不通过
         $id = Request::param('id',0,'intval');
         if(!$id){
@@ -516,9 +431,9 @@ class Order extends AdminController {
             return json($msg);
         }else{
 
-            $result = $this->model ->where(['id' => $id])->find();
+            $result = $this->model->where(['id' => $id])->find();
             $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" AND `editinput` is not null order BY `sort` ASC,id ASC');
+            $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_order" AND `editinput` is not null order BY `sort` ASC,id ASC');
             $fields_str='';
             foreach ($fields as $v){
                 $fields_str.=trim($v['editinput']);
@@ -529,7 +444,7 @@ class Order extends AdminController {
             $this->assign('fields_str', $fields_str);
             View::assign('result',$result);
 
-            return View::fetch();
+            return $this->fetch();
         }
     }
 
@@ -550,7 +465,7 @@ class Order extends AdminController {
                 $msg=fy('The current order number already exists').'！';
                 $msg = ['code' => -200,'msg'=>$msg,'data'=>[]];
             }else{
-                $msg = ['code' => 0,'msg'=>fy('Validation succeeded, adding is allowed')];
+                $msg = ['code' => 1,'msg'=>fy('Validation succeeded, adding is allowed')];
             }
             return json($msg);
         }
@@ -565,20 +480,52 @@ class Order extends AdminController {
         $customer_id=$this->request->param('customer_id',0);
 //        判断当前的登录者是否有操作权限
         if($customer_id){
-            $pr_user=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('pr_user');
-            if(empty($pr_user)){
+            $owner_admin_id=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('owner_admin_id');
+            if(empty($owner_admin_id)){
                 $this->error('当前客户不存在或已移入公海！');
             }
-            $this->modifyPermissionsByName($pr_user);
+            $this->modifyPermissionsByIds($owner_admin_id);
         }
 
         list($page, $limit, $where,$sort) = $this->buildTableParames();
         if($customer_id){
             $where[]=['customer_id','=',$customer_id];
         }
+        $scope = $this->request->get('scope', 1, 'trim');
+        if($scope==2){
+//                    展示其他的  不包括自己
+            $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+            if (empty($adminIds)) {
+                return json([
+                    'code'  => 1,
+                    'msg'   => '',
+                    'count' => 0,
+                    'data'  => [],
+                ]);
+            }
+            if ($adminIds !== 'ALL') {
+                $where[] = ['owner_admin_id', 'in', $adminIds];
+            }else{
+                $where[] = ['owner_admin_id', '<>', $this->admin['admin_id']];
+            }
+
+        }elseif($scope==3){
+//                    展示全部 包括自己
+            $adminIds = \app\service\AdminService::getViewAdminIds($this->admin, true);
+            if(empty($adminIds)){
+                $where[] = ['id', 'in',-1];
+            }elseif($adminIds !== 'ALL'){
+                $where[] = ['owner_admin_id', 'in',$adminIds];
+            }
+        }else{
+//                   限制展示自己的
+            $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
+        }
+
+
 //        只导出客户数据非公海数据
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `field`,`name`,`xsname`,`width`,`rule`,`formtype`,`option` FROM `'.$prefix.'system_field` WHERE (`export`=1 OR `show`=1) AND `table`="crm_client_order" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `field`,`name`,`xsname`,`width`,`rule`,`formtype`,`option` FROM `'.$prefix.'system_field` WHERE (`export`=1 OR `list`=1) AND `table`="crm_order" order BY `sort` ASC,id ASC');
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();
         $i = 0;
@@ -652,7 +599,7 @@ class Order extends AdminController {
     public function sendEmail($id){
         $row = $this->model->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
-        $this->modifyPermissions($row['owner_admin_id']);
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
         if ($this->request->isPost()) {
             $param = $this->request->param();
 

@@ -40,7 +40,6 @@ class Admin extends AdminController
             $list=[];
             if($count){
                 $list = $this->model
-//                ->withJoin('productType', 'LEFT')
                     ->withJoin('type', 'LEFT')
                     ->where($where)
                     ->page($page, $limit)
@@ -49,7 +48,7 @@ class Admin extends AdminController
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -57,6 +56,22 @@ class Admin extends AdminController
             return json($data);
         }
         return $this->fetch();
+    }
+
+    public function selectpage()
+    {
+        $allTeam = $this->request->param('custom/all_team', '0');
+        if ($allTeam !== '1' && $this->admin['group_id'] != 1) {
+            $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
+            if(empty($adminIds)){
+                return json(['list' => [], 'total' => 0]);
+            }
+            if($adminIds!=='ALL'){
+                $this->scopeWhere =[['admin_id', 'in', $adminIds]];
+            }
+        }
+
+        return parent::selectpage();
     }
     
 }

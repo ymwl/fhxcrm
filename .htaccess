@@ -1,0 +1,19 @@
+# 敏感文件与目录防下载（针对域名直接绑定到项目根目录的场景）
+# 正常部署建议：域名绑定到 public 目录
+
+# 1. 禁止访问敏感后缀与关键文件（.env/数据库脚本/授权文件/文档等）
+<FilesMatch "(^\.env|^\.gitignore|^composer\.(json|lock)$|^package(-lock)?\.json$|^think$|\.(sql|dat|lock|log|md|yml|ini|sh|bak)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 2. 禁止访问敏感目录（runtime日志/update数据库脚本/vendor依赖/extend扩展等）
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(runtime|update|vendor|extend|md|node_modules|\.git|\.idea)(/|$) - [F,L]
+</IfModule>

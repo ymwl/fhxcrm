@@ -4,7 +4,6 @@ namespace app\admin\traits;
 
 
 
-use jianyan\excel\Excel;
 use think\facade\Db;
 
 /**
@@ -17,6 +16,7 @@ trait Curd
     protected $modelValidate=false;
 
     protected $selectpageFields = '`id`,`name`';
+    protected $scopeWhere = [];
     /**
      * @NodeAnotation(title="列表")
      */
@@ -26,7 +26,7 @@ trait Curd
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
             $count = $this->model
                 ->where($where)
                 ->count();
@@ -35,12 +35,12 @@ trait Curd
                 $list = $this->model
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -318,57 +318,28 @@ trait Curd
                 }
             };
         }
-
+//        限定数据只能查看自己的和包括团队的
 
         $list = [];
-        $total = $this->model->where($where)->count();
+        $total = $this->model->where($where)->where($this->scopeWhere)->count();
         if ($total > 0) {
-            $list = $this->model->where($where)
+            $list = $this->model->where($where)->where($this->scopeWhere)
                 ->order($order)
                 ->page($page, $pagesize)
                 ->field($this->selectpageFields)
                 ->select()->toArray();
         }
         //这里一定要返回有list这个字段,total是可选的,如果total<=list的数量,则会隐藏分页按钮
-        return json(['list' => $list, 'total' => $total]);
+        return json(['code' => 1, 'count' => $total, 'data' => $list]);
     }
 //    判断是否具有修改权限
 //传入被修改者的管理员ID
-    public function modifyPermissions($modifiedByAdminId,$withself=true){
-        $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,$withself);
-        if($adminIds=='ALL'){
-            return true;
-        }
-        if(!in_array($modifiedByAdminId,$adminIds)){
-            $this->error(fy("无操作当前数据权限").'!');
-        }
-        return true;
-
-
-    }
-
-    //    判断是否具有修改权限
-//传入被修改者的管理员用户名
-    public function modifyPermissionsByName($modifiedByAdminName){
-        $adminNames=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-        if($adminNames=='ALL'){
-            return true;
-        }
-        if(is_string($modifiedByAdminName)){
-            if(!in_array($modifiedByAdminName,$adminNames)){
-                $this->error(fy("无操作当前数据权限").'!');
-            }
-        }elseif (is_array($modifiedByAdminName)){
-            $diff = array_diff($modifiedByAdminName,$adminNames);
-            if (!empty($diff)) {
-                $this->error(fy("无操作当前数据权限").'!');
-            }
-        }
-        return true;
-    }
     //传入被修改者的管理员用户id集合
-    public function modifyPermissionsByIds($modifiedByAdminIds){
-        $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+    public function modifyPermissionsByIds($modifiedByAdminIds,$withself=true){
+        if($this->admin['group_id']==1){
+            return true;
+        }
+        $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,$withself);
         if($adminIds=='ALL'){
             return true;
         }
@@ -384,5 +355,26 @@ trait Curd
         }
         return true;
     }
+
+    //    判断是否具有修改权限
+//传入被修改者的管理员用户名
+    public function modifyPermissionsByName($modifiedByAdminName){
+        $adminNames=\app\service\AdminService::getViewAdminName($this->admin,true);
+        if($adminNames=='ALL'){
+            return true;
+        }
+        if(is_string($modifiedByAdminName)){
+            if(!in_array($modifiedByAdminName,$adminNames)){
+                $this->error(fy("无操作当前数据权限").'!');
+            }
+        }elseif (is_array($modifiedByAdminName)){
+            $diff = array_diff($modifiedByAdminName,$adminNames);
+            if (!empty($diff)) {
+                $this->error(fy("无操作当前数据权限").'!');
+            }
+        }
+        return true;
+    }
+
 
 }

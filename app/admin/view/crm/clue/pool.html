@@ -1,0 +1,18 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <?php if($grabCountMsg){ ?>
+        <blockquote class="layui-elem-quote" style="color:#FFB800; ">
+            {$grabCountMsg}
+        </blockquote>
+        <?php } ?>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-rob="{:auth('crm.clue_pool/rob')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>
+<script type="text/html" id="action">
+    <?php if(auth('crm.clue_pool/rob')){ ?>
+    <a class="layui-btn layui-btn-success layui-btn-xs" style="font-size: 14px" data-title="您确定要领取当前线索吗？" data-request="crm.clue_pool/rob?id[]={{d.id}}"><i class="fa fa-user-secret"></i>{:fy('Receive')}</a>
+    <?php } ?>
+</script>

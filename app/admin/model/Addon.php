@@ -23,6 +23,7 @@ class Addon extends TimeModel
                 'version' => \think\facade\Db::raw('VALUES(version)'),
                 'build' => \think\facade\Db::raw('VALUES(build)'),
                 'install' => \think\facade\Db::raw('VALUES(install)'),
+                'author' => \think\facade\Db::raw('VALUES(author)'),
                 'update_time' => $time,
             ])->insertAll($addons);
             //        删除掉数据库中不存在的本地插件

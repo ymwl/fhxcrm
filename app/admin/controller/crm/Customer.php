@@ -47,6 +47,21 @@ class Customer extends AdminController
 
     }
 
+    //根据客户ID获取客户信息（联系人、手机号），用于选择客户后自动填充
+    public function getCustomerInfo(){
+        if($this->request->isAjax()){
+            $customer_id = $this->request->post('customer_id',0,'intval');
+            if($customer_id<1){
+                $this->error(fy('参数错误'));
+            }
+            $custinfo = Db::name('crm_customer')->field('id,name,contact,phone,area,address')->where('id','=',$customer_id)->find();
+            if(empty($custinfo)){
+                $this->error(fy('Customer does not exist'));
+            }
+            $this->success('success','',$custinfo);
+        }
+    }
+
     /**
      * @NodeAnotation(title="列表")
      */
@@ -63,39 +78,38 @@ class Customer extends AdminController
                 return $this->selectList();
             }
             list($page, $limit, $where,$sort) = $this->buildTableParames();
-            $scope=$this->request->get('scope', 1,'intval');
+            $scope=$this->request->get('scope', 1,'trim');
 
             if($scope==2){
-//                    展示其他的  不包括自己
-                $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
-                if(empty($adminName)){
+//                    展示其他的  不包括自己 owner_admin_id
+                $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+                if (empty($adminIds)) {
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
                     ]);
                 }
-                if($adminName!=='ALL'){
-                    $where[] = ['pr_user', 'in',$adminName];
-                }elseif($adminName=='ALL'){
-//                    展示其他的  不包括自己需要做排除
-                    $where[] = ['pr_user', '<>',$this->admin['username']];
+                if ($adminIds !== 'ALL') {
+                    $where[] = ['owner_admin_id', 'in', $adminIds];
+                }else{
+                    $where[] = ['owner_admin_id', '<>', $this->admin['admin_id']];
                 }
 
             }elseif($scope==3){
 //                    展示全部 包括自己
-                $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-                if(empty($adminName)){
+                $adminIds = \app\service\AdminService::getViewAdminIds($this->admin, true);
+                if (empty($adminIds)) {
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
                     ]);
                 }
-                if($adminName!=='ALL'){
-                    $where[] = ['pr_user', 'in',$adminName];
+                if ($adminIds !== 'ALL') {
+                    $where[] = ['owner_admin_id', 'in', $adminIds];
                 }
             }elseif($scope==10){
 // 待跟进
@@ -107,25 +121,25 @@ class Customer extends AdminController
                 }
 
 // 待跟进限制展示自己的
-                $where[] = ['pr_user', '=', $this->admin['username']];
+                $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
 
             }elseif($scope==11){
 // 今天已跟进
                 $where[] = ['last_up_time', '>=', strtotime('today')];
                 $where[] = ['last_up_time', '<', strtotime('tomorrow')];
 // 待跟进限制展示自己的
-                $where[] = ['pr_user', '=', $this->admin['username']];
+                $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
 
             }elseif($scope==12){
 // 从未跟进
                 $where[] = ['last_up_time', '=', 0];
 // 限制展示自己的
-                $where[] = ['pr_user', '=', $this->admin['username']];
+                $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
 
             }elseif($scope==20){
 
                 //            展示自己分享给他人的
-                $where[] = ['pr_user', '=', $this->admin['username']];
+                $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
                 $where[] = ['share_admin_ids', '<>', ''];
 
             }elseif($scope==21){
@@ -133,7 +147,7 @@ class Customer extends AdminController
                 $where[]=['','exp',\think\facade\Db::raw("FIND_IN_SET('{$this->admin['admin_id']}',share_admin_ids)")];
             }else{
 //                   限制展示自己的
-                $where[] = ['pr_user', '=', $this->admin['username']];
+                $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
             }
             $where[]=['status','=',1];
             if($this->system['chjkhdlzhsh']==1){
@@ -185,7 +199,7 @@ class Customer extends AdminController
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -193,7 +207,6 @@ class Customer extends AdminController
 
             return json($data);
         }
-
 
         $jscol_str= $fields['jscol_str'];
 
@@ -205,8 +218,9 @@ class Customer extends AdminController
         $this->app->view->engine()->layout($this->layout);
         $jscol_str=str_replace(['":"{"','"}"'],['":{"','"}'],$jscol_str);
         $this->assignconfig('cols_fields',json_decode('['.$jscol_str.']',true));
+        // 传递 scope 给前端，用于激活对应标签页
+        $this->assignconfig('scope', $this->request->get('scope', 1, 'trim'));
 
-//        $this->assignconfig('parameter',['scope'=>$this->request->get('scope',1,'intval')]);
         return $this->fetch();
     }
     /**
@@ -214,7 +228,7 @@ class Customer extends AdminController
      */
     public function seas()
     {
-        $where = "`show` = 1 OR `field` IN ('to_gh_time', 'pr_user_bef')";
+        $where = "`list` = 1 OR `field` IN ('to_gh_time', 'pr_user_bef')";
         $fields = \tools\Cache::zdy_fields('crm_customer', $where);
         if ($this->request->isAjax()) {
             $this->model->autoRecycle($this->system);
@@ -257,7 +271,7 @@ class Customer extends AdminController
                 }
             }
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -278,7 +292,7 @@ class Customer extends AdminController
         $jscol_str=str_replace(['":"{"','"}"'],['":{"','"}'],$jscol_str);
         $this->assignconfig('cols_fields',json_decode('['.$jscol_str.']',true));
         $this->assignconfig('parameter',['scope'=>$this->request->get('scope',1,'intval')]);
-        View::assign('grabCountMsg',$this->getGrabCount()['msg']);
+        View::assign('grabCountMsg', \app\service\CrmCustomerService::getGrabCount($this->system, $this->admin['admin_id'])['msg']);
         return $this->fetch();
     }
 
@@ -287,11 +301,11 @@ class Customer extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
             $list = $this->model->field('`id`,`name`,`phone`,`contact`,`at_user`,`pr_user`,`last_up_time`,`issuccess`,`create_time`,`update_time`')
                 ->where($where)
                 ->limit(10) //查重复最多显示10条
-                ->order($this->sort)
+                ->order($sort)
                 ->select();
 
 
@@ -300,7 +314,7 @@ class Customer extends AdminController
                 $list[$key] = $value;
             }
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => count($list),
                 'data'  => $list,
@@ -333,7 +347,7 @@ class Customer extends AdminController
     public function issuccess()
     {
 
-        $where = "`show` = 1 OR `field` = 'issuccess'";
+        $where = "`list` = 1 OR `field` = 'issuccess'";
         $fields = \tools\Cache::zdy_fields('crm_customer', $where);
         if ($this->request->isAjax()) {
             $this->sort_by = 'success_time';
@@ -342,42 +356,41 @@ class Customer extends AdminController
                 return $this->selectList();
             }
             list($page, $limit, $where,$sort) = $this->buildTableParames();
-            $scope=$this->request->get('scope', 1,'intval');
+            $scope=$this->request->get('scope', 1,'trim');
             if($scope==2){
 //                    展示其他的  不包括自己
-                $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
-                if(empty($adminName)){
+                $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+                if (empty($adminIds)) {
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
                     ]);
                 }
-                if($adminName!=='ALL'){
-                    $where[] = ['pr_user', 'in',$adminName];
-                }elseif($adminName=='ALL'){
-//                    展示其他的  不包括自己需要做排除
-                    $where[] = ['pr_user', '<>',$this->admin['username']];
+                if ($adminIds !== 'ALL') {
+                    $where[] = ['owner_admin_id', 'in', $adminIds];
+                }else{
+                    $where[] = ['owner_admin_id', '<>', $this->admin['admin_id']];
                 }
 
             }elseif($scope==3){
 //                    展示全部 包括自己
-                $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-                if(empty($adminName)){
+                $adminIds = \app\service\AdminService::getViewAdminIds($this->admin, true);
+                if (empty($adminIds)) {
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
                     ]);
                 }
-                if($adminName!=='ALL'){
-                    $where[] = ['pr_user', 'in',$adminName];
+                if ($adminIds !== 'ALL') {
+                    $where[] = ['owner_admin_id', 'in', $adminIds];
                 }
             }else{
 //                   限制展示自己的
-                $where[] = ['pr_user', '=', $this->admin['username']];
+                $where[] = ['owner_admin_id', '=', $this->admin['admin_id']];
             }
             $where[]=['issuccess','=',1];
 
@@ -414,7 +427,7 @@ class Customer extends AdminController
                 }
             }
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -443,7 +456,7 @@ class Customer extends AdminController
     public function add()
     {
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`addinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $allowCustomersNum=$this->model->allowCustomersNum($this->admin);
             if($allowCustomersNum['max_customers_num']>0){
@@ -456,7 +469,7 @@ class Customer extends AdminController
             $post=$this->param_to_str($post);
             $this->verifyFields($post,$fields,'crm_customer');
             try {
-                $post=post_convert($post,$fields);
+                $post=post_convert($post,$fields,'add');
                 $post['at_user']=$this->admin['username'];
                 $post['pr_user']=$this->admin['username'];
                 $post['owner_admin_id']=$this->admin['admin_id'];
@@ -511,17 +524,17 @@ class Customer extends AdminController
     public function edit($id)
     {
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
-        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','pr_user','phone','name','contacts_id'])))->find($id);
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
+        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','owner_admin_id','pr_user','phone','name','contacts_id'])))->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
-        $this->modifyPermissionsByName($row['pr_user']);
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
             $this->verifyFields($post,$fields,'crm_customer');
 
 
-//            针对多选无值赋空
+
             $fields_name=[];
             foreach ($fields as $v){
                 $name=!empty($v['xsname'])?$v['xsname']:$v['name'];
@@ -625,8 +638,8 @@ class Customer extends AdminController
     {
         $id=$this->request->param('id');
         $this->checkPostRequest();
-        $pr_users = $this->model->whereIn('id', $id)->column('DISTINCT pr_user');
-        $this->modifyPermissionsByName($pr_users);
+        $adminIds = $this->model->whereIn('id', $id)->column('DISTINCT owner_admin_id');
+        $this->modifyPermissionsByIds($adminIds);
 
         $row = $this->model->whereIn('id', $id)->select();
 
@@ -644,13 +657,13 @@ class Customer extends AdminController
         //1，获取提交的线索ID 【1,2,3,4,】
 //        获取客户ID
         $ids = $this->request->param('id');
-        $cus_lst=$this->model->field('id,name,pr_user')->where('id','in',$ids)->select();
+        $cus_lst=$this->model->field('id,name,owner_admin_id')->where('id','in',$ids)->select();
         if($cus_lst->isEmpty()){
             $this->error(fy("Customer data does not exist"));
         }
 //        获取 $cus_lst负责人字段作为数组
-        $pr_user_arr=array_column($cus_lst->toArray(),'pr_user');
-        $this->modifyPermissionsByName($pr_user_arr);
+        $adminIds=array_column($cus_lst->toArray(),'owner_admin_id');
+        $this->modifyPermissionsByIds($adminIds);
 
 
         if ($this->request->isAjax()){
@@ -709,7 +722,7 @@ class Customer extends AdminController
         View::assign('ids',$ids);
 
         //查询所有管理员（去除admin）
-        $adminResult = Db::name('admin')->where('group_id','<>', 1)->field('admin_id,username')->select();
+        $adminResult = Db::name('admin')->where('is_open','=', 1)->field('admin_id,username')->select();
         View::assign('adminResult',$adminResult);
 
         return $this->fetch();
@@ -757,7 +770,7 @@ class Customer extends AdminController
                 }*/
 
                 $prefix=getDataBaseConfig('prefix');
-                $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE (rule <> "" AND `edit`=1 AND `table`="crm_customer" AND `editinput` is not null)  order BY `sort` ASC,id ASC');
+                $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `'.$prefix.'system_field` WHERE (rule <> "" AND `form`=1 AND `table`="crm_customer" AND `editinput` is not null)  order BY `sort` ASC,id ASC');
                 $rule=$arr_fields=[];
                 foreach ($fields as $v){
                     $name=$v['xsname']?$v['xsname']:$v['name'];
@@ -967,58 +980,57 @@ class Customer extends AdminController
         @ini_set('max_execution_time', '0');
 
         list($page, $limit, $where, $sort) = $this->buildTableParames();
-        $scope = $this->request->get('scope', 1, 'intval');
+        $scope = $this->request->get('scope', 1, 'trim');
 
         if($scope==2){
 //                    展示其他的  不包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
-            if(empty($adminName)){
+            $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+            if (empty($adminIds)) {
                 return json([
-                    'code'  => 0,
+                    'code'  => 1,
                     'msg'   => '',
                     'count' => 0,
                     'data'  => [],
                 ]);
             }
-            if($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
-            }elseif($adminName=='ALL'){
-//                    展示其他的  不包括自己需要做排除
-                $where[] = ['pr_user', '<>',$this->admin['username']];
+            if ($adminIds !== 'ALL') {
+                $where[] = ['owner_admin_id', 'in', $adminIds];
+            }else{
+                $where[] = ['owner_admin_id', '<>', $this->admin['admin_id']];
             }
 
         }elseif($scope==3){
 //                    展示全部 包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-            if(empty($adminName)){
+            $adminIds = \app\service\AdminService::getViewAdminIds($this->admin, true);
+            if(empty($adminIds)){
                 $where[] = ['id', 'in',-1];
-            }elseif($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
+            }elseif($adminIds !== 'ALL'){
+                $where[] = ['owner_admin_id', 'in',$adminIds];
             }
         }elseif($scope==10){
 // 待跟进
             $where[] = ['next_time', '>', 0];
             $where[] = ['next_time', '<', strtotime('tomorrow')];
 // 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
 
         }elseif($scope==11){
 // 今天已跟进
             $where[] = ['last_up_time', '>=', strtotime('today')];
             $where[] = ['last_up_time', '<', strtotime('tomorrow')];
 // 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
 
         }elseif($scope==12){
 // 从未跟进
             $where[] = ['last_up_time', '=', 0];
 // 限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
 
         }elseif($scope==20){
 
             //            展示自己分享给他人的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
             $where[] = ['share_admin_ids', '<>', ''];
 
         }elseif($scope==21){
@@ -1026,14 +1038,14 @@ class Customer extends AdminController
             $where[]=['','exp',\think\facade\Db::raw("FIND_IN_SET('{$this->admin['admin_id']}',share_admin_ids)")];
         }else{
 //                   限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=',$this->admin['admin_id']];
         }
         $where[]=['status','=',1];
 
         // ...（保留原有的 $where 条件设置逻辑，这部分代码未改动）
 
         $str_fields = '`id`';
-        $fields = Db::query('SELECT `field`, `name`, `xsname`, `width`, `rule`, `formtype`, `option` FROM `' . getDataBaseConfig('prefix') . 'system_field` WHERE (`export`=1 OR `show`=1) AND `table`="crm_customer" ORDER BY `sort` ASC, id ASC');
+        $fields = Db::query('SELECT `field`, `name`, `xsname`, `width`, `rule`, `formtype`, `option` FROM `' . getDataBaseConfig('prefix') . 'system_field` WHERE (`export`=1 OR `list`=1) AND `table`="crm_customer" ORDER BY `sort` ASC, id ASC');
 
         // 初始化 Spout writer
 //        $writer = WriterEntityFactory::createXLSXWriter();
@@ -1124,7 +1136,7 @@ class Customer extends AdminController
         $ids = $this->request->param('id');
 
         //查询所有管理员（去除admin）
-        $adminResult = Db::name('admin')->where('admin_id','<>',$this->admin['admin_id'])->field('admin_id,username')->select();
+        $adminResult = Db::name('admin')->where('is_open','=',1)->where('admin_id','<>',$this->admin['admin_id'])->field('admin_id,username')->select();
         View::assign('adminResult',$adminResult);
 
         if ($this->request->isAjax()){
@@ -1198,7 +1210,7 @@ class Customer extends AdminController
     public function sendEmail($id){
         $row = $this->model->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
-        $this->modifyPermissionsByName($row['pr_user']);
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
         if ($this->request->isPost()) {
             $param = $this->request->param();
             

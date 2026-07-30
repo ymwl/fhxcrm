@@ -6,7 +6,6 @@ namespace app;
 use think\App;
 use think\exception\HttpResponseException;
 use think\exception\ValidateException;
-use think\facade\Db;
 use think\Response;
 use think\Validate;
 
@@ -38,6 +37,7 @@ abstract class BaseController
      * @var array
      */
     protected $middleware = [];
+    protected $system = [];
 
     /**
      * 构造方法
@@ -48,6 +48,7 @@ abstract class BaseController
     {
         $this->app     = $app;
         $this->request = $this->app->request;
+        $this->system = \think\facade\Db::name('system_config')->where('status','=',1)->cache('system_config',3600)->column('value','field');;
         // 控制器初始化
         $this->initialize();
     }
@@ -92,32 +93,6 @@ abstract class BaseController
 
         return $v->failException(true)->check($data);
     }
-    public function getGrabCount()
-    {
-        $more = $this->system;
-        $cycleList = \app\admin\model\System::getCycleList();
-        if (isset($more['customer_limit_counts']) && $more['customer_limit_counts'] > 0 && isset($cycleList[$more['customer_limit_condition']])) {
-            if ($more['customer_limit_condition'] == 'day') {
-                $starttime = mktime(0, 0, 0, (int)date('n'), (int)date('j'), (int)date('Y'));
-            } elseif ($more['customer_limit_condition'] == 'week') {
-                $starttime = mktime(0, 0, 0, (int)date('n'), date('d') - date('w') + 1, (int)date('Y'));
-            } else {
-                $starttime = mktime(0, 0, 0, (int)date('m'), 1,(int) date('Y'));
-            }
-
-            $crmGrabCount = Db::name('crm_grab')->where("`createtime` >= {$starttime} and `admin_id`={$this->admin['admin_id']}")->sum('nums');
-            if ($crmGrabCount >= $more['customer_limit_counts']) {
-//                return ['code' => false, 'msg' => $cycleList[$more['customer_limit_condition']] .' '. '可领取客户次数已用完'];
-                return ['code' => false, 'msg' =>  fy('The number of times customers can be claimed has been used up')];
-            } else {
-                $shy = $more['customer_limit_counts'] - $crmGrabCount;
-                return ['code' => true, 'msg' => $cycleList[$more['customer_limit_condition']] .' '. fy('remaining number of times can be claimed').'：' . $shy,'count'=>$shy];
-            }
-        } else {
-            return ['code' => true, 'msg' => ''];
-        }
-    }
-
     /**
      * 操作成功跳转的快捷方法
      * @access protected
@@ -248,8 +223,9 @@ abstract class BaseController
         return $this->request->isJson() || $this->request->isAjax() ? 'json' : 'html';
     }
 
-    protected function verifyFields($post,$fields,$table){
+    protected function verifyFields($post,$fields,$table,$exceptId=0){
         $rule=[];
+        $messages=[];
         foreach ($fields as $v){
             $v['rule']=trim($v['rule'],',');
             if($v['rule']){
@@ -277,11 +253,29 @@ abstract class BaseController
                     $ruleStr = implode('|', $safeParts);
                 }
                 $rule[$ruleKey] = $ruleStr;
+
+                // 如果定义了自定义错误提示（msg 字段），为每个验证规则生成 message
+                if (!empty($v['msg'])) {
+                    // 从规则字符串中提取规则名（去掉参数部分，如 regex:pattern → regex）
+                    $ruleNames = [];
+                    foreach (explode('|', $ruleStr) as $r) {
+                        $colonPos = strpos($r, ':');
+                        $ruleName = $colonPos !== false ? substr($r, 0, $colonPos) : $r;
+                        $ruleNames[] = $ruleName;
+                    }
+                    foreach ($ruleNames as $ruleName) {
+                        $messages[$v['field'] . '.' . $ruleName] = fy($v['msg']);
+                    }
+                }
             }
 
         }
         if($rule){
-            $this->validater($post, $rule);
+            // 编辑场景传入当前记录ID，unique验证会自动排除该记录（id <> exceptId）
+            if($exceptId){
+                $post['id']=$exceptId;
+            }
+            $this->validater($post, $rule, $messages);
         }
     }
     /**
@@ -294,7 +288,12 @@ abstract class BaseController
      */
     protected function validater(array $data, $validate, array $message = [], bool $batch = false)
     {
-        $this->validate($data, $validate, $message, $batch);
+        try {
+            $this->validate($data, $validate, $message, $batch);
+        } catch (ValidateException $e) {
+            // 验证失败转为标准错误响应，避免异常冒泡到全局处理器返回500
+            $this->error($e->getError());
+        }
 
         return true;
     }
@@ -305,6 +304,15 @@ abstract class BaseController
             if (!empty($v) && is_array($v)) $params[$k] = implode(',', $v);
         }
         return $params;
+    }
+
+    /**
+     * 严格校验接口是否为POST请求
+     */
+    protected function checkPostRequest(){
+        if (!$this->request->isPost()) {
+            $this->error("当前请求不合法！");
+        }
     }
 
 }

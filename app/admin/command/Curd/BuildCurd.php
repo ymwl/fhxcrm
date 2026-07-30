@@ -1179,10 +1179,20 @@ class BuildCurd
                 $templateFile = "view{$this->DS}module{$this->DS}textarea";
             }
 
+            // 处理长标签：缩写 + 全称注释
+            $commentShort = $val['comment'];
+            $commentHint = '';
+            if (mb_strlen($val['comment']) > 5) {
+                $commentShort = mb_substr($val['comment'], 0, 5) . '..';
+                $commentHint = '<div class="layui-form-mid layui-word-aux">' . $val['comment'] . '</div>';
+            }
+
             $addFormList .= \tools\Hs::replaceTemplate(
                 $this->getTemplate($templateFile),
                 [
                     'comment'  => $val['comment'],
+                    'comment_short' => $commentShort,
+                    'comment_hint'  => $commentHint,
                     'field'    => $field,
                     'required' => $this->buildRequiredHtml($val['required']),
                     'value'    => $val['default'],
@@ -1255,10 +1265,20 @@ class BuildCurd
                 $value = '{$row.' . $field . '|raw|default=\'\'}';
             }
 
+            // 处理长标签：缩写 + 全称注释
+            $commentShort = $val['comment'];
+            $commentHint = '';
+            if (mb_strlen($val['comment']) > 5) {
+                $commentShort = mb_substr($val['comment'], 0, 5) . '..';
+                $commentHint = '<div class="layui-form-mid layui-word-aux">' . $val['comment'] . '</div>';
+            }
+
             $editFormList .= \tools\Hs::replaceTemplate(
                 $this->getTemplate($templateFile),
                 [
                     'comment'  => $val['comment'],
+                    'comment_short' => $commentShort,
+                    'comment_hint'  => $commentHint,
                     'field'    => $field,
                     'required' => $this->buildRequiredHtml($val['required']),
                     'value'    => $value,

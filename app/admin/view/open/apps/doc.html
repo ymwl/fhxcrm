@@ -116,7 +116,7 @@
             <tbody>
             <?php
 $prefix=getDataBaseConfig('prefix');
-            $fields=\think\facade\Db::query("SELECT  `name`,`xsname`,`field`,`type`,`show` FROM `".$prefix."system_field` WHERE `table`='crm_customer' AND `show`=1 order BY `sort` ASC,id ASC");
+            $fields=\think\facade\Db::query("SELECT  `name`,`xsname`,`field`,`type`,`list` FROM `".$prefix."system_field` WHERE `table`='crm_customer' AND `list`=1 order BY `sort` ASC,id ASC");
 
             foreach($fields as $k=>$v){
             $name=!empty($v['xsname'])?$v['xsname']:$v['name'];
@@ -158,7 +158,7 @@ $prefix=getDataBaseConfig('prefix');
 
             <?php
 $prefix=getDataBaseConfig('prefix');
-            $fields=\think\facade\Db::query("SELECT  `name`,`xsname`,`field`,`type`,`rule` FROM `".$prefix."system_field` WHERE `edit`=1 AND `table`='crm_customer' AND `addinput` is not null AND field<>'id' order BY `sort` ASC,id ASC");
+            $fields=\think\facade\Db::query("SELECT  `name`,`xsname`,`field`,`type`,`rule` FROM `".$prefix."system_field` WHERE `form`=1 AND `table`='crm_customer' AND `addinput` is not null AND field<>'id' order BY `sort` ASC,id ASC");
 
             foreach($fields as $k=>$v){
             $name=!empty($v['xsname'])?$v['xsname']:$v['name'];

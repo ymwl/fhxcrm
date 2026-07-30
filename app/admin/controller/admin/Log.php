@@ -27,9 +27,9 @@ class Log extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
             if($this->admin['group_id']>1){
-                $adminLst=(new \app\admin\model\Admin())->getChildrenAdminIds($this->admin,true);
+                $adminLst=\app\service\AdminService::getChildrenAdminIds($this->admin,true);
                 $where[] = ['admin_id', 'in', $adminLst];
             }
             $count = $this->model
@@ -40,12 +40,12 @@ class Log extends AdminController
                 $list = $this->model
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,

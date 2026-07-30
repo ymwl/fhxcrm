@@ -253,7 +253,7 @@ class Ajax extends AdminController{
     public function getUploadFiles()
     {
         $this->model = new \app\admin\model\SystemUploadfile();
-        list($page, $limit, $where) = $this->buildTableParames();
+        list($page, $limit, $where,$sort) = $this->buildTableParames();
 
         $where[] = ['admin_id', '=', $this->admin['admin_id']];
         $count = $this->model
@@ -264,12 +264,12 @@ class Ajax extends AdminController{
             $list = $this->model
                 ->where($where)
                 ->page($page, $limit)
-                ->order($this->sort)
+                ->order($sort)
                 ->select();
         }
 
         $data = [
-            'code'  => 0,
+            'code'  => 1,
             'msg'   => '',
             'count' => $count,
             'data'  => $list,

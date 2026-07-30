@@ -3,7 +3,6 @@ namespace app\admin\controller;
 use think\facade\View;
 use function MongoDB\BSON\toJSON;
 use think\facade\Db;
-use clt\Leftnav;
 use app\admin\model\Admin;
 use app\admin\model\AuthGroup;
 use app\admin\model\authRule;

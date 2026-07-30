@@ -53,7 +53,7 @@ public function index()
                     unset($post['account']);
 
 //                        加入验证功能
-                    $fields = Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `' . $prefix . 'system_field` WHERE rule <> "" AND `edit`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
+                    $fields = Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field` FROM `' . $prefix . 'system_field` WHERE rule <> "" AND `form`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
                     $rule = [];
                     foreach ($fields as $v) {
                         $msg = !empty(trim($v['xsname'])) ? '|' . fy($v['xsname']) : '|' . fy($v['name']);
@@ -117,7 +117,7 @@ public function index()
                 $fields = cache('crm_customer_fields');
                 if (!$fields) {
 
-                    $fields = Db::query("SELECT  `field`, `jscol`,`show` FROM `{$prefix}system_field` WHERE `table`='crm_customer' AND `show`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
+                    $fields = Db::query("SELECT  `field`, `jscol`,`list` FROM `{$prefix}system_field` WHERE `table`='crm_customer' AND `list`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
                     $field_str = $jscol_str = '';
                     foreach ($fields as $key => $value) {
                         $field_str .= $value['field'] . ',';

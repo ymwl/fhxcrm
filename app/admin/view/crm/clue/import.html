@@ -1,0 +1,47 @@
+<div class="layuimini-container">
+    <form id="add-form" class="layui-form layuimini-form">
+        <div class="layui-form-item">
+            <label class="layui-form-label required">{:fy('Upload')}</label>
+            <div class="layui-input-block layuimini-upload">
+                <input name="filepath" class="layui-input layui-col-xs6" lay-verify="required" lay-reqtext="{:fy('Please upload')} {:fy('Clue Data')}" placeholder="{:fy('Please upload')} {:fy('Clue Data')}" value="">
+                <div class="layuimini-upload-btn">
+                    <a class="layui-btn" data-upload="filepath" data-upload-number="one" data-upload-exts="csv,xlsx" data-upload-mimetype="application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" data-upload-accept="file"><i class="fa fa-upload"></i> {:fy('Upload')}</a>
+                </div>
+            </div>
+            <div class="layui-input-block">
+                <tip>*{:fy('Please fill in the template and upload in batches')}，<a href="{:url('getImportTpl')}" target="_blank">{:fy('Click Download template')}</a></tip>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Responsible Person')}</label>
+            <div class="layui-input-block">
+                <select name="pr_user" lay-filter="pr_user">
+                    <option value="">{:fy('Please select')}</option>
+                    <?php
+$adminResult = \think\facade\Db::name('admin')->where('is_open','=', 1)->field('admin_id,username')->select();
+                    ?>
+                    {volist name='adminResult' id='vo'}
+                    <option value="{$vo.username}" {if condition="$admin['username'] eq $vo['username']"}selected{/if}>{$vo.username}</option>
+                    {/volist}
+                </select>
+                <tip>{:fy('If the person in charge is not selected, it will be directly put into the client pool')}</tip>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('Whether to skip the error')}</label>
+            <div class="layui-input-block">
+                <input type="radio" name="skip" value="1" title="{:fy('Skip')}" checked="">
+                <input type="radio" name="skip" value="0" title="{:fy('Do not skip')}">
+                <tip>{:fy('If a piece of data is duplicated or required, selecting Skip will not interrupt the import')}</tip>
+            </div>
+        </div>
+
+        <div class="hr-line"></div>
+        <div class="layui-form-item text-center">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit>{:fy('Confirm')}</button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">{:fy('Reset')}</button>
+        </div>
+    </form>
+</div>

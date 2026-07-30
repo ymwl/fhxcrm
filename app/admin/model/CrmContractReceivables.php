@@ -11,13 +11,7 @@ class CrmContractReceivables extends TimeModel
 
     protected $deleteTime = false;
 
-    public function getCheckStatus()
-    {
-//        -1审核未通过0待审核、1草稿、2审核中、3审核通过  待完善状态'1'=>'草稿','2'=>'审核中',
-//        return ['-1'=>'审核未通过','0'=>'待审核','1'=>'草稿','2'=>'审核中','3'=>'审核通过'];
-        return ['-1'=>'审核未通过','0'=>'待审核','3'=>'审核通过'];
 
-    }
 
     public function ownerAdmin()
     {

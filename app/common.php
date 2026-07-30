@@ -81,7 +81,7 @@ function myurl(string $path = '', array $vars = [], $suffix = true, $domain = fa
 /**
  * Notes:返回附件的真实地址
  * Date: 2022/10/4
- * Blog:http://fhy.laikephp.com
+ * Blog:http://www.80zx.com
  */
 function attrUrl($path){
     if(strpos($path,'/')===0){
@@ -1135,8 +1135,8 @@ function getDataBaseConfig($name=''){
 
 
 
-function post_convert($post,$fields){
-//    对提交的数据类型进行转换
+function post_convert($post,$fields,$scene='edit'){
+//    对提交的数据类型进行转换，$scene区分场景：add添加、edit编辑
     foreach ($fields as $v){
         if($v['formtype']=='checkbox' || $v['formtype']=='lcheckbox'){
             //            针对多选无值赋空
@@ -1153,8 +1153,8 @@ function post_convert($post,$fields){
         }elseif($v['formtype']=='tel' && strpos($post[$v['field']],'****')!==false){
             unset($post[$v['field']]);
         }
-//        只读的也清除不需要保存
-        if($v['is_readonly']){
+//        编辑时只读的也清除不需要保存（仅编辑场景执行，添加时需正常保存）
+        if($scene=='edit' && isset($v['edit']) && $v['edit']==0){
             unset($post[$v['field']]);
         }
     }
@@ -1258,23 +1258,7 @@ function cpDecode($string,$key=''){
     }
 }
 
-function change_success_customer($customer_id){
-//    更改客户成交状态
 
-    $c=\think\facade\Db::name('crm_client_order')->where([['customer_id','=',$customer_id],['status','=',1]])->count();
-    if($c>0){
-        \think\facade\Db::name('crm_customer')->where('id',$customer_id)->update(['issuccess'=>1]);
-        return true;
-    }
-    $c=\think\facade\Db::name('crm_contract')->where([['customer_id','=',$customer_id],['check_status','=',3]])->count();
-    if($c>0){
-        \think\facade\Db::name('crm_customer')->where('id',$customer_id)->update(['issuccess'=>1]);
-        return true;
-    }
-    \think\facade\Db::name('crm_customer')->where('id',$customer_id)->update(['issuccess'=>0]);
-    return false;
-
-}
 
 /**
  * 安全插入：自动过滤非表字段，返回最新 ID
@@ -1341,7 +1325,7 @@ function real_resourse($domain,$url){
         return $url;
     }
     //   增加如果后台没有设置$domain，就获取当前访问域名和协议
-    $domain=empty($domain)?request()->domain():$domain;
+    $domain=empty($domain)?request()->domain().__MY_PUBLIC__:$domain;
     return trim($domain,'/').$url;
 }
 

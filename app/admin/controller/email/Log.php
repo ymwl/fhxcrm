@@ -34,10 +34,10 @@ class Log extends AdminController
             $scope = $this->request->get('scope','mine','trim');
            if($scope=='team'){
                //                    展示其他的  不包括自己
-               $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin);
+               $adminIds=\app\service\AdminService::getViewAdminIds($this->admin);
                if(empty($adminIds)){
                    return json([
-                       'code'  => 0,
+                       'code'  => 1,
                        'msg'   => '',
                        'count' => 0,
                        'data'  => [],
@@ -51,10 +51,10 @@ class Log extends AdminController
                }
             }elseif($scope=='all'){
 //               展示全部 包括自己
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -79,7 +79,7 @@ class Log extends AdminController
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,

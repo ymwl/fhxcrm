@@ -2,15 +2,12 @@
     <div class="layuimini-main">
         <div class="layui-tab" lay-filter="nav-tabs-index">
             <ul class="layui-tab-title">
-                <li class="layui-this" data-type="1">待处理</li>
-                <li data-type="2">已读</li>
-                <li data-type="">全部</li>
+                <li class="layui-this" data-value="pending" data-field="scope">待处理</li>
+                <li data-value="read" data-field="scope">已读</li>
+                <li data-value="all" data-field="scope">全部</li>
             </ul>
         </div>
-        <input type="hidden" name="scope" value="1">
         <table id="currentTable" class="layui-table layui-hide"
-               data-auth-add="{:auth('crm.reminder/add')}"
-               data-auth-edit="{:auth('crm.reminder/edit')}"
                data-auth-delete="{:auth('crm.reminder/delete')}"
                data-auth-detail="{:auth('crm.reminder/detail')}"
                data-auth-markRead="{:auth('crm.reminder/markRead')}"

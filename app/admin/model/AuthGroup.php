@@ -17,9 +17,7 @@ class AuthGroup extends TimeModel
     public function getChildrenGroupIds($admin,$withself = false){
 
         $authGroup = \think\facade\Db::name('auth_group')->field('id,pid,title')->order('pid asc,id asc')->select()->toArray();
-        $tree=new \fast\Tree();
-        $tree->init($authGroup);
-        $childrenGroupIds=$tree->getChildrenIds($admin['group_id'],$withself);
+        $childrenGroupIds = \fhx\Tree::getChildrenIds($authGroup, $admin['group_id'], $withself);
         return  $childrenGroupIds;
     }
 

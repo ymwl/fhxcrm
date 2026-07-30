@@ -5,8 +5,8 @@
         <div class="layui-form-item">
             <label class="layui-form-label">客户名称</label>
             <div class="layui-input-block">
-                <input type="hidden" name="customer_id" value="{$contract_row['customer_id']}">
-                <input type="text" class="layui-input" lay-verify="required" value="{$contract_row['crmCustomer']['name']}" readonly>
+                <input type="hidden" name="customer_id" value="{$contract_row['customer_id']|default=0}">
+                <input type="text" class="layui-input" lay-verify="required" value="{$contract_row['crmCustomer']['name']|default=''}" readonly>
             </div>
         </div>
         </div>
@@ -14,8 +14,8 @@
         <div class="layui-form-item">
             <label class="layui-form-label">合同名称</label>
             <div class="layui-input-block">
-                <input type="hidden" name="contract_id" value="{$contract_row['id']}">
-                <input type="text" class="layui-input" lay-verify="required" value="{$contract_row['name']}" readonly>
+                <input type="hidden" name="contract_id" value="{$contract_row['id']|default=0}">
+                <input type="text" class="layui-input" lay-verify="required" value="{$contract_row['name']|default=''}" readonly>
             </div>
         </div>
         </div>

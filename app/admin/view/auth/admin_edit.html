@@ -20,7 +20,7 @@
             <div class="layui-input-block">
                 <?php
                 $authGroup = \think\facade\Db::name('auth_group')->field('id,pid,title')->order('pid asc,id asc')->select();
-                $nav = new \clt\Leftnav();
+                $nav = new \fhx\Leftnav();
                 if($admin['group_id']==1){
                     $group_id=0;
                 }else{
@@ -68,7 +68,7 @@
                 if(!empty($row['admin_id'])){
                     $where[]=['admin_id','<>',$row['admin_id']];
                 }
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($admin,true);
+                $adminIds=\app\service\AdminService::getViewAdminIds($admin,true);
                 if(empty($adminIds)){
                     $adminLst=[];
                 }else{
@@ -89,12 +89,7 @@
                 </select>
             </div>
         </div>
-        <div class="layui-form-item">
-            <label class="layui-form-label">{:fy('Month target')}</label>
-            <div class="layui-input-block">
-                <input type="text" name="mubiao"  placeholder="{:fy('Performance monthly target amount')}" class="layui-input" value="{$row['mubiao']}">
-            </div>
-        </div>
+
         <div class="layui-form-item">
             <label class="layui-form-label">{:fy('Commission point')}</label>
             <div class="layui-input-block">

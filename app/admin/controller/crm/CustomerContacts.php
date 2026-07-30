@@ -31,11 +31,11 @@ class CustomerContacts extends AdminController
         $customer_id=$this->request->param('customer_id',0);
 //        判断当前的登录者是否有操作权限
         if($customer_id){
-            $pr_user=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('pr_user');
-            if(empty($pr_user)){
+            $owner_admin_id=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('owner_admin_id');
+            if(empty($owner_admin_id)){
                 $this->error('当前客户不存在或已移入公海！');
             }
-            $this->modifyPermissionsByName($pr_user);
+            $this->modifyPermissionsByIds($owner_admin_id);
         }
 
         $fields=\tools\Cache::zdy_fields('crm_customer_contacts');
@@ -49,42 +49,42 @@ class CustomerContacts extends AdminController
             if($customer_id){
                 $where[]=['crm_customer_contacts.customer_id','=',$customer_id];
             }else{
-                $scope = $this->request->get('scope',1,'intval');
+                $scope = $this->request->get('scope','1','trim');
                 if($scope==2){
 //                    展示下属的
-                    $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
-                    if(empty($adminName)){
+                    $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+                    if (empty($adminIds)) {
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
                         ]);
                     }
-                    if($adminName!=='ALL'){
-                        $where[] = ['crm_customer.pr_user', 'in',$adminName];
-                    }elseif($adminName=='ALL'){
+                    if ($adminIds !== 'ALL') {
+                        $where[] = ['crm_customer.owner_admin_id', 'in', $adminIds];
+                    }else{
 //                    展示其他的  不包括自己需要做排除
-                        $where[] = ['crm_customer.pr_user', '<>',$this->admin['username']];
+                        $where[] = ['crm_customer.owner_admin_id', '<>', $this->admin['admin_id']];
                     }
 
                 }elseif($scope==3){
 //                    展示下属的和自己的
-                    $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-                    if(empty($adminName)){
+                    $adminIds = \app\service\AdminService::getViewAdminIds($this->admin, true);
+                    if (empty($adminIds)) {
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
                         ]);
                     }
-                    if($adminName!=='ALL'){
-                        $where[] = ['crm_customer.pr_user', 'in',$adminName];
+                    if ($adminIds !== 'ALL') {
+                        $where[] = ['crm_customer.owner_admin_id', 'in',$adminIds];
                     }
                 }else{
 //                    展示自己的
-                    $where[] = ['crm_customer.pr_user', '=', $this->admin['username']];
+                    $where[] = ['crm_customer.owner_admin_id', '=', $this->admin['admin_id']];
                 }
             }
 //            返回sql语句的写法
@@ -121,7 +121,7 @@ class CustomerContacts extends AdminController
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -150,15 +150,15 @@ class CustomerContacts extends AdminController
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }
-        $this->modifyPermissions($crmCustomer['admin_id']);
+        $this->modifyPermissionsByIds($crmCustomer['admin_id']);
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer_contacts" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
             $this->verifyFields($post,$fields,'crm_customer_contacts');
             try {
-                $post=post_convert($post,$fields);
+                $post=post_convert($post,$fields,'add');
                 $post['create_username']=$this->admin['username'];
                 //谁的客户归谁管理
                 $ower_admin_id=$crmCustomer['admin_id'];
@@ -195,15 +195,15 @@ class CustomerContacts extends AdminController
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }
-        $this->modifyPermissions($crmCustomer['admin_id']);
+        $this->modifyPermissionsByIds($crmCustomer['admin_id']);
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer_contacts" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
             $this->verifyFields($post,$fields,'crm_customer_contacts');
             foreach ($fields as $v){
-                if($v['edit_readonly']){
+                if($v['edit']){
 //                    只读的数据无需保存
                     unset($post[$v['field']]);
                 }
@@ -236,7 +236,7 @@ class CustomerContacts extends AdminController
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }
-        $this->modifyPermissions($crmCustomer['admin_id']);
+        $this->modifyPermissionsByIds($crmCustomer['admin_id']);
         if ($this->request->isPost()) {
             $param = $this->request->param();
 

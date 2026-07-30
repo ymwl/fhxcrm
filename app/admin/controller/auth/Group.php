@@ -2,11 +2,13 @@
 
 namespace app\admin\controller\auth;
 
+use app\admin\model\AuthGroup;
 use app\common\controller\AdminController;
-use clt\Leftnav;
 
 use think\App;
-use fast\Tree;
+use fhx\Tree;
+use think\facade\Cache;
+use think\facade\View;
 
 /**
  * @ControllerAnnotation(title="auth_group")
@@ -41,7 +43,7 @@ class Group extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
             $count = $this->model
                 ->where($where)
                 ->count();
@@ -49,7 +51,7 @@ class Group extends AdminController
             if($count){
                 $list = $this->model->field('id,pid,title,create_time,max_customers_num')
                     ->where($where)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select()->toArray();
                 foreach ($list as $k=>$v){
                     $list[$k]['title']=fy($v['title']);
@@ -57,7 +59,7 @@ class Group extends AdminController
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -103,9 +105,9 @@ class Group extends AdminController
                 'title|用户组名'  => 'require|unique:AuthGroup',
             ];
             if(!empty($post['pid'])){
-                Tree::instance()->init($this->model->where('status','=',1)->select()->toArray());
+                $groupData = $this->model->where('status','=',1)->select()->toArray();
                 // 父节点不能是它自身的子节点或自己本身
-                if (in_array($post['pid'], Tree::instance()->getChildrenIds($row->id, true))) {
+                if (in_array($post['pid'], \fhx\Tree::getChildrenIds($groupData, $row->id, true))) {
                     $this->error('父级不能是它的子级和自身');
                 }
             }
@@ -141,6 +143,44 @@ class Group extends AdminController
             $this->error('删除失败：'.$e->getMessage());
         }
         $save ? $this->success(fy('Delete succeeded')) : $this->error(fy('Delete failed'));
+    }
+
+    public function access(){
+        if ($this->request->isPost()) {
+            $rules = input('post.rules');
+            if(empty($rules)){
+                return json(['msg'=>fy("Please select permissions"),'code'=>0]);
+            }
+            $data = $this->request->post();
+            $where['id'] = $data['id'];
+            unset($data['id']);
+            if(AuthGroup::update($data,$where)){
+                Cache::clear();
+                return json(['msg'=>fy("Save successfully"),'url'=>myurl('auth.group/index'),'code'=>1]);
+            }else{
+                return json(['msg'=>fy("Save failed"),'code'=>0]);
+            }
+        }else{
+            $id=input('id',0,'trim');
+            if(empty($id)){
+                $this->error('非法访问!');
+            }
+            $admin_rule=\think\facade\Db::name('auth_rule')->field('id,pid,title')->order('sort asc')->select();
+            $rules = \think\facade\Db::name('auth_group')->field('rules,title')->where('id',$id)->find();
+            if(empty($rules['title'])){
+                $this->error('用户组不存在!');
+            }
+            $arr = \fhx\Leftnav::auth($admin_rule,$pid=0,$rules['rules']);
+            $arr[] = [ "id"=>0,
+                "pid"=>0,
+                "title"=>fy("All"),
+                "open"=>true];
+            View::assign('data',json_encode($arr,true));
+            View::assign('group_title',$rules['title']);
+            $this->app->view->engine()->layout(false);
+            return $this->fetch();
+        }
+
     }
 
     

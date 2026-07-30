@@ -31,16 +31,16 @@ class Reminder extends AdminController
             }
             list($page, $limit, $where, $sort) = $this->buildTableParames();
 
-            $scope = $this->request->get('scope', 1, 'intval');
+            $scope = $this->request->get('scope', 'pending', 'trim');
 
             // 只查看自己的提醒
             $where[] = ['admin_id', '=', $this->admin['admin_id']];
 
             // 根据 scope 筛选状态
-            if ($scope == 1) {
+            if ($scope == 'pending') {
                 // 待提醒
                 $where[] = ['status', '=', ReminderService::STATUS_PENDING];
-            } elseif ($scope == 2) {
+            } elseif ($scope == 'read') {
                 // 已读
                 $where[] = ['status', '=', ReminderService::STATUS_READ];
             }
@@ -56,29 +56,12 @@ class Reminder extends AdminController
                     ->select()
                     ->toArray();
 
-                // 获取关联信息
-                foreach ($list as &$item) {
-                    if ($item['related_type'] == 'customer' && $item['related_id']) {
-                        $item['customer_name'] = Db::name('crm_customer')
-                            ->where('id', $item['related_id'])
-                            ->value('name');
-                    } elseif ($item['related_type'] == 'contract' && $item['related_id']) {
-                        $contract = Db::name('crm_contract')
-                            ->where('id', $item['related_id'])
-                            ->field('name, customer_id')
-                            ->find();
-                        $item['contract_name'] = $contract['name'] ?? '';
-                        $item['customer_name'] = Db::name('crm_customer')
-                            ->where('id', $contract['customer_id'] ?? 0)
-                            ->value('name');
-                    }
-                    $item['type_text'] = $this->getTypeText($item['type']);
-                    $item['status_text'] = $this->getStatusText($item['status']);
-                }
+                // 批量获取关联信息（避免 N+1 查询）
+                $list = $this->fillRelatedInfo($list);
             }
 
             $data = [
-                'code' => 0,
+                'code' => 1,
                 'msg' => '',
                 'count' => $count,
                 'data' => $list,
@@ -90,8 +73,119 @@ class Reminder extends AdminController
         $service = new ReminderService();
         $pendingCount = $service->getPendingCount($this->admin['admin_id']);
         $this->assignconfig('pendingCount', $pendingCount);
+        $this->assignconfig('scope', $this->request->get('scope', 'pending', 'trim'));
 
         return $this->fetch();
+    }
+
+    /**
+     * 批量填充关联信息（优化 N+1 查询）
+     * 支持 customer/contract/receivables_plan/contact 四种关联类型
+     */
+    private function fillRelatedInfo($list)
+    {
+        // 按 related_type 分组收集 related_id
+        $customerIds = [];
+        $contractIds = [];
+        $planIds = [];
+        $contactIds = [];
+
+        foreach ($list as $item) {
+            if (empty($item['related_id'])) continue;
+            switch ($item['related_type']) {
+                case 'customer':
+                    $customerIds[] = $item['related_id'];
+                    break;
+                case 'contract':
+                    $contractIds[] = $item['related_id'];
+                    break;
+                case 'receivables_plan':
+                    $planIds[] = $item['related_id'];
+                    break;
+                case 'contact':
+                    $contactIds[] = $item['related_id'];
+                    break;
+            }
+        }
+
+        // 批量查询关联数据
+        $customerMap = [];
+        if ($customerIds) {
+            $customerMap = Db::name('crm_customer')
+                ->whereIn('id', array_unique($customerIds))
+                ->column('name', 'id');
+        }
+
+        $contractMap = [];
+        $contractCustomerIds = [];
+        if ($contractIds) {
+            $contracts = Db::name('crm_contract')
+                ->whereIn('id', array_unique($contractIds))
+                ->column('name,customer_id', 'id');
+            $contractMap = $contracts;
+            foreach ($contracts as $c) {
+                if (!empty($c['customer_id'])) {
+                    $contractCustomerIds[] = $c['customer_id'];
+                }
+            }
+            // 补充查询合同关联的客户名
+            if ($contractCustomerIds) {
+                $extraCustomers = Db::name('crm_customer')
+                    ->whereIn('id', array_unique($contractCustomerIds))
+                    ->column('name', 'id');
+                $customerMap = $customerMap + $extraCustomers;
+            }
+        }
+
+        $planMap = [];
+        if ($planIds) {
+            $planMap = Db::name('crm_contract_receivables_plan')
+                ->alias('p')
+                ->join('crm_customer c', 'p.customer_id = c.id', 'left')
+                ->whereIn('p.id', array_unique($planIds))
+                ->column('c.name', 'p.id');
+        }
+
+        $contactMap = [];
+        if ($contactIds) {
+            $contactMap = Db::name('crm_customer_contacts')
+                ->alias('cc')
+                ->join('crm_customer c', 'cc.customer_id = c.id', 'left')
+                ->whereIn('cc.id', array_unique($contactIds))
+                ->column('c.name', 'cc.id');
+        }
+
+        // 填充关联信息
+        foreach ($list as &$item) {
+            $item['customer_name'] = '';
+            $item['contract_name'] = '';
+
+            if (!empty($item['related_id'])) {
+                switch ($item['related_type']) {
+                    case 'customer':
+                        $item['customer_name'] = $customerMap[$item['related_id']] ?? '';
+                        break;
+                    case 'contract':
+                        $contract = $contractMap[$item['related_id']] ?? null;
+                        if ($contract) {
+                            $item['contract_name'] = $contract['name'] ?? '';
+                            $item['customer_name'] = $customerMap[$contract['customer_id'] ?? 0] ?? '';
+                        }
+                        break;
+                    case 'receivables_plan':
+                        $item['customer_name'] = $planMap[$item['related_id']] ?? '';
+                        break;
+                    case 'contact':
+                        $item['customer_name'] = $contactMap[$item['related_id']] ?? '';
+                        break;
+                }
+            }
+
+            $item['type_text'] = $this->getTypeText($item['type']);
+            $item['status_text'] = $this->getStatusText($item['status']);
+        }
+
+        return $list;
     }
 
     /**
@@ -169,6 +263,11 @@ class Reminder extends AdminController
         }
 
         $id = is_array($id) ? $id : explode(',', $id);
+        // 安全过滤：确保所有 id 为正整数
+        $id = array_filter(array_map('intval', $id));
+        if (empty($id)) {
+            $this->error('参数格式错误');
+        }
 
         // 只能删除自己的提醒
         $count = Db::name('crm_reminder')
@@ -188,10 +287,6 @@ class Reminder extends AdminController
      */
     public function getUnreadCount()
     {
-        if (!$this->request->isAjax()) {
-            return json(['code' => 0, 'count' => 0]);
-        }
-
         $service = new ReminderService();
         $count = $service->getPendingCount($this->admin['admin_id']);
 
@@ -201,7 +296,7 @@ class Reminder extends AdminController
         return json([
             'code' => 1,
             'count' => $count,
-            'list' => $list
+            'data' => $list
         ]);
     }
 

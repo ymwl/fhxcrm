@@ -7,7 +7,7 @@
                     <option value="0">{:fy('Default Top Level')}</option>
                     <?php
  $typeLst = \think\facade\Db::name('product_type')->order('pid asc,sort asc,id asc')->select();
-                    $nav = new \clt\Leftnav();
+                    $nav = new \fhx\Leftnav();
                     $typeLst = $nav->menu($typeLst);
                     $id=isset($_GET['id'])?$_GET['id']:0;
                     ?>

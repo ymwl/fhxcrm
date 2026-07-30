@@ -27,11 +27,16 @@ class CrmContractService
     }
     public static function getCheckStatus($status=''){
 //        -1审核未通过0待审核、1草稿、2审核中、3审核通过
-        $status_text=['-1'=>'审核未通过','0'=>'待审核','1'=>'草稿','2'=>'审核中','3'=>'审核通过'];
+        $status_text=['-1'=>'审核未通过','0'=>'待审核','1'=>'草稿','2'=>'审核中','3'=>'审核通过','5'=>'已完成'];
         if($status==''){
             return $status_text;
         }
         return $status_text[$status]?:'未知状态';
+    }
+//    返回可以编辑合同状态
+    public static function getEditStatus()
+    {
+        return ['-1','1'];
     }
 
     /**

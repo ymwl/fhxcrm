@@ -6,9 +6,28 @@
         padding-right: 70px !important;text-overflow:ellipsis!important;overflow:hidden!important;white-space:nowrap!important;}
     .layuimini-notice-title {line-height:28px;font-size:14px;}
     .layuimini-notice-extra {position:absolute;top:50%;margin-top:-8px;right:16px;display:inline-block;height:16px;color:#999;}
-    #jxphb tbody tr:nth-child(2){background:#ffcc99;}
-    #jxphb tbody tr:nth-child(3){background:#ccccff;}
-    #jxphb tbody tr:nth-child(4){background:#ffcccc;}
+    #jxphb tbody tr:nth-child(1){background:#ffcc99;}
+    #jxphb tbody tr:nth-child(2){background:#ccccff;}
+    #jxphb tbody tr:nth-child(3){background:#ffcccc;}
+    /* 数据概览卡片等宽布局 */
+    .main-stat-cards {display:flex;flex-wrap:wrap;gap:15px;margin-bottom:15px;}
+    .main-stat-cards .layui-card {flex:1;min-width:170px;margin-bottom:0;}
+    /* 待办项可点击 */
+    .todo-link {cursor:pointer;}
+    .todo-link:hover {background:#f6f6f6;}
+    .todo-link td:last-child {font-weight:bold;color:#FF5722;}
+    .todo-link:hover td:last-child {color:#1E9FFF;}
+    /* 待办卡片网格布局 */
+    .todo-grid {display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;}
+    .todo-card {text-align:center;padding:10px 6px;border-radius:6px;background:#f9f9f9;cursor:pointer;transition:all .2s;border:1px solid #f0f0f0;}
+    .todo-card:hover {background:#e6f7ff;transform:translateY(-2px);box-shadow:0 2px 8px rgba(0,0,0,.1);border-color:#91d5ff;}
+    .todo-amount {font-size:20px;font-weight:bold;color:#FF5722;line-height:1.3;}
+    .todo-card:hover .todo-amount {color:#1E9FFF;}
+    .todo-name {font-size:11px;color:#666;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    /* 排行表头 */
+    #jxphb thead th {background:#f2f2f2;font-weight:bold;white-space:nowrap;}
+    /* 空状态提示 */
+    .main-empty {text-align:center;color:#999;padding:15px 0;font-size:13px;}
 </style>
 <div class="layuimini-container">
     <div class="layuimini-main">
@@ -24,134 +43,124 @@
         </div>
         <?php } ?>
         <div class="layui-col-md8">
-            <div class="layui-row layui-col-space15">
-               <!-- <div class="layui-col-xs12 layui-col-sm6 layui-col-md6 layui-col-lg6">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">
-                            我的线索数
-                            &lt;!&ndash; <span class="layui-badge layui-bg-blue layuiadmin-badge">周</span> &ndash;&gt;
-                        </div>
-                        <div class="layui-card-body layuiadmin-card-list">
-                            <p class="layuiadmin-big-font">{$cluesCount_week}</p>
-                            <p>
-                                总线索
-                                <span class="layuiadmin-span-color">{$cluesCount} 条</span>
-                            </p>
-                        </div>
+            <div class="main-stat-cards">
+                <div class="layui-card layui-panel">
+                    <div class="layui-card-header">
+                        我的线索
                     </div>
-                </div>-->
-
-                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">
-                            {:fy('client pool')}
-                        </div>
-                        <div class="layui-card-body layuiadmin-card-list">
-
-                            <p class="layuiadmin-big-font">{$liberumCount}</p>
-                            <p>
-                                {:fy('Total data')}
-                                <span class="layuiadmin-span-color">{$liberumCount}</span>
-                            </p>
-                        </div>
+                    <div class="layui-card-body layuiadmin-card-list">
+                        <p class="layuiadmin-big-font">{$cluesCount_week}</p>
+                        <p>
+                            总线索
+                            <span class="layuiadmin-span-color">{$cluesCount} 条</span>
+                        </p>
                     </div>
                 </div>
 
-                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">
-                            {:fy('My clients')}
-                        </div>
-                        <div class="layui-card-body layuiadmin-card-list">
-                            <p class="layuiadmin-big-font">{$clientCount_month}</p>
-                            <p>
-                                {:fy('Total clients')}
-                                <span class="layuiadmin-span-color">{$clientCount}</span>
-                            </p>
-                        </div>
+                <div class="layui-card layui-panel">
+                    <div class="layui-card-header">
+                        {:fy('client pool')}
+                    </div>
+                    <div class="layui-card-body layuiadmin-card-list">
+                        <p class="layuiadmin-big-font">{$liberumCount}</p>
+                        <p>
+                            线索池
+                            <span class="layuiadmin-span-color"><?php
+echo \think\facade\Db::name('crm_clue')->where('status', '=', 4)->count();
+?></span>
+                        </p>
                     </div>
                 </div>
-                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">
-                            {:fy('My Business Opportunities')}
-                        </div>
-                        <div class="layui-card-body layuiadmin-card-list">
-                            <?php
 
+                <div class="layui-card layui-panel">
+                    <div class="layui-card-header">
+                        {:fy('My clients')}
+                    </div>
+                    <div class="layui-card-body layuiadmin-card-list">
+                        <p class="layuiadmin-big-font">{$clientCount_month}</p>
+                        <p>
+                            {:fy('Total clients')}
+                            <span class="layuiadmin-span-color">{$clientCount}</span>
+                        </p>
+                    </div>
+                </div>
 
+                <div class="layui-card layui-panel">
+                    <div class="layui-card-header">
+                        {:fy('My Business Opportunities')}
+                    </div>
+                    <div class="layui-card-body layuiadmin-card-list">
+                        <?php
                             $business_total=\think\facade\Db::name('crm_business')->count();
                             $business_my_total=\think\facade\Db::name('crm_business')->where('owner_admin_id','=',$admin['admin_id'])->count();
-                            ?>
-                            <p class="layuiadmin-big-font">{$business_my_total}</p>
-                            <p>
-                                {:fy('Total opportunities')}
-                                <span class="layuiadmin-span-color">{$business_total}</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="layui-col-xs12 layui-col-sm3 layui-col-md3 layui-col-lg3">
-                    <div class="layui-card layui-panel">
-                        <?php
-
-//只记录审核通过的
-                            $total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->count();
-                        $my_total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->where('owner_admin_id','=',$admin['admin_id'])->count();
                         ?>
-                        <div class="layui-card-header">
-                            我的合同                        </div>
-                        <div class="layui-card-body layuiadmin-card-list">
-                            <p class="layuiadmin-big-font">{$my_total}</p>
-                            <p>
-                                总合同                                <span class="layuiadmin-span-color">{$total}</span>
-                            </p>
-                        </div>
+                        <p class="layuiadmin-big-font">{$business_my_total}</p>
+                        <p>
+                            {:fy('Total opportunities')}
+                            <span class="layuiadmin-span-color">{$business_total}</span>
+                        </p>
                     </div>
                 </div>
 
-                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                <div class="layui-card layui-panel">
+                    <?php
+                        //只记录审核通过的
+                        $total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->count();
+                        $my_total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->where('owner_admin_id','=',$admin['admin_id'])->count();
+                    ?>
+                    <div class="layui-card-header">
+                        我的合同
+                    </div>
+                    <div class="layui-card-body layuiadmin-card-list">
+                        <p class="layuiadmin-big-font">{$my_total}</p>
+                        <p>
+                            总合同
+                            <span class="layuiadmin-span-color">{$total}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-row layui-col-space15">
+               <!-- <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
                     <div class="layui-card layui-panel">
                         <div class="layui-card-header">{:fy('Performance Monthly Ranking')} <a href="javascript:;" style="float: right;" layuimini-content-href="{:myurl('crm.performance/analytics')}" data-title="{:fy('Performance statistics')}" data-icon="fa fa-university">{:fy('More')}>></a></div>
                         <div class="layui-card-body" style="overflow-y: scroll;">
                             <table class="layui-table" id="jxphb">
-                                <tbody>
+                                <thead>
                                 <tr>
-                                    <td>月排名</td>
-                                    <td>{:fy('Salesman')}</td>
-                                    <td>{:fy('Month target')}</td>
-                                    <td>{:fy('Dealed')}（{:fy('amount')}）</td>
-                                                <td>{:fy('Freight')}</td>
-                                    <td>{:fy('Completion rate')}（%）</td>
-                                    <td>{:fy('Dealed')}（{:fy('Order volume')}）</td>
-                                    <td>{:fy('Commission')}（%）</td>
-                                    <td>签订合同金额</td>
-                                    <td>回款金额</td>
+                                    <th>月排名</th>
+                                    <th>{:fy('Salesman')}</th>
+                                    <th>订单排名</th>
+                                    <th>月订单目标</th>
+                                    <th>订单完成率</th>
+                                    <th>订单金额</th>
+                                    <th>合同排名</th>
+                                    <th>月合同目标</th>
+                                    <th>合同完成率</th>
+                                    <th>合同金额</th>
+                                    <th>回款排名</th>
+                                    <th>月回款目标</th>
+                                    <th>回款完成率</th>
+                                    <th>回款金额</th>
                                 </tr>
+                                </thead>
+                                <tbody>
                                 {volist name='userlist' id='vo' key="k" }
                                 <tr >
-                                    <?php
-if($vo['money_month']){
-if(!empty($vo['mubiao'])){
-$vo['wanchenglv']=round($vo['money_month']/$vo['mubiao']*100,2);
-}else{
-$vo['wanchenglv']='';
-}
-
-}else{
-$vo['wanchenglv']=$vo['money_month']='';
-}
-?>
                                     <td>{$k}</td>
                                     <td>{$vo['username']}</td>
-                                    <td>{$vo['mubiao']}</td>
+                                    <td>{$vo['order_rank']}</td>
+                                    <td>{$vo['order_mubiao']}</td>
+                                    <td>{$vo['order_wanchenglv']}</td>
                                     <td>{$vo['money_month']}</td>
-                                                <td>{$vo['freight_month']|default=0}</td>
-                                    <td>{$vo['wanchenglv']}</td>
-                                    <td>{$vo['number_month']|default=0}</td>
-                                    <td><?php echo empty($vo['ticheng'])?'':$vo['ticheng'].'%'; ?></td>
+                                    <td>{$vo['ht_rank']}</td>
+                                    <td>{$vo['ht_mubiao']}</td>
+                                    <td>{$vo['ht_wanchenglv']}</td>
                                     <td>{$vo['ht_money_month']}</td>
+                                    <td>{$vo['hk_rank']}</td>
+                                    <td>{$vo['hk_mubiao']}</td>
+                                    <td>{$vo['hk_wanchenglv']}</td>
                                     <td>{$vo['hk_money_month']}</td>
                                 </tr>
                                 {/volist}
@@ -159,7 +168,7 @@ $vo['wanchenglv']=$vo['money_month']='';
                             </table>
                         </div>
                     </div>
-                </div>
+                </div>-->
 
                 <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
                     <div class="layui-card layui-panel">
@@ -168,19 +177,22 @@ $vo['wanchenglv']=$vo['money_month']='';
                             <?php
 $aid=$admin['admin_id'];
 
-$group_id=\think\facade\Db::name('admin')->where('admin_id',$aid)->cache('group_id_'.$aid)->value('group_id');
-$todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t.event,t.show_auth_group_id,t.show_auth_admin_id,a.username,t.is_finish,t.url,t.id,t.title,t.result,t.createtime')->join('admin a','t.admin_id=a.admin_id','left')->whereRaw('t.`admin_id` = :aid OR FIND_IN_SET(:group_id,t.`show_auth_group_id`) OR FIND_IN_SET(:admin_id,t.`show_auth_admin_id`)',['aid'=>$aid,'group_id'=>$group_id,'admin_id'=>$aid])->order(\think\facade\Db::raw("FIELD(t.`result`,'0','-1','1') ASC,t.createtime DESC"))->limit(10)->select();
+$group_id=$admin['group_id'];
+$todoLst=\think\facade\Db::name('audit_management')->field('mess,event,auditor_group_ids,auditor_admin_ids,create_username,is_finish,url,id,title,result,createtime')->whereRaw('`create_admin_id` = :aid OR FIND_IN_SET(:group_id,`auditor_group_ids`) OR FIND_IN_SET(:admin_id,`auditor_admin_ids`)',['aid'=>$aid,'group_id'=>$group_id,'admin_id'=>$aid])->order(\think\facade\Db::raw("FIELD(`result`,'0','-1','1') ASC,createtime DESC"))->limit(10)->select();
+                            if(count($todoLst)>0){
                             foreach($todoLst as $v){
                             $v['title']=fy($v['title']);
                                 if(empty($v['mess'])){
-                                     $v['mess']=$v['username'].' '.fy($v['event']);
+                                     $v['mess']=$v['create_username'].' '.fy($v['event']);
                                 }
 
                             ?>
-                            <div class="layuimini-notice" <?php if((strpos(','.$v['show_auth_group_id'].',',','.$group_id.',')!==false || strpos(','.$v['show_auth_admin_id'].',',','.$aid.',')!==false) && $v['is_finish']==0){ ?>data-open="{$v['url']}&audit_management_id={$v['id']}" <?php } ?> data-title="{$v['title']}">
+                            <div class="layuimini-notice" <?php if((strpos(','.$v['auditor_group_ids'].',',','.$group_id.',')!==false || strpos(','.$v['auditor_admin_ids'].',',','.$aid.',')!==false) && $v['is_finish']==0){ ?>data-open="{$v['url']}&audit_management_id={$v['id']}" <?php } ?> data-title="{$v['title']}">
                             <div class="layuimini-notice-title">【{$v['title']}】{$v['mess']} <span style="color: blue;">{:fy($v['result'])}</span></div>
                             <div class="layuimini-notice-extra">{:date('Y-m-d H:i',$v['createtime'])}</div>
                         </div>
+                        <?php } } else { ?>
+                            <div class="main-empty">暂无提醒信息</div>
                         <?php } ?>
 
                     </div>
@@ -193,8 +205,8 @@ $todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t
                 <div class="layui-card layui-panel">
                     <div class="layui-card-header">{:fy('Dynamic')}</div>
                     <div class="layui-card-body">
+                        {volist name='result' id='vo'}
                         <dl class="layuiadmin-card-status">
-                            {volist name='result' id='vo'}
                             <dd>
                                 <div class="layui-status-img"><a href="javascript:;">
                                     <img src="{$vo.avatar}"></a>
@@ -205,9 +217,11 @@ $todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t
                                     <span>{:fy('Follow-up time')}：{$vo.create_time|date='Y-m-d H:i:s'}</span>
                                 </div>
                             </dd>
-                            {/volist}
-
                         </dl>
+                        {/volist}
+                        {empty name='result'}
+                        <div class="main-empty">暂无跟进动态</div>
+                        {/empty}
                     </div>
                 </div>
             </div>
@@ -237,44 +251,44 @@ $todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t
 
                 <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
                     <div class="layui-card layui-panel">
-                        <div class="layui-card-header">{:fy('Need to be dealt with')}</div>
+                        <div class="layui-card-header">{:fy('Need to be dealt with')}
+                            <!--<span style="float:right;font-weight:normal;">客户跟进率：<strong style="color:#01AAED;">{$genjinlv}%</strong></span>-->
+                        </div>
                         <div class="layui-card-body layui-text">
-                            <table class="layui-table">
-                                <tbody>
-                                <tr>
-                                    <td>{:fy('Followed up with customers today')}</td>
-                                    <td>
-                                        {$today_followed_count}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>{:fy('Number of customers not followed up')}</td>
-                                    <td>
-                                        {$not_followed_count}
-                                    </td>
-                                </tr>
-                                <?php
- $today_business_record_count = \think\facade\Db::name('crm_business_record')->where('create_admin_id','=',$admin['admin_id'])->whereTime('create_time','today')->count('DISTINCT business_id');
-
-                                //        没有跟进的列表
-                                $today_business_tiixng = \think\facade\Db::name('crm_business')->field('`id`,`owner_username`,`customer_id`,`name`,`next_time`')->where('is_end','=',0)->where('owner_admin_id','=',$admin['admin_id'])->whereNotNull('next_time')->where('next_time','<>',0)->whereTime('next_time','<=','tomorrow -1second')->order('next_time ASC')->limit(10)->select()->toArray();
-                                //        待跟进数
-                                $not_followed_business_count=\think\facade\Db::name('crm_business')->where('is_end','=',0)->where('owner_admin_id','=',$admin['admin_id'])->whereNotNull('next_time')->where('next_time','<>',0)->whereTime('next_time','<=','tomorrow -1second')->count();
-?>
-                                <tr>
-                                    <td>{:fy('Opportunities have been followed today')}</td>
-                                    <td>
-                                        {$today_business_record_count}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>{:fy('Opportunities are not followed up')}</td>
-                                    <td>
-                                        {$not_followed_business_count}
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
+                            <div class="todo-grid">
+                                <div class="todo-card" layuimini-content-href="{:myurl('crm.clue/index')}?scope=10" data-title="待跟线索">
+                                    <div class="todo-amount">{$pending_clue_count}</div>
+                                    <div class="todo-name">待跟线索</div>
+                                </div>
+                                <div class="todo-card" layuimini-content-href="{:myurl('crm.customer/index')}?scope=10" data-title="待跟客户">
+                                    <div class="todo-amount">{$pending_customer_count}</div>
+                                    <div class="todo-name">待跟客户</div>
+                                </div>
+                                <div class="todo-card" layuimini-content-href="{:myurl('crm.business/index')}?scope=10" data-title="待跟商机">
+                                    <div class="todo-amount">{$pending_business_count}</div>
+                                    <div class="todo-name">待跟商机</div>
+                                </div>
+                                <div class="todo-card" layuimini-content-href="{:myurl('crm.contract/index')}?scope=expiring" data-title="即将到期合同">
+                                    <div class="todo-amount">{$expiring_contract_count}</div>
+                                    <div class="todo-name">即将到期合同</div>
+                                </div>
+                                <div class="todo-card" layuimini-content-href="{:myurl('crm.contract_receivables_plan/index')}?scope=pending_payment" data-title="待回款">
+                                    <div class="todo-amount">{$pending_receivables_count}</div>
+                                    <div class="todo-name">待回款</div>
+                                </div>
+                                <div class="todo-card" layuimini-content-href="{:myurl('process.audit/index')}?scope=audit" data-title="待审合同">
+                                    <div class="todo-amount">{$audit_contract_count}</div>
+                                    <div class="todo-name">待审合同</div>
+                                </div>
+                                <div class="todo-card" layuimini-content-href="{:myurl('process.audit/index')}?scope=audit" data-title="待审回款">
+                                    <div class="todo-amount">{$audit_receivables_count}</div>
+                                    <div class="todo-name">待审回款</div>
+                                </div>
+                                <div class="todo-card" layuimini-content-href="{:myurl('process.audit/index')}?scope=audit" data-title="待审订单">
+                                    <div class="todo-amount">{$audit_order_count}</div>
+                                    <div class="todo-name">待审订单</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -292,8 +306,10 @@ $todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t
                                     </div>
                                 </dd>
                                 {/volist}
-
                             </dl>
+                            {empty name='today_tiixng'}
+                            <div class="main-empty">暂无待跟进客户</div>
+                            {/empty}
                         </div>
                     </div>
 
@@ -309,8 +325,10 @@ $todoLst=\think\facade\Db::name('audit_management')->alias('t')->field('t.mess,t
                                     </div>
                                 </dd>
                                 {/volist}
-
                             </dl>
+                            <?php if(empty($today_business_tiixng)){ ?>
+                            <div class="main-empty">暂无待跟进商机</div>
+                            <?php } ?>
                         </div>
                     </div>
                 </div>

@@ -60,10 +60,7 @@ class CrmContract extends TimeModel
 
         ];
     }
-    public function getStatusText($status){
-        $status_text=['-1'=>'审核未通过','0'=>'待审核','1'=>'草稿','2'=>'审核中','3'=>'审核通过'];
-        return $status_text[$status]?:'未知状态';
-    }
+
 
 
 }

@@ -2,13 +2,13 @@
     #table-pro tr td input{min-width: 70px;}
     [v-cloak]{display: none;}
 </style>
-<div class="layuimini-container" id="app" v-cloak>
+<div class="layuimini-container" >
     <form id="app-form" class="layui-form layuimini-form">
         
         <div class="layui-form-item">
             <label class="layui-form-label">客户</label>
             <div class="layui-input-block">
-                <input type="text" name="business[customer_id]" data-toggle="selectPage" class="layui-input" data-source="{:url('crm.customer/selectpage')}"  data-field="name"  data-format-item="{name}"  data-primary-key="id"  placeholder="{:fy('Please select')}商机对应客户" data-params='{"custom[status]":1,"custom[pr_user]":"{$admin.username}"}'  lay-verify="required" >
+                <input type="hidden" name="business[customer_id]" data-rule="required" value=""><a href="javascript:void(0)" class="layui-input" data-id="business[customer_id]" data-title="选择客户" data-name="" open-select="crm.customer/index?isselect=1">【请点击选择】</a>
             </div>
         </div>
         <div class="layui-form-item">
@@ -42,7 +42,7 @@
                 <textarea name="business[remark]" class="layui-textarea"  placeholder="{:fy('Please enter')}备注" style="min-height:50px;"></textarea>
             </div>
         </div>
-<div style="padding:9px 15px;">
+<div style="padding:9px 15px;" id="app" v-cloak>
    <div class="clear">
        产品明细
        <a class="layui-btn layui-btn-normal layui-btn-sm" style="float: right;" href="javascript:void(0);" id="select-pro"><i class="fa fa-plus"></i>新增产品</a>

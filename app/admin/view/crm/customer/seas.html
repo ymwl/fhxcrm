@@ -1,9 +1,11 @@
 <div class="layuimini-container">
 
     <div class="layuimini-main">
+        <?php if($grabCountMsg){ ?>
         <blockquote class="layui-elem-quote" style="color:#FFB800; ">
             {$grabCountMsg}
         </blockquote>
+        <?php } ?>
         <div class="layui-tab" lay-filter="nav-tabs-index">
         </div>
         <table id="currentTable" class="layui-table layui-hide"

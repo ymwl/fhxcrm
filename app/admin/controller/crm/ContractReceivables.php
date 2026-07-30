@@ -26,18 +26,18 @@ class ContractReceivables extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
 
-            $scope=$this->request->get('scope', 1,'intval');
+            $scope=$this->request->get('scope', 1,'trim');
             if($contract_id){
                 $where[]=['crm_contract_receivables.contract_id','=',$contract_id];
             }else{
                 if($scope==2){
 //                    展示其他的  不包括自己
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -52,10 +52,10 @@ class ContractReceivables extends AdminController
 
                 }elseif($scope==3){
 //                    展示全部 包括自己
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -106,13 +106,13 @@ class ContractReceivables extends AdminController
                         'ownerAdmin' => ['username']], 'LEFT')
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
 
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -122,7 +122,7 @@ class ContractReceivables extends AdminController
         }
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `show`=1 AND `table`='crm_contract_receivables' AND `jscol` is not null order BY `sort` ASC,id ASC");
+        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `list`=1 AND `table`='crm_contract_receivables' AND `jscol` is not null order BY `sort` ASC,id ASC");
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=$v['jscol'].',';
@@ -135,8 +135,10 @@ class ContractReceivables extends AdminController
         $fields_str=str_replace(['":"{"','"}"'],['":{"','"}'],$fields_str);
 
         $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
+//        CrmContractReceivablesService::getCheckStatus()
 
-        $this->assignconfig('getCheckStatus', $this->model->getCheckStatus());
+        $this->assignconfig('getCheckStatus', \app\service\CrmContractReceivablesService::getCheckStatus());
+        $this->assignconfig('getEditStatus', \app\service\CrmContractReceivablesService::getEditStatus());
         $this->assignconfig(['contract_id'=>$contract_id]);
         return $this->fetch();
     }
@@ -154,8 +156,11 @@ class ContractReceivables extends AdminController
         if(!$contract_row){
             $this->error('提交回款指定合同不存在');
         }
+        if(!$contract_row['crmCustomer']){
+            $this->error('提交回款指定客户不存在');
+        }
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract_receivables" order BY `sort` ASC,id ASC');
 
         if ($this->request->isPost()) {
             $post = $this->request->post();
@@ -181,7 +186,7 @@ class ContractReceivables extends AdminController
 
             try {
 
-                $post=post_convert($post,$fields);
+                $post=post_convert($post,$fields,'add');
                 $post['check_status'] =0;
                 $post['create_username'] =$this->admin['username'];
                 $post['owner_admin_id'] =$admin_id;
@@ -194,8 +199,11 @@ class ContractReceivables extends AdminController
                     'url'=>'crm.contract_receivables/audit?id='.$this->model->id,
                     'createtime'=>time(),
                     'result'=>'To be reviewed',
-                    'admin_id'=>$this->admin['admin_id'],
-                    'show_auth_group_id'=>actiongroup('crm.contract_receivables/audit')
+                    'table_name'=>'crm_contract_receivables',
+                    'table_id'=>$this->model->id,
+                    'create_username'=>$this->admin['username'],
+                    'create_admin_id'=>$this->admin['admin_id'],
+                    'auditor_group_ids'=>actiongroup('crm.contract_receivables/audit')
                 ]);
             } catch (\Exception $e) {
                 $this->error(fy('Save failed').':'.$e->getMessage());
@@ -232,13 +240,14 @@ class ContractReceivables extends AdminController
     public function edit($id)
     {
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract_receivables" order BY `sort` ASC,id ASC');
 
         $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','owner_admin_id','check_status','customer_id','receivables_plan_id'])))->find($id);
-        $this->modifyPermissions($row['owner_admin_id']);
+
         empty($row) && $this->error(fy('The data does not exist'));
-        if($row['check_status']>2){
-            $this->error('回款已审核，不能修改');
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
+        if(!in_array($row['check_status'],\app\service\CrmContractReceivablesService::getEditStatus())){
+            $this->error('当前回款'.\app\service\CrmContractReceivablesService::getCheckStatus($row['check_status']).'，不能修改');
         }
         if ($this->request->isPost()) {
             $post = $this->request->post();
@@ -272,10 +281,11 @@ class ContractReceivables extends AdminController
                     'url'=>'crm.contract_receivables/audit?id='.$row->id,
                     'createtime'=>time(),
                     'result'=>'To be reviewed',
-                    'admin_id'=>$this->admin['admin_id'],
+                    'create_username'=>$this->admin['username'],
+                    'create_admin_id'=>$this->admin['admin_id'],
                     'table_name'=>'crm_contract_receivables',
                     'table_id'=>$row->id,
-                    'show_auth_group_id'=>actiongroup('crm.contract_receivables/audit')
+                    'auditor_group_ids'=>actiongroup('crm.contract_receivables/audit')
                 ]);
             } catch (\Exception $e) {
                 Db::rollback();
@@ -386,7 +396,7 @@ class ContractReceivables extends AdminController
         }
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract_receivables" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
@@ -409,16 +419,17 @@ class ContractReceivables extends AdminController
         return $this->fetch();
     }
 
-    public function desc(){
+    public function detail(){
         //        status 1 审核通过  -1审核不通过
         $id = $this->request->param('id',0,'intval');
         if(!$id){
             $this->error('访问参数非法');
         }
         $row = $this->model->withJoin(['crmCustomer' => ['name'],'crmContract' => ['name'], 'ownerAdmin' => ['username']],'LEFT')->where('crm_contract_receivables.id',$id)->find();
-
+        empty($row) && $this->error(fy('The data does not exist'));
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract_receivables" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
@@ -428,7 +439,47 @@ class ContractReceivables extends AdminController
         $this->app->view->engine()->layout($this->layout);
         $this->assign('fields_str', $fields_str);
         $this->assign('row', $row);
-        $this->assign('getCheckStatus', $this->model->getCheckStatus());
+        $this->assign('getCheckStatus', \app\service\CrmContractReceivablesService::getCheckStatus());
+
+        // 加载关联的合同完整信息
+        $contractInfo = null;
+        if (!empty($row['contract_id'])) {
+            $contractInfo = Db::name('crm_contract')
+                ->alias('c')
+                ->leftJoin('admin a', 'c.owner_admin_id = a.admin_id')
+                ->field('c.*, a.username as owner_username')
+                ->where('c.id', $row['contract_id'])
+                ->find();
+        }
+        $this->assign('contractInfo', $contractInfo);
+
+        // 加载关联的客户完整信息
+        $customerInfo = null;
+        $customerFieldsStr = '';
+        if (!empty($row['customer_id'])) {
+            $customerInfo = Db::name('crm_customer')
+                ->field('*')
+                ->where('id', $row['customer_id'])
+                ->find();
+            if ($customerInfo) {
+                // 查询客户列表展示的字段（show=1）
+                $customerFields = Db::query('SELECT `name`,`field`,`editinput` FROM `'.$prefix.'system_field` WHERE `list`=1 AND `table`="crm_customer" AND `editinput` is not null order BY `sort` ASC,id ASC');
+                foreach ($customerFields as $v) {
+                    if(empty($customerInfo[$v['field']])){
+                        continue;
+                    }
+                    $customerFieldsStr .= trim($v['editinput']);
+                }
+                if ($customerFieldsStr) {
+                    $this->app->view->engine()->layout(false);
+                    $customerFieldsStr = $this->display($customerFieldsStr, ['row' => $customerInfo]);
+                    $this->app->view->engine()->layout($this->layout);
+                }
+            }
+        }
+        $this->assign('customerInfo', $customerInfo);
+        $this->assign('customerFieldsStr', $customerFieldsStr);
+
         // 加载关联的回款计划信息
         $receivablesPlanInfo = null;
         if (!empty($row['receivables_plan_id'])) {
@@ -446,9 +497,9 @@ class ContractReceivables extends AdminController
         $id=$this->request->param('id');
         $this->checkPostRequest();
         $owner_admin_ids = $this->model->whereIn('id', $id)->column('DISTINCT owner_admin_id');
-        $this->modifyPermissions($owner_admin_ids);
+        $this->modifyPermissionsByIds($owner_admin_ids);
 
-        $c = $this->model->whereIn('id', $id)->where('check_status','>',1)->count();
+        $c = $this->model->whereIn('id', $id)->where('check_status','NOT IN',\app\service\CrmContractReceivablesService::getEditStatus())->count();
         if($c>0){
             $this->error('当前回款不能删除');
         }

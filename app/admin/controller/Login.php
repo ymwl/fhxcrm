@@ -8,17 +8,12 @@ use app\admin\model\Admin;
 use think\captcha\facade\Captcha;
 class Login extends BaseController
 {
-    private $system;
+
     public $admin=[];
     public function initialize(){
         $this->admin=session('admin');
         if (!empty($this->admin)) {
             $this->redirect(myurl('index/index'));
-        }
-
-        $this->system = cache('System');
-        if(empty($this->system)){
-            $this->system=savecache('System');
         }
         View::assign('system',$this->system);
     }
@@ -87,7 +82,7 @@ class Login extends BaseController
 
         }else{
 
-            return View::fetch();
+            return \think\facade\View::fetch();
         }
     }
     public function verify(){

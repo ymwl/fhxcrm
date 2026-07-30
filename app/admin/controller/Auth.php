@@ -1,12 +1,12 @@
 <?php
 namespace app\admin\controller;
 use app\common\controller\AdminController;
-use fast\Tree;
+use fhx\Tree;
 use think\facade\Cache;
 use think\facade\View;
 
 use think\facade\Db;
-use clt\Leftnav;
+use fhx\Leftnav;
 use app\admin\model\Admin;
 use app\admin\model\AuthGroup;
 use app\admin\model\authRule;
@@ -19,7 +19,9 @@ class Auth extends AdminController
                 return $this->selectList();
             }
             $this->model=new \app\admin\model\Admin();
-            list($page, $limit, $where) = $this->buildTableParames();
+            $this->sort = ['admin_id'=>'desc'] ;
+
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
 
 
 
@@ -27,10 +29,10 @@ class Auth extends AdminController
 
             //用户组1属于超级用户组不需要加范围
             if($this->admin['group_id']>1){
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,false);
+                $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,false);
                 if(empty($adminIds)){
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
@@ -52,13 +54,13 @@ class Auth extends AdminController
                     ->withJoin(['authGroup' => ['title'],'authRole' => ['name']],'LEFT')
                     ->where($where)
                     ->page($page, $limit)
-                    ->order('admin_id DESC')
+                    ->order($sort)
                     ->select()->toArray();
             }
 
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -100,7 +102,7 @@ class Auth extends AdminController
                     $this->error('角色禁止越权选择');
                 }
 
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                 if(empty($adminIds) && $data['parent_id']>0){
                     $this->error('直属上级禁止越权赋值!');
                 }elseif($data['parent_id']>0) {
@@ -143,7 +145,7 @@ class Auth extends AdminController
         if($admin_id==$this->admin['admin_id']){
             return json(['code'=>0,'msg'=>fy("Forbid deleting itself")]);
         }
-        $this->modifyPermissions($admin_id);
+        $this->modifyPermissionsByIds($admin_id);
         Admin::where('admin_id','=',$admin_id)->delete();
         return json(['code'=>1,'msg'=>fy("Delete succeeded").'!']);
     }
@@ -157,7 +159,7 @@ class Auth extends AdminController
             $result['url'] = myurl('adminList');
             return json($result);
         }
-        $this->modifyPermissions($id);
+        $this->modifyPermissionsByIds($id);
         \think\facade\Db::name('admin')->where('admin_id','=',$id)->update(['is_open'=>$is_open]);
         $result['status'] = 1;
         $result['info'] = fy("Modification succeeded");
@@ -184,7 +186,7 @@ class Auth extends AdminController
     //更新管理员信息
     public function adminEdit(){
         $admin_id=$this->request->param('admin_id',0,'int');
-        $this->modifyPermissions($admin_id,false);
+        $this->modifyPermissionsByIds($admin_id,false);
         $admin = new Admin();
 
         $row = $admin->getInfo($admin_id);
@@ -199,7 +201,7 @@ class Auth extends AdminController
             }
 
             if($this->admin['group_id']>1){
-                $adminIds=(new \app\admin\model\Admin())->getChildrenAdminIds($this->admin,true);
+                $adminIds=\app\service\AdminService::getChildrenAdminIds($this->admin,true);
 
                 if(!in_array($admin_id,$adminIds)){
                     $this->error('非法越权操作');
@@ -216,7 +218,7 @@ class Auth extends AdminController
                     $this->error('角色禁止越权选择');
 
                 }
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                 if(empty($adminIds) && $data['parent_id']>0){
                     $this->error('直属上级禁止越权赋值!');
                 }elseif($data['parent_id']>0) {
@@ -269,7 +271,7 @@ class Auth extends AdminController
     public function adminGroup(){
         if($this->request->isPost()){
             $list = AuthGroup::select()->toArray();
-            return json(['code'=>0,'msg'=>fy('Get successful').'!','data'=>$list,'rel'=>1]);
+            return json(['code'=>1,'msg'=>fy('Get successful').'!','data'=>$list,'rel'=>1]);
         }
         return $this->fetch();
     }
@@ -282,88 +284,11 @@ class Auth extends AdminController
         AuthGroup::where('id','=',$id)->delete();
         return json(['code'=>1,'msg'=>fy("Delete succeeded").'!']);
     }
-    //添加分组
-    public function groupAdd(){
-        if($this->request->isPost()){
-            $data=$this->request->post();
-            if(empty($data['title'])){
-                $this->error(fy("User group name submissions cannot be empty"));
-            }
-            $group_id=Db::name('auth_group')->where('title','=',$data['title'])->value('id');
-            if($group_id){
-                $this->error(fy("The user group name already exists and the save failed"));
-            }
-            $data['addtime']=time();
-            Db::name('auth_group')->strict(false)->insert($data);
-            $this->success(fy("Successfully added"),myurl('adminGroup'));
-        }else{
-            $authGroup = Db::name('auth_group')->field('id AS id,pid,title')->order('pid asc,id asc')->select();
-            $nav = new Leftnav();
-            $authGroupTree = $nav->menu($authGroup);
-            View::assign('authGroupTree',$authGroupTree);
 
-            View::assign('title',fy("Add").' '.fy("Group"));
-            View::assign('info','null');
-            View::assign('info_raw',[]);
-            return \think\facade\View::fetch('groupForm');
-        }
-    }
-    //修改分组
-    public function groupEdit(){
-        if($this->request->isPost()) {
-            $data=$this->request->post();
-            if(empty($data['title'])){
-                $this->error(fy("User group name submissions cannot be empty"));
-            }
-            $group_id=Db::name('auth_group')->where('title','=',$data['title'])->where('id','<>',$data['id'])->value('id');
-            if($group_id){
-                $this->error(fy("The user group name already exists and the save failed"));
-            }
-            Db::name('auth_group')
-                ->where('group_id','=',$data['group_id'])
-                ->update($data);
-            $this->success(fy("Modification succeeded"),myurl('adminGroup'));
-        }else{
-            $authGroup = Db::name('auth_group')->field('group_id AS id,pid,title')->order('pid asc,group_id asc')->select();
-            $nav = new Leftnav();
-            $authGroupTree = $nav->menu($authGroup);
-            View::assign('authGroupTree',$authGroupTree);
-            $id = input('id');
-            $info=Db::name('auth_group')->where('group_id','=',$id)->find();
-            View::assign('info', json_encode($info,true));
-            View::assign('info_raw', $info);
-            View::assign('title',fy("Edit").fy("Group"));
-            return View::fetch('groupForm');
-        }
-    }
+
     //分组配置规则
-    public function groupAccess(){
-        $admin_rule=\think\facade\Db::name('auth_rule')->field('id,pid,title')->order('sort asc')->select();
-        $rules = \think\facade\Db::name('auth_group')->where('id',input('id'))->value('rules');
-        $arr = \clt\Leftnav::auth($admin_rule,$pid=0,$rules);
-        $arr[] = [ "id"=>0,
-            "pid"=>0,
-            "title"=>fy("All"),
-            "open"=>true];
-        View::assign('data',json_encode($arr,true));
-        $this->app->view->engine()->layout(false);
-        return View::fetch();
-    }
-    public function groupSetaccess(){
-        $rules = input('post.rules');
-        if(empty($rules)){
-            return json(['msg'=>fy("Please select permissions"),'code'=>0]);
-        }
-        $data = $this->request->post();
-        $where['id'] = $data['id'];
-        unset($data['id']);
-        if(AuthGroup::update($data,$where)){
-            Cache::clear();
-            return json(['msg'=>fy("Save successfully"),'url'=>myurl('auth.group/index'),'code'=>1]);
-        }else{
-            return json(['msg'=>fy("Save failed"),'code'=>0]);
-        }
-    }
+
+
 
     /********************************权限管理*******************************/
     public function adminRule(){
@@ -376,10 +301,10 @@ class Auth extends AdminController
                 }
                 cache('authRuleList', $arr, 3600);
             }
-            return json(['code'=>0,'msg'=>fy('Get successful').'!','data'=>$arr,'is'=>true]);
+            return json(['code'=>1,'msg'=>fy('Get successful').'!','data'=>$arr,'is'=>true]);
         }
 //        $this->app->view->engine()->layout(false);
-        return View::fetch();
+        return $this->fetch();
     }
     public function clear(){
 //        清除不存在父级的节点
@@ -469,9 +394,9 @@ class Auth extends AdminController
             $post = $this->request->post();
 
             if(!empty($post['pid'])){
-                Tree::instance()->init(Db::name('authRule')->where([['menustatus','=',1]])->order('pid asc,sort asc')->select()->toArray());
+                $authRuleData = Db::name('authRule')->where([['menustatus','=',1]])->order('pid asc,sort asc')->select()->toArray();
                 // 父节点不能是它自身的子节点或自己本身
-                if (in_array($post['pid'], Tree::instance()->getChildrenIds($id, true))) {
+                if (in_array($post['pid'], \fhx\Tree::getChildrenIds($authRuleData, $id, true))) {
                     $this->error('父级不能是当前菜单的子级和自身');
                 }
             }
@@ -497,7 +422,7 @@ class Auth extends AdminController
             $admin_rule=Db::name('auth_rule')->where('id','=',input('id'))->find();
             View::assign('rule',$admin_rule);
             $this->app->view->engine()->layout(false);
-            return View::fetch();
+            return $this->fetch();
         }
     }
 

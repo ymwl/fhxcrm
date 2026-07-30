@@ -2,7 +2,7 @@
     #table-pro tr td input{min-width: 70px;}
     [v-cloak]{display: none;}
 </style>
-<div class="layuimini-container" id="app" v-cloak>
+<div class="layuimini-container">
     <form id="app-form" class="layui-form layuimini-form">
         <div class="layui-row form-readonly">
 
@@ -88,7 +88,7 @@
                 <div class="">
                     <label class="layui-form-label">合同生效时间</label>
                     <div class="layui-input-block">
-                        <input type="text"  class="layui-input"   value="{:date('Y-m-d H:i',$row['start_time'])}" readonly>
+                        <input type="text"  class="layui-input"   value="{:date('Y-m-d',$row['start_time'])}" readonly>
                     </div>
                 </div>
             </div>
@@ -97,7 +97,7 @@
                 <div class="layui-form-item">
                     <label class="layui-form-label">合同到期时间</label>
                     <div class="layui-input-block">
-                        <input type="text" class="layui-input" value="{:date('Y-m-d H:i',$row['end_time'])}" readonly>
+                        <input type="text" class="layui-input" value="{:date('Y-m-d',$row['end_time'])}" readonly>
                     </div>
                 </div>
             </div>
@@ -119,7 +119,7 @@
 
         </div>
 
-        <div style="padding:9px 15px;">
+        <div style="padding:9px 15px;"  id="app" v-cloak>
             <div class="clear">
                 产品明细
             </div>

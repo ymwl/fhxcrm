@@ -33,15 +33,15 @@ class Record extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
-            $scope=$this->request->get('scope', 1,'intval');
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
+            $scope=$this->request->get('scope', 1,'trim');
             $customer_id=$this->request->get('customer_id', 0,'intval');
             if($scope==2){
 //                    展示其他的  不包括自己
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin);
+                $adminIds=\app\service\AdminService::getViewAdminIds($this->admin);
                 if(empty($adminIds)){
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
@@ -56,10 +56,10 @@ class Record extends AdminController
 
             }elseif($scope==3){
 //                    展示全部 包括自己
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                 if(empty($adminIds)){
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
@@ -83,12 +83,12 @@ class Record extends AdminController
                 $list = $this->model
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -118,54 +118,58 @@ class Record extends AdminController
 
     protected function get_next_url($id){
         list($page, $limit, $where,$sort) = $this->buildTableParames();
-        $scope=$this->request->get('scope', 1,'intval');
+        $scope=$this->request->get('scope', 1,'trim');
 
         if($scope==2){
 //                    展示其他的  不包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin);
-            if(empty($adminName)){
+            $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+            if(empty($adminIds)){
                 return '';
             }
-            if($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
-            }elseif($adminName=='ALL'){
+            if($adminIds!=='ALL'){
+                $where[] = ['owner_admin_id', 'in',$adminIds];
+            }elseif($adminIds=='ALL'){
 //                    展示其他的  不包括自己需要做排除
-                $where[] = ['pr_user', '<>',$this->admin['username']];
+                $where[] = ['owner_admin_id', '<>',$this->admin['admin_id']];
             }
 
         }elseif($scope==3){
 //                    展示全部 包括自己
-            $adminName=(new \app\admin\model\Admin())->getViewAdminName($this->admin,true);
-            if(empty($adminName)){
+            $adminIds = \app\service\AdminService::getViewAdminIds($this->admin,true);
+            if(empty($adminIds)){
                 return '';
             }
-            if($adminName!=='ALL'){
-                $where[] = ['pr_user', 'in',$adminName];
+            if($adminIds!=='ALL'){
+                $where[] = ['owner_admin_id', 'in',$adminIds];
             }
         }elseif($scope==10){
 // 待跟进
             $where[] = ['next_time', '>', 0];
             $where[] = ['next_time', '<', strtotime('tomorrow')];
 // 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=', $this->admin['admin_id']];
 
         }elseif($scope==11){
 // 今天已跟进
             $where[] = ['last_up_time', '>=', strtotime('today')];
             $where[] = ['last_up_time', '<', strtotime('tomorrow')];
 // 待跟进限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=', $this->admin['admin_id']];
+
+
 
         }elseif($scope==12){
 // 从未跟进
             $where[] = ['last_up_time', '=', 0];
 // 限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=', $this->admin['admin_id']];
+
+
 
         }elseif($scope==20){
 
             //            展示自己分享给他人的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=', $this->admin['admin_id']];
             $where[] = ['share_admin_ids', '<>', ''];
 
         }elseif($scope==21){
@@ -173,7 +177,7 @@ class Record extends AdminController
             $where[]=['','exp',\think\facade\Db::raw("FIND_IN_SET('{$this->admin['admin_id']}',share_admin_ids)")];
         }else{
 //                   限制展示自己的
-            $where[] = ['pr_user', '=', $this->admin['username']];
+            $where[] = ['owner_admin_id', '=', $this->admin['admin_id']];
         }
 
         $where[]=['status','=',1];
@@ -201,7 +205,6 @@ class Record extends AdminController
            if($key==count($list)-1){
                $page=$page+1;
            }
-//http://crm.laikephp.cn/admin1.php/crm.record/dialogue?id=14&filter=%7B%7D&op=%7B%7D&scope=1
            $get = $this->request->get('', null, null);
            $get['page']=$page;
            $get['id']=$next_id;
@@ -255,7 +258,7 @@ class Record extends AdminController
             }
         }else{
             $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query('SELECT `editinput` FROM `'.$prefix.'system_field` WHERE (`edit`=1 AND `table`="crm_customer" AND `editinput` is not null) OR `field`="pr_user" OR `field`="at_user" OR `field`="last_up_time" OR `field`="last_up_records" OR `field`="at_user" OR `field`="create_time" order BY `sort` ASC,id ASC');
+            $fields=Db::query('SELECT `editinput` FROM `'.$prefix.'system_field` WHERE (`form`=1 AND `table`="crm_customer" AND `editinput` is not null) OR `field`="pr_user" OR `field`="at_user" OR `field`="last_up_time" OR `field`="last_up_records" OR `field`="at_user" OR `field`="create_time" order BY `sort` ASC,id ASC');
             $fields_str='';
             foreach ($fields as $v){
                 $fields_str.=trim($v['editinput']);
@@ -277,7 +280,7 @@ class Record extends AdminController
         $this->checkPostRequest();
         $row = $this->model->whereIn('id', $id)->select();
         foreach ($row as $v){
-            $this->modifyPermissions($v['admin_id']);
+            $this->modifyPermissionsByIds($v['admin_id']);
         }
 
         $row->isEmpty() && $this->error(fy('The data does not exist'));

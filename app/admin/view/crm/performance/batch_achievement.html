@@ -1,0 +1,155 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+            <div class="layui-form-item">
+                <label class="layui-form-label required">选择员工</label>
+                <div class="layui-input-block">
+                    <input type="text" name="admin_ids" data-toggle="selectPage" class="layui-input"
+                           data-source="{:myurl('admin/selectpage')}"
+                           data-field="username"
+                           data-format-item="{username}"
+                           data-multiple="true"
+                           data-primary-key="admin_id"
+                           data-params='{"custom[is_open]":"1"}'
+                           placeholder="请选择员工（可多选）">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label required">年份</label>
+                <div class="layui-input-block">
+                    <input type="text" name="year" class="layui-input" placeholder="请选择年份" value="{$currentYear}"
+                           data-date="yyyy" data-date-type="year" lay-verify="required">
+                </div>
+            </div>
+        </div>
+
+        {volist name="configOptions" id="configName" key="configVal"}
+        <fieldset class="layui-elem-field layui-field-title" style="margin-top:20px;">
+            <legend>{$configName}</legend>
+        </fieldset>
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+            <div class="layui-form-item">
+                <label class="layui-form-label">启用</label>
+                <div class="layui-input-block">
+                    <input type="checkbox" name="config_{$configVal}" value="1" title="为选中员工设置{$configName}目标" lay-skin="primary" {if condition="$configVal == 1"}checked{/if}>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">全年目标</label>
+                <div class="layui-input-block" style="display:flex;align-items:center;">
+                    <input type="number" name="yeartarget_{$configVal}" class="layui-input yeartarget-input" data-config="{$configVal}" placeholder="可留空，自动计算12月之和" style="flex:1;">
+                    <button type="button" class="layui-btn layui-btn-sm layui-btn-normal btn-average" data-config="{$configVal}" style="margin-left:10px;">平均分配</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">1月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="january_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">2月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="february_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">3月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="march_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">4月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="april_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">5月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="may_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">6月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="june_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">7月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="july_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">8月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="august_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">9月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="september_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">10月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="october_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">11月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="november_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">12月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="december_{$configVal}" class="layui-input month-input month-input-{$configVal}" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+        {/volist}
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12" style="margin-top:20px;">
+            <div class="layui-form-item text-center">
+                <button type="submit" class="layui-btn layui-btn-normal" lay-submit>保存</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+
+    </form>
+</div>

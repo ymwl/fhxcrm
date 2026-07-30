@@ -27,7 +27,7 @@
             <select name="pr_user" lay-filter="pr_user">
                 <option value="">{:fy('Please select')}</option>
                 <?php
-$adminResult = \think\facade\Db::name('admin')->where('group_id','<>', 1)->field('admin_id,username')->select();
+$adminResult = \think\facade\Db::name('admin')->where('is_open','=', 1)->field('admin_id,username')->select();
                 ?>
                 {volist name='adminResult' id='vo'}
                 <option value="{$vo.username}" {if condition="$admin['username'] eq $vo['username']"}selected{/if}>{$vo.username}</option>

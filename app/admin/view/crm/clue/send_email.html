@@ -5,7 +5,7 @@
                 <label class="layui-form-label">收件邮箱</label>
                 <div class="layui-input-block">
                     <!-- 增加客户id隐藏域 -->
-                    <input type="hidden" name="customer_id" value="{$id}">
+                    <input type="hidden" name="clue_id" value="{$id}">
                     <input type="text" name="to_email" class="layui-input" lay-verify="required|email" placeholder="请输入收件邮箱" value="{$row.email|default=''}">
                 </div>
             </div>

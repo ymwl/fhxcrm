@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // |CRM销售客户关系管理系统
 // +----------------------------------------------------------------------
-// | Copyright (c) 2011~2099 http://fhy.laikephp.com All rights reserved.
+// | Copyright (c) 2011~2099 http://www.80zx.com All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( https://opensource.org/licenses/mit-license.php )
 // +----------------------------------------------------------------------
@@ -11,9 +11,8 @@
 
 define('IS_ROOT_ACCESS', true);
 // 是否是开发者模式
-if (!is_file(__DIR__ .'/config/install.lock')) {
-    header("location:/install.php");
-    exit;
+if (file_exists(__DIR__ .'/config/install.lock')) {
+    exit('系统已安装，请勿重复安装！');
 }
 
 // 引入公共入口文件

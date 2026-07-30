@@ -1,16 +1,24 @@
 <div class="layuimini-container">
     <div class="layuimini-main">
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" data-value="1" data-field="scope">{:fy("It's mine")}</li>
+                <li  data-value="2" data-field="scope">{:fy('Subordinate')}</li>
+                <li  data-value="3" data-field="scope">{:fy('All')}</li>
+            </ul>
+        </div>
         <table id="currentTable" class="layui-table layui-hide"
                data-auth-add="{:auth('crm.order/add')}"
                data-auth-addOrder="{:auth('crm.order/add')}"
                data-auth-edit="{:auth('crm.order/edit')}"
-               data-auth-delete="{:auth('crm.order/del')}"
+               data-auth-delete="{:auth('crm.order/delete')}"
                data-auth-import="{:auth('crm.order/import')}"
                data-auth-export="{:auth('crm.order/export')}"
                data-auth-fields="{:auth('crm.order.fields/index')}"
-               data-auth-desc="{:auth('crm.order/desc')}"
+               data-auth-desc="{:auth('crm.order/detail')}"
                data-auth-alter_pr_user="{:auth('crm.order/alter_pr_user')}"
-               data-auth-editAudit="{:auth('crm.order/editAudit')}"
+               data-auth-audit="{:auth('crm.order/audit')}"
+               data-auth-sendEmail="{:auth('crm.order/sendEmail')}"
                lay-filter="currentTable">
         </table>
     </div>

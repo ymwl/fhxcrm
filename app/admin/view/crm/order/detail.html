@@ -19,6 +19,22 @@
             </div>
         </div>
         </div>
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">联系人</label>
+                <div class="layui-input-block">
+                    <input type="text" id="ccontact" name="ccontact"  placeholder="请填写联系人" class="layui-input" value="{$result.ccontact|default=''}">
+                </div>
+            </div>
+            </div>
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">收货地址</label>
+                <div class="layui-input-block">
+                    <input type="text"  class="layui-input" value="{$result.address}" readonly>
+                </div>
+            </div>
+            </div>
         <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
 
         <div class="layui-form-item">
@@ -28,6 +44,7 @@
             </div>
         </div>
         </div>
+
         <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg6">
 
 
@@ -107,7 +124,7 @@ if($result['status']==0){
                                     <ul class="layui-timeline flow-record pt-2">
 <?php
 $list=\think\facade\Db::name('audit_management')->field('m.mess,m.createtime,m.audittime
-                                        ,m.result,m.result_mess,m.reviewer')->alias('m')->where('m.table_id',$result['id'])->where('m.table_name','crm_client_order')->order('m.id desc')->select();
+                                        ,m.result,m.result_mess,m.reviewer')->alias('m')->where('m.table_id',$result['id'])->where('m.table_name','crm_order')->order('m.id desc')->select();
                                        foreach($list as $v){
 
 ?>

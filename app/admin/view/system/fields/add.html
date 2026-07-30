@@ -73,6 +73,20 @@
                 <tip>{:fy('Added edit data will be validated')}</tip>
             </div>
         </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">自定义正则</label>
+            <div class="layui-input-block">
+                <input type="text" id="regex" name="regex" class="layui-input" placeholder="请输入自定义正则，例如：/^[A-Za-z0-9]+$/">
+                <tip>自定义正则表达式，用于新增编辑验证</tip>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">验证消息</label>
+            <div class="layui-input-block">
+                <input type="text" id="msg" name="msg" class="layui-input" placeholder="请输入验证消息">
+                <tip>验证失败时显示的错误信息</tip>
+            </div>
+        </div>
         <div class="layui-form-item  layui-row layui-col-xs12">
             <label class="layui-form-label required">{:fy('form types')}</label>
             <div class="layui-input-block">
@@ -168,7 +182,7 @@
         <div class="layui-form-item">
             <label class="layui-form-label required">列表排序</label>
             <div class="layui-input-block">
-                <input type="checkbox" name="open_sort"  lay-skin="switch" lay-text="开启|关闭">
+                <input type="checkbox" name="list_sort"  lay-skin="switch" lay-text="开启|关闭">
                 <tip>是否开启支持列表排序</tip>
             </div>
         </div>

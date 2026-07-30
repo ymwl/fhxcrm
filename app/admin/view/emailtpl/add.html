@@ -23,17 +23,25 @@
 
             <?php
             $prefix=getDataBaseConfig('prefix');
-            $customer_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `addinput` is not null AND `field`!="id" AND `field`!="remark"  order BY `sort` ASC,id ASC');
-            $contacts_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" AND `addinput` is not null AND `field`!="id" AND `field`!="customer_id" AND `field`!="remark" order BY `sort` ASC,id ASC');
-            $client_order_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
-               $client_order_fields=array_merge((new \app\admin\model\CrmClientOrder())->defaultField(),$client_order_fields);
+            $clue_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_clue" AND `addinput` is not null AND `field`!="id" AND `field`!="remark"  order BY `sort` ASC,id ASC');
+            $customer_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer" AND `addinput` is not null AND `field`!="id" AND `field`!="remark"  order BY `sort` ASC,id ASC');
+            $contacts_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer_contacts" AND `addinput` is not null AND `field`!="id" AND `field`!="customer_id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+            $client_order_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_order" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+               $client_order_fields=array_merge((new \app\admin\model\CrmOrder())->defaultField(),$client_order_fields);
 
-            $contract_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
-            $contract_fields=array_merge((new \app\admin\model\CrmContract())->defaultField(),$contract_fields);
+            $contract_fields=\think\facade\Db::query('SELECT `name`,`xsname`,`field` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+            $contract_fields=array_merge((new \app\common\model\CrmContract())->defaultField(),$contract_fields);
 
             ?>
             <p class="user_fields"><strong>操作用户字段：</strong><br>
                 {literal}联系姓名:{$user_realname}，联系电话:{$user_phone}，联系邮箱:{$user_email}，联系微信:{$user_wechat}{/literal}
+            </p>
+            <p class="clue_fields"><strong>线索字段：</strong><br>
+                <?php foreach($clue_fields as $k=>$v){
+                if($v['field']=='id' || $v['field']=='remark') continue;
+                $name=empty($v['xsname'])?$v['name']:$v['xsname'];
+                echo $name.':'.'{$'.'clue_'.$v['field'].'}，';}
+                ?>
             </p>
             <p class="customer_fields"><strong>客户字段：</strong><br>
                 <?php foreach($customer_fields as $k=>$v){

@@ -32,17 +32,17 @@ class Business extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
-            $scope=$this->request->get('scope', 1,'intval');
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
+            $scope=$this->request->get('scope', 1,'trim');
             if($customer_id){
                 $where[]=['crm_business.customer_id','=',$customer_id];
             }else{
                 if($scope==2){
 //                    展示其他的  不包括自己
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -57,10 +57,10 @@ class Business extends AdminController
 
                 }elseif($scope==3){
 //                    展示全部 包括自己
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -106,13 +106,13 @@ class Business extends AdminController
                     ->withJoin(['crmCustomer' => ['name'], 'ownerAdmin' => ['username']], 'LEFT')
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
 
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -121,6 +121,8 @@ class Business extends AdminController
         }
         $this->assignconfig('getIsEndList', $this->model->getIsEndList());
         $this->assignconfig(['customer_id'=>$customer_id]);
+        // 传递 scope 给前端，用于激活对应标签页
+        $this->assignconfig('scope', $this->request->get('scope', 1, 'trim'));
         return $this->fetch();
     }
 
@@ -155,10 +157,11 @@ class Business extends AdminController
                         unset($row['id']);
                         $row['product_extend']=json_encode($row['product_extend'],256);
                         $row['business_id'] =$this->model->id;
+                         $row['update_time']=$row['create_time']=time();
 //                        $total_price=$total_price+$row['sale_price']*$row['nums']-$row['discount'];
                         $total_price=bcadd($total_price,bcsub(bcmul($row['sale_price'],$row['nums'],2),$row['discount'],2),2);
                     }
-                    Db::name('crm_business_product')->insertAll($post['product']);
+                    (new \app\admin\model\CrmBusinessProduct())->insertAll($post['product']);
                 }
                 $this->model->save(['total_price'=>$total_price]);
 
@@ -184,9 +187,10 @@ class Business extends AdminController
      */
     public function edit($id)
     {
-        $row = $this->model->find($id);
-        $this->modifyPermissions($row['owner_admin_id']);
+        $row = $this->model->withJoin(['crmCustomer' => ['name'], 'ownerAdmin' => ['username']], 'LEFT')
+            ->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
         if ($this->request->isPost()) {
             $post = $this->request->post();
             if($row['is_end']>0){
@@ -211,7 +215,7 @@ class Business extends AdminController
                 $total_price=0;
                 if(!empty($post['product'])){
                     foreach ($post['product'] as &$row) {
-                        if(!$row['id'])unset($row['id']);
+                        if(empty($row['id']))unset($row['id']);
                         $row['product_extend']=json_encode($row['product_extend'],256);
                         $row['business_id'] =$id;
                         $total_price=$total_price+$row['sale_price']*$row['nums']-$row['discount'];
@@ -243,7 +247,7 @@ class Business extends AdminController
         if($this->request->isAjax()){
             $business_id=$this->request->get('business_id');
             $business_row = $this->model->withJoin(['ownerAdmin' => ['username']])->find($business_id);
-            $this->modifyPermissions($business_row['owner_admin_id']);
+            $this->modifyPermissionsByIds($business_row['owner_admin_id']);
             if($business_id){
                 $info=Db::name('crm_business_product')->where('business_id','=',$business_id)->order('create_time ASC')->select()->toArray();
                 foreach ($info as &$row){
@@ -278,7 +282,7 @@ class Business extends AdminController
         $this->checkPostRequest();
         $row = $this->model->whereIn('id', $id)->select();
         foreach ($row as $v){
-            $this->modifyPermissions($v['owner_admin_id']);
+            $this->modifyPermissionsByIds($v['owner_admin_id']);
         }
 
         $row->isEmpty() && $this->error(fy('The data does not exist'));

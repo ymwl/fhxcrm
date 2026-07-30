@@ -105,11 +105,7 @@ crm_uniapp (手机端) ──HTTP──> api.php ──> app/api/controller/ (JS
 
 ## 阶段四：功能补全与一致性修复（优先级：中）
 
-### 任务 4.1：待办事项(Backlog)对接
-- **手机端页面**：`pages/backlog/*.vue`
 
-### 任务 4.2：发票管理(Invoice)对接
-- **手机端页面**：`pages/invoice/*.vue`
 
 ### 任务 4.3：产品管理(Product)对接
 - **手机端页面**：`pages/product/*.vue`

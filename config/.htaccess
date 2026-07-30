@@ -1,0 +1,8 @@
+# 配置目录禁止Web访问（防止域名绑定到项目根目录时配置/授权文件被下载）
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

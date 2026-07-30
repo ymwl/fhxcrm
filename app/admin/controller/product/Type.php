@@ -57,7 +57,7 @@ class Type extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
             $count = $this->model
                 ->where($where)
                 ->count();
@@ -66,12 +66,12 @@ class Type extends AdminController
                 $list = $this->model
                     ->where($where)
                     ->page($page, 1000)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,

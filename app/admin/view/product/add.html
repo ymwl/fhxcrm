@@ -8,7 +8,7 @@
                     <option value="">{:fy('Please select')}{:fy('Product Classification')}</option>
                     <?php
  $typeLst = \think\facade\Db::name('product_type')->order('pid asc,sort asc,id asc')->select();
-                    $nav = new \clt\Leftnav();
+                    $nav = new \fhx\Leftnav();
                     $typeLst = $nav->menu($typeLst);
                     ?>
                     {volist name="typeLst" id="vo"}

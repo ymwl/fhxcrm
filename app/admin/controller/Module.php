@@ -48,9 +48,9 @@ class Module extends AdminController
             $list = \think\facade\Db::name('module')->order($sort_by.' '.$sort_order)
                 ->paginate($pageSize)
                 ->toArray();
-            return json(['code'=>0,'msg'=>fy('Get successful').'!','data'=>$list['data'],'count'=>$list['total'],'rel'=>1]);
+            return json(['code'=>1,'msg'=>fy('Get successful').'!','data'=>$list['data'],'count'=>$list['total'],'rel'=>1]);
         }else{
-            return View::fetch();
+            return $this->fetch();
         }
     }
     public function edit($id){
@@ -69,7 +69,7 @@ class Module extends AdminController
             View::assign('title',lang('edit').lang('module'));
             View::assign('info', json_encode($info,true));
             $this->app->view->engine()->layout(false);
-            return View::fetch();
+            return $this->fetch();
         }
     }
     public function add(){
@@ -218,9 +218,9 @@ class Module extends AdminController
                 }
             }
             View::assign('list', $list);
-            return json(['code'=>0,'msg'=>fy('Get successful').'!','data'=>$list,'rel'=>1]);
+            return json(['code'=>1,'msg'=>fy('Get successful').'!','data'=>$list,'rel'=>1]);
         }else{
-            return View::fetch();
+            return $this->fetch();
         }
     }
     //修改状态

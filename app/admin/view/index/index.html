@@ -34,6 +34,26 @@ $l='';
             color: #999;
             pointer-events: none;
         }
+        /* 菜单提醒角标 */
+        .layui-nav-tree .menu-badge {
+            display: inline-block;
+            min-width: 18px;
+            height: 18px;
+            line-height: 18px;
+            padding: 0 5px;
+            background: #FF5722;
+            color: #fff;
+            font-size: 11px;
+            font-weight: normal;
+            text-align: center;
+            border-radius: 9px;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            margin-top: -9px;
+            z-index: 10;
+            box-shadow: 0 1px 4px rgba(255,87,34,.4);
+        }
     </style>
 </head>
 <body class="layui-layout-body layuimini-all">
@@ -82,6 +102,14 @@ $l='';
                         </dd>
                     </dl>
                 </li>-->
+<!--                这里增加按钮 包括手机图标+手机版
+需要实现的功能点击弹窗展示二维码
+二维码下面的提示文字'5分钟内直接扫一扫即可登录'  二维码内容就是 当前域名地址+fhxcrm/#/pages/login/index?token=
+crm_uniapp手机端需要在页面pages/login/index.vue需要实现对token进行处理并解码成功后才实现自动化登录当前账号
+-->
+                <li class="layui-nav-item layui-hide-xs" lay-unselect>
+                    <a href="javascript:;" class="js-mobile-qrcode" title="手机版扫码登录"><i class="fa fa-mobile" style="font-size:17px;"></i> 手机版</a>
+                </li>
                 <li class="layui-nav-item mobile layui-hide-xs" lay-unselect>
                     <a href="javascript:;" data-check-screen="full"><i class="fa fa-arrows-alt"></i></a>
                 </li>
@@ -169,7 +197,7 @@ $l='';
                            document.write((new Date()).getFullYear()+'&copy; 符号象CRM')
                         </script>
                         <span class="license"></span>
-                    {$system['copyright']}
+                    {$system['copyright']|default=''}
 
                 </div>
             </div>

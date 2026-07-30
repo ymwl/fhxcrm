@@ -5,7 +5,7 @@
             <div class="layui-input-block">
                 <?php
                 $authGroup = \think\facade\Db::name('auth_group')->field('id,pid,title')->order('pid asc,id asc')->select();
-                $nav = new \clt\Leftnav();
+                $nav = new \fhx\Leftnav();
                 $authGroupTree = $nav->menu($authGroup);
                 $id=input('id');
 ?>

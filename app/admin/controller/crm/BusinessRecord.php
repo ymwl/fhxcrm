@@ -30,16 +30,16 @@ class BusinessRecord extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
 
-            $scope=$this->request->get('scope',1,'intval');
+            $scope=$this->request->get('scope','1','trim');
             $business_id=$this->request->get('business_id',0,'intval');
             if($scope==2){
 //                    展示下属的
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin);
+                $adminIds=\app\service\AdminService::getViewAdminIds($this->admin);
                 if(empty($adminIds)){
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
@@ -53,10 +53,10 @@ class BusinessRecord extends AdminController
                 }
             }elseif($scope==3){
                 //                    展示全部 包括自己
-                $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                 if(empty($adminIds)){
                     return json([
-                        'code'  => 0,
+                        'code'  => 1,
                         'msg'   => '',
                         'count' => 0,
                         'data'  => [],
@@ -79,13 +79,13 @@ class BusinessRecord extends AdminController
                 $list = $this->model
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)
+                    ->order($sort)
                     ->select();
 
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -131,7 +131,7 @@ class BusinessRecord extends AdminController
         $customer_id=$this->request->get('customer_id',0,'intval');
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=\think\facade\Db::query('SELECT `editinput`,`field`,`formtype` FROM `'.$prefix.'system_field` WHERE (`edit`=1 AND `table`="crm_customer" AND `editinput` is not null AND  `field`<>"id") order BY `sort` ASC,id ASC');
+        $fields=\think\facade\Db::query('SELECT `editinput`,`field`,`formtype` FROM `'.$prefix.'system_field` WHERE (`form`=1 AND `table`="crm_customer" AND `editinput` is not null AND  `field`<>"id") order BY `sort` ASC,id ASC');
         $result = \think\facade\Db::name('crm_customer')->field(array_column($fields, 'field'))->where(['id'=>$customer_id])->find();
         $input_str='';
         foreach ($fields as $value){
@@ -164,7 +164,7 @@ class BusinessRecord extends AdminController
         $this->checkPostRequest();
         $row = $this->model->whereIn('id', $id)->select();
         foreach ($row as $v){
-            $this->modifyPermissions($v['create_admin_id']);
+            $this->modifyPermissionsByIds($v['create_admin_id']);
         }
 
         $row->isEmpty() && $this->error(fy('The data does not exist'));

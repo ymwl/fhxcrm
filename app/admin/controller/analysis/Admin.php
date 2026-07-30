@@ -71,7 +71,7 @@ class Admin extends AdminController
 
 
             $data = [
-                'code'  =>0,
+                'code'  =>1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -203,7 +203,7 @@ class Admin extends AdminController
                 $row['record_count'] = $recordModel->where('admin_id', $row->admin_id)->count();
                 $row['customer_count'] = $recordModel->where('admin_id', $row->admin_id)->group('customer_id')->count();//跟进客户数
             }
-            $result = ['code'  =>0, 'msg'   => '',"count" => $count, "data" => $list];
+            $result = ['code'  =>1, 'msg'   => '',"count" => $count, "data" => $list];
             return json($result);
         }
 

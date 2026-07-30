@@ -12,7 +12,7 @@ use think\App;
 class Product extends AdminController
 {
 
-public $relationSearch=true;
+    public $relationSearch=true;
 
     public function __construct(App $app)
     {
@@ -31,14 +31,13 @@ public $relationSearch=true;
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
             $status=$this->request->get('status',0,'intval');
             if($status){
                 $where[]=['status','=',$status];
             }
             $count = $this->model ->withJoin('type', 'LEFT')
                 ->where($where)->count();
-//            var_dump($count);exit();
             $list=[];
             if($count){
                 $list = $this->model
@@ -46,13 +45,13 @@ public $relationSearch=true;
                     ->withJoin('type', 'LEFT')
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)  //->fetchSql()
+                    ->order($sort)  //->fetchSql()
                     ->select();
 
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,

@@ -23,6 +23,20 @@
             </div>
         </div>
 
+            <div class="layui-form-item">
+                <label class="layui-form-label">联系人</label>
+                <div class="layui-input-block">
+                    <input type="text" id="ccontact" name="ccontact"  placeholder="请填写联系人" class="layui-input" value="{$result.ccontact|default=''}">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+            <label class="layui-form-label">收货地址</label>
+            <div class="layui-input-block">
+                <input type="text"  class="layui-input" value="{$result.address}" readonly>
+            </div>
+        </div>
+
         <div class="layui-form-item">
             <label class="layui-form-label">{:fy('Client Principal')}</label>
             <div class="layui-input-block">

@@ -3,7 +3,6 @@ namespace app\admin\controller;
 use think\facade\Db;
 use think\facade\View;
 use think\facade\Request;
-use clt\Form;
 use app\admin\model\Tags as Tags;
 class EmptyController extends Common{
     protected  $dao,$fields;
@@ -416,7 +415,7 @@ class EmptyController extends Common{
     }
     public function delImg(){
         if(!input('post.url')){
-            return ['code'=>0,'请指定要删除的图片资源'];
+            return ['code'=>0,'msg'=>'请指定要删除的图片资源'];
         }
         $file = ROOT_PATH.__PUBLIC__.input('post.url');
         if(file_exists($file) && trim(input('post.url'))!=''){

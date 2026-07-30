@@ -1,9 +1,0 @@
-<IfModule mod_rewrite.c>
-  Options +FollowSymlinks -Multiviews
-  RewriteEngine On
-  RewriteRule public/upload/(.*).(php)$ - [F]
-   RewriteRule ^(?:upload|assets)/.*\.(php|php5|jsp)$ - [F,L]
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteRule ^(.*)$ index.php?s=$1 [QSA,PT,L]
-</IfModule>

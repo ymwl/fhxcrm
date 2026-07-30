@@ -141,8 +141,6 @@ class AdminController extends Common
     {
         $get = $this->request->get('', null, null);
         $page = isset($get['page']) && !empty($get['page']) ? $get['page'] : 1;
-        $sort_by = input('sort_order') ? input('sort_by') : 'id';
-        $sort_order = input('sort_order') ? input('sort_order') : 'asc';
         if(!empty($get['sort_by']) && !empty($get['sort_order'])){
             $sort = [
                 $get['sort_by'] => $get['sort_order'],
@@ -151,6 +149,7 @@ class AdminController extends Common
             $sort = $this->sort;
         }
         $limit = isset($get['limit']) && !empty($get['limit']) ? $get['limit'] : 15;
+        $limit=min($limit,1000);
         $filters = isset($get['filter']) && !empty($get['filter']) ? $get['filter'] : '{}';
         $ops = isset($get['op']) && !empty($get['op']) ? $get['op'] : '{}';
         // json转数组
@@ -183,9 +182,9 @@ class AdminController extends Common
             if ($this->relationSearch && count(explode('.', $key)) == 1) {
                 $key = "{$tableName}.{$key}";
             }
-            if ($this->relationSearch && count(explode('.',  $sort_by )) == 2) {
-                $sort_by  = \tools\Hs::humpToLine(lcfirst($sort_by));
-            }
+           /* if ($this->relationSearch && count(explode('.',  $this->sort_by )) == 2) {
+                $this->sort_by  = \tools\Hs::humpToLine(lcfirst($this->sort_by));
+            }*/
             if ($this->relationSearch && count(explode('.',  $key )) == 2) {
                 $key  = \tools\Hs::humpToLine(lcfirst($key));
             }
@@ -233,14 +232,7 @@ class AdminController extends Common
 
 
 
-    /**
-     * 严格校验接口是否为POST请求
-     */
-    protected function checkPostRequest(){
-        if (!$this->request->isPost()) {
-            $this->error("当前请求不合法！");
-        }
-    }
+
 
 
 

@@ -55,7 +55,7 @@ class Config extends AdminController
             if (input('selectFields')) {
                 return $this->selectList();
             }
-            list($page, $limit, $where) = $this->buildTableParames();
+            list($page, $limit, $where,$sort) = $this->buildTableParames();
             $status=$this->request->get('status',0,'intval');
 
             $count = $this->model->withJoin(['group'=>['identification']], 'LEFT')
@@ -66,13 +66,13 @@ class Config extends AdminController
                 $list = $this->model->withJoin(['group'=>['identification']], 'LEFT')
                     ->where($where)
                     ->page($page, $limit)
-                    ->order($this->sort)  //->fetchSql()
+                    ->order($sort)  //->fetchSql()
                     ->select();
 
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -154,7 +154,7 @@ class Config extends AdminController
                 if($k=='customer_unique'){
 //先删除unique
                     Db::name('system_field')
-                        ->whereRaw('`edit`=1 AND `type`="varchar" AND `formtype` IN ("input","tel") AND `table`="crm_customer" AND `addinput` is not null')
+                        ->whereRaw('`form`=1 AND `type`="varchar" AND `formtype` IN ("input","tel") AND `table`="crm_customer" AND `addinput` is not null')
                         ->update([
                             'rule'		=>	Db::raw("trim(',' from (replace(concat(',',`rule`,','), ',unique,', ',' )))")
                         ]);
@@ -168,6 +168,12 @@ class Config extends AdminController
                     }
                 }elseif ($k=='license_key'){
                     cache('license_name',null);
+                    // 换秘钥同步清除宽限期标记与软禁用锁文件，便于重新验证解锁
+                    cache('license_last_ok',null);
+                    $lockFile = app()->getRuntimePath() . 'license.lock';
+                    if (is_file($lockFile)) {
+                        @unlink($lockFile);
+                    }
                 }
                 \think\facade\Db::name('system_config')->where('field','=',$k)->update(['value'=>$v]);
             }
@@ -220,7 +226,7 @@ class Config extends AdminController
             $this->app->view->engine()->layout(false);
             $fields_lst=$record_fields_lst=$big_fields_lst=[];
             if($identification=='crm'){
-                $fields=Db::query('SELECT `name`,`xsname`,`field` FROM `'.getDataBaseConfig('prefix').'system_field` WHERE `edit`=1 AND `type`="varchar" AND `formtype` IN ("input","tel") AND `table`="crm_customer" AND `addinput` is not null order BY `sort` ASC,id ASC');
+                $fields=Db::query('SELECT `name`,`xsname`,`field` FROM `'.getDataBaseConfig('prefix').'system_field` WHERE `form`=1 AND `type`="varchar" AND `formtype` IN ("input","tel") AND `table`="crm_customer" AND `addinput` is not null order BY `sort` ASC,id ASC');
                 foreach ($fields as $f){
                     $fields_lst[]=['name'=>empty($f['xsname'])?$f['name']:$f['xsname'],'field'=>$f['field']];
                 }

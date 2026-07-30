@@ -1,0 +1,22 @@
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <div class="layui-tab" lay-filter="nav-tabs-index">
+            <ul class="layui-tab-title">
+                <li class="layui-this" data-value="0" data-field="scope">全部</li>
+                {volist name="configOptions" id="name" key="val"}
+                <li data-value="{$val}" data-field="scope">{:fy($name)}</li>
+                {/volist}
+            </ul>
+        </div>
+        <table id="currentTable" class="layui-table layui-hide"
+               data-auth-batch="{:auth('crm.performance/batchAchievement')}"
+               data-auth-edit="{:auth('crm.performance/achievementEdit')}"
+               data-auth-delete="{:auth('crm.performance/achievementDelete')}"
+               lay-filter="currentTable">
+        </table>
+    </div>
+</div>
+<script type="text/html" id="toolbar">
+    <button class="layui-btn layui-btn-sm layuimini-btn-primary" data-open-table data-treetable-refresh><i class="fa fa-refresh"></i></button>
+    <button class="layui-btn layui-btn-sm layui-btn-normal" data-auth-batch data-open-table data-title="批量业绩设置" data-url="crm.performance/batchAchievement" data-full="true"><i class="fa fa-plus"></i> 批量设置</button>
+</script>

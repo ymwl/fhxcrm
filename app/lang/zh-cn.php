@@ -13,7 +13,7 @@ return [
     'amount'     => '金额',
     'Order volume'     => '单',
     'Commission'     => '提成',
-    'Under negotiation'     => '谈判中',
+    'Under negotiation'     => '洽淡中',
     'logout'        =>'注销',
     'home'          =>'浏览网站',
     'clearCache'    =>'清除缓存',

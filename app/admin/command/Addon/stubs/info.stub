@@ -1,7 +1,7 @@
 name = {%name%}
 title = 插件名称{%name%}
-intro = FastAdmin插件
+intro = 符号象插件
 author = yourname
-website = https://www.iuok.cn
+website = https://www.80zx.com
 version = 1.0.0
 state = 1

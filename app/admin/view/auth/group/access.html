@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="__MY_PUBLIC__/static/plugs/zTree/css/zTreeStyle.min.css" type="text/css">
 <div class="admin-main layui-anim layui-anim-upbit">
     <fieldset class="layui-elem-field">
-        <legend>配置权限</legend>
+        <legend>【{$group_title}】配置权限</legend>
         <div class="layui-field-box">
             <form class="layui-form layui-form-pane">
                 <ul id="treeDemo" class="ztree"></ul>
@@ -48,7 +48,7 @@
                 v+=nodes[i].id + ",";
             }
             var id = "{:input('id')}";
-            $.post("{:url('groupSetaccess')}", {'rules':v,'id':id}, function (res) {
+            $.post("{:url('auth.group/access')}", {'rules':v,'id':id}, function (res) {
                 layer.close(loading);
                 if (res.code > 0) {
                     layer.msg(res.msg, {time: 1800, icon: 1}, function () {

@@ -33,6 +33,8 @@ class Emailtpl extends AdminController
         if ($this->request->isPost()) {
             $id = $this->request->param('id',0);
             $id=$id+0;
+            $clue_id = $this->request->param('clue_id',0);
+            $clue_id=$clue_id+0;
             $customer_id = $this->request->param('customer_id',0);
             $customer_id=$customer_id+0;
             $customer_contacts_id = $this->request->param('customer_contacts_id',0);
@@ -56,10 +58,22 @@ class Emailtpl extends AdminController
             $row['user_email'] = $this->admin['email'];
             $row['user_wechat'] = $this->admin['wechat'];
             $prefix=getDataBaseConfig('prefix');
+            if ($clue_id) {
+                $clue=\think\facade\Db::name('crm_clue')->find($clue_id);
+                if ($clue) {
+                    $clue_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_clue" AND `addinput` is not null AND `field`!="id" AND `field`!="remark"  order BY `sort` ASC,id ASC');
+                    foreach ($clue_fields as $key => $item) {
+                        if(isset($clue[$item['field']])){
+                            $row['clue_'.$item['field']] = real_field_val($item,$clue[$item['field']]);
+                        }
+
+                    }
+                }
+            }
             if ($customer_id) {
                 $customer=\think\facade\Db::name('crm_customer')->find($customer_id);
                 if ($customer) {
-                    $customer_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer" AND `addinput` is not null AND `field`!="id" AND `field`!="remark"  order BY `sort` ASC,id ASC');
+                    $customer_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer" AND `addinput` is not null AND `field`!="id" AND `field`!="remark"  order BY `sort` ASC,id ASC');
                     foreach ($customer_fields as $key => $item) {
                         if(isset($customer[$item['field']])){
                             $row['customer_'.$item['field']] = real_field_val($item,$customer[$item['field']]);
@@ -71,7 +85,7 @@ class Emailtpl extends AdminController
             if ($customer_contacts_id) {
                 $customer_contacts=\think\facade\Db::name('crm_customer_contacts')->find($customer_contacts_id);
                 if ($customer_contacts) {
-                    $contacts_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_customer_contacts" AND `addinput` is not null AND `field`!="id" AND `field`!="customer_id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+                    $contacts_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer_contacts" AND `addinput` is not null AND `field`!="id" AND `field`!="customer_id" AND `field`!="remark" order BY `sort` ASC,id ASC');
                     foreach ($contacts_fields as $key => $item) {
                         if(isset($customer_contacts[$item['field']])){
                             $row['contacts_'.$item['field']] = real_field_val($item,$customer_contacts[$item['field']]);
@@ -82,7 +96,7 @@ class Emailtpl extends AdminController
             if ($contract_id) {
                 $contract=\think\facade\Db::name('crm_contract')->find($contract_id);
                 if ($contract) {
-                    $contract_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+                    $contract_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
                     $contract_fields=array_merge((new \app\common\model\CrmContract())->defaultField(),$contract_fields);
                     foreach ($contract_fields as $key => $item) {
                         if(isset($contract[$item['field']])){
@@ -91,10 +105,10 @@ class Emailtpl extends AdminController
                 }
             }}
             if ($client_order_id) {
-                $client_order=\think\facade\Db::name('crm_client_order')->find($client_order_id);
+                $client_order=\think\facade\Db::name('crm_order')->find($client_order_id);
                 if ($client_order) {
-                    $client_order_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_client_order" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
-                    $client_order_fields=array_merge((new \app\admin\model\CrmClientOrder())->defaultField(),$client_order_fields);
+                    $client_order_fields=\think\facade\Db::query('SELECT `name`,`formtype`,`field`,`option` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_order" AND `addinput` is not null AND `field`!="id" AND `field`!="remark" order BY `sort` ASC,id ASC');
+                    $client_order_fields=array_merge((new \app\admin\model\CrmOrder())->defaultField(),$client_order_fields);
                     foreach ($client_order_fields as $key => $item) {
                         if(isset($client_order[$item['field']])){
                             $row['order_'.$item['field']] = real_field_val($item,$client_order[$item['field']]);

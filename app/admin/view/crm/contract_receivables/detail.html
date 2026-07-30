@@ -80,10 +80,87 @@
 
     <div class="layui-tab layui-tab-card" style="margin:0; background-color:#fff;" >
         <ul class="layui-tab-title">
-            <li class="layui-this" data-load="true">审批信息</li>
+            <li class="layui-this" data-load="true">合同明细</li>
+            <li  data-load="true">客户明细</li>
+            <li  data-load="true">审批信息</li>
+
         </ul>
         <div class="layui-tab-content" style="padding:0;">
+            <!-- 标签页1：合同明细 -->
             <div class="layui-tab-item layui-show" style="padding-top:12px; background-color:#fff;">
+                <table class="layui-table layui-table-form">
+                    <tbody>
+                    {if condition="$contractInfo"}
+                    <tr>
+                        <td class="layui-td-gray-2" style="width:100px;">合同名称</td>
+                        <td>{$contractInfo.name|default=''}</td>
+                        <td class="layui-td-gray-2" style="width:100px;">合同编号</td>
+                        <td>{$contractInfo.numbering|default=''}</td>
+                    </tr>
+                    <tr>
+                        <td class="layui-td-gray-2">合同金额</td>
+                        <td>{$contractInfo.money|default='0.00'}</td>
+                        <td class="layui-td-gray-2">已回款金额</td>
+                        <td>{$contractInfo.return_money|default='0.00'}</td>
+                    </tr>
+                    <tr>
+                        <td class="layui-td-gray-2">签约时间</td>
+                        <td>{:date('Y-m-d', $contractInfo['sign_time'])}</td>
+                        <td class="layui-td-gray-2">负责人</td>
+                        <td>{$contractInfo.owner_username|default=''}</td>
+                    </tr>
+                    <tr>
+                        <td class="layui-td-gray-2">合同生效时间</td>
+                        <td>{:date('Y-m-d', $contractInfo['start_time'])}</td>
+                        <td class="layui-td-gray-2">合同到期时间</td>
+                        <td>{:date('Y-m-d', $contractInfo['end_time'])}</td>
+                    </tr>
+                    <tr>
+                        <td class="layui-td-gray-2">客户签约人</td>
+                        <td>{$contractInfo.customer_signer|default=''}</td>
+                        <td class="layui-td-gray-2">公司签约人</td>
+                        <td>{$contractInfo.company_signer|default=''}</td>
+                    </tr>
+                    {if condition="isset($contractInfo['remark']) && $contractInfo['remark']"}
+                    <tr>
+                        <td class="layui-td-gray-2">备注</td>
+                        <td colspan="3">{$contractInfo.remark}</td>
+                    </tr>
+                    {/if}
+                    {else/}
+                    <tr>
+                        <td colspan="4" style="text-align:center;">暂无合同数据</td>
+                    </tr>
+                    {/if}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 标签页2：客户明细 -->
+            <div class="layui-tab-item" style="padding-top:12px; background-color:#fff;">
+                {if condition="$customerInfo"}
+               
+                <!-- 自定义字段列表 -->
+                {if condition="$customerFieldsStr"}
+                <form class="layui-form layuimini-form">
+                    <div class="layui-row form-readonly">
+                        {$customerFieldsStr|raw}
+                    </div>
+                </form>
+                {/if}
+                {else/}
+                <table class="layui-table layui-table-form">
+                    <tbody>
+                    <tr>
+                        <td colspan="4" style="text-align:center;">暂无客户数据</td>
+                    </tr>
+                    </tbody>
+                </table>
+                {/if}
+            </div>
+
+            <!-- 标签页3：审批信息 -->
+            <div class="layui-tab-item" style="padding-top:12px; background-color:#fff;">
                 <div id="checkBox" class="px-3 pb-3">
                         <table class="layui-table layui-table-form">
                             <tbody>

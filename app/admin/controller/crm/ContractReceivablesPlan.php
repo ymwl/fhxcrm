@@ -50,9 +50,9 @@ class ContractReceivablesPlan extends AdminController
         }
 
         // 4. 验证合同状态（仅"进行中"状态可操作回款计划）
-        if ($contract['contract_status'] !=0) {
+      /*  if ($contract['contract_status'] !=0) {
             return ['error' => '该合同'.(\app\service\CrmContractService::getContractStatus($contract['contract_status'])).'，无法操作回款计划'];
-        }
+        }*/
 
         // 5. 验证合同审核状态（需审核通过）
         if ($contract['check_status'] != 3) {
@@ -61,7 +61,7 @@ class ContractReceivablesPlan extends AdminController
         }
 
         // 6. 权限验证（负责人、上级或特定角色）
-        $this->modifyPermissions($contract['owner_admin_id']);
+        $this->modifyPermissionsByIds($contract['owner_admin_id']);
 
 
 
@@ -110,7 +110,7 @@ class ContractReceivablesPlan extends AdminController
         $fields=cache('crm_contract_receivables_plan_fields');
         if(!$fields){
             $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query("SELECT  `field`, `jscol`,`show` FROM `{$prefix}system_field` WHERE `table`='crm_contract_receivables_plan' AND `show`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
+            $fields=Db::query("SELECT  `field`, `jscol`,`list` FROM `{$prefix}system_field` WHERE `table`='crm_contract_receivables_plan' AND `list`=1 AND `jscol` is not null order BY `sort` ASC,id ASC");
             $field_str=$jscol_str='';
             foreach ($fields as $key=>$value){
                 $field_str.=$value['field'].',';
@@ -127,13 +127,15 @@ class ContractReceivablesPlan extends AdminController
                 return $this->selectList();
             }
             list($page, $limit, $where,$sort) = $this->buildTableParames();
-                $scope = $this->request->get('scope',1,'intval');
-                if($scope==2){
+                $scope = $this->request->get('scope','1','trim');
+            $datatype = $this->request->get('datatype', 'me', 'trim');
+
+            if($scope==2){
 //                    展示下属的
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -148,10 +150,10 @@ class ContractReceivablesPlan extends AdminController
 
                 }elseif($scope==3){
 //                    展示下属的和自己的
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -160,6 +162,34 @@ class ContractReceivablesPlan extends AdminController
                     if($adminIds!=='ALL'){
                         $where[] = ['crm_contract_receivables_plan.owner_admin_id', 'in',$adminIds];
                     }
+                }elseif($scope === 'pending_payment') {
+//                    待回款提醒：显示已进入提醒窗口期且未完成回款的记录
+//                    回款状态(0:计划中,1:进行中,2:已回款,3:到期未回款)
+//                    提醒触发条件：plan_date - remind_days*86400 <= 当前时间（已进入提醒窗口）
+//                    包含：提醒窗口内的未到期记录 + 已逾期未回款记录
+                    $now = time();
+                    $where[] = ['crm_contract_receivables_plan.status', 'in', [0, 1, 3]];
+                    $where[] = ['','exp',\think\facade\Db::raw("(crm_contract_receivables_plan.plan_date - IFNULL(crm_contract_receivables_plan.remind_days, 0) * 86400 <= {$now} OR crm_contract_receivables_plan.plan_date < {$now})")];
+                    if ($datatype == 'team') {
+                        $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+                        if (empty($adminIds)) {
+                            return json([
+                                'code'  => 1,
+                                'msg'   => '',
+                                'count' => 0,
+                                'data'  => [],
+                            ]);
+                        }
+                        if ($adminIds !== 'ALL') {
+                            $where[] = ['crm_contract_receivables_plan.owner_admin_id', 'in', $adminIds];
+                        } else {
+                            $where[] = ['crm_contract_receivables_plan.owner_admin_id', '<>', $this->admin['admin_id']];
+                        }
+
+                    }else{
+                        $where[] = ['crm_contract_receivables_plan.owner_admin_id', '=', $this->admin['admin_id']];
+                    }
+
                 }else{
 //                    展示自己的
                     $where[] = ['crm_contract_receivables_plan.owner_admin_id', '=', $this->admin['admin_id']];
@@ -216,7 +246,7 @@ class ContractReceivablesPlan extends AdminController
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -231,6 +261,8 @@ class ContractReceivablesPlan extends AdminController
         $this->app->view->engine()->layout($this->layout);
         $jscol_str=str_replace(['":"{"','"}"'],['":{"','"}'],$jscol_str);
         $this->assignconfig('cols_fields',json_decode('['.$jscol_str.']',true));
+        // 传递 scope 给前端，用于激活对应标签页
+        $this->assignconfig('scope', $this->request->get('scope', 1, 'trim'));
         return $this->fetch();
     }
 
@@ -239,7 +271,7 @@ class ContractReceivablesPlan extends AdminController
 
         $prefix=getDataBaseConfig('prefix');
         // 排除实际金额、实际日期、状态、计划编号字段（计划编号自动生成）
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables_plan" AND field NOT IN("actual_money","actual_date","status","plan_no")  order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract_receivables_plan" AND field NOT IN("actual_money","actual_date","status","plan_no")  order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
@@ -270,7 +302,7 @@ class ContractReceivablesPlan extends AdminController
             $contract = $validateResult['contract'];
             
 
-                $post=post_convert($post,$fields);
+                $post=post_convert($post,$fields,'add');
                 // 自动生成计划编号：合同编号-序号
                 $post['plan_no'] = $this->model->generatePlanNo($post['contract_id']);
                 $post['create_username']=$this->admin['username'];
@@ -287,7 +319,10 @@ class ContractReceivablesPlan extends AdminController
         $contract_row=[];
         if($contract_id){
             $contract_row=(new \app\common\model\CrmContract())->field('`id`,`name`,`customer_id`,`owner_admin_id`')->withJoin(['crmCustomer' => ['name','pr_user']], 'LEFT')->where('crm_contract.id',$contract_id)->find();
-            $this->modifyPermissions($contract_row['owner_admin_id']);
+            if(empty($contract_row['crmCustomer'])){
+                $this->error('提交回款指定客户不存在');
+            }
+            $this->modifyPermissionsByIds($contract_row['owner_admin_id']);
         }
         foreach ($fields as $v){
             if($v['field']=='customer_id' && $contract_row){
@@ -341,15 +376,15 @@ class ContractReceivablesPlan extends AdminController
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }
-        $this->modifyPermissions($crmCustomer['admin_id']);
+        $this->modifyPermissionsByIds($crmCustomer['admin_id']);
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract_receivables_plan" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract_receivables_plan" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post=$this->param_to_str($post);
             $this->verifyFields($post,$fields,'crm_contract_receivables_plan');
             foreach ($fields as $v){
-                if($v['edit_readonly']){
+                if($v['edit']){
 //                    只读的数据无需保存
                     unset($post[$v['field']]);
                 }

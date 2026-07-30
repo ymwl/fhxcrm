@@ -99,6 +99,7 @@ $typeList=think\facade\Db::name('crm_record_type')->field('`id`,`name`')->where(
             <li class="layui-this" lay-id="1">{:fy('Follow up record')}</li>
             <li lay-id="2">{:fy('Client Information')}</li>
             <li lay-id="3">{:fy('Intent Product')}</li>
+            <li lay-id="4">相关合同</li>
         </ul>
         <div class="layui-tab-content">
             <div class="layui-tab-item layui-show">
@@ -161,6 +162,25 @@ $typeList=think\facade\Db::name('crm_record_type')->field('`id`,`name`')->where(
                 <div class="total-pro" style="text-align: center">
                     {:fy('Total cost')}：<span class="red">{{getTotal.cost_sum}}</span>  {:fy('Total price')}：<span class="red">{{getTotal.sale_sum}}</span>  {:fy('Total quantity')}：<span class="red">{{getTotal.nums_sum}}</span>  {:fy('Total discount')}：<span class="red">{{getTotal.discount_sum}}</span>  {:fy('Final total amount')}：<span class="red">{{getTotal.real_sale_sum}}</span>
                 </div>
+            </div>
+
+             <div class="layui-tab-item">
+                <div class="layuimini-container">
+                    <div class="layuimini-main">
+                        <table id="contractTable" class="layui-table layui-hide"
+                                data-auth-add="{:auth('crm.contract/add')}"
+               data-auth-edit="{:auth('crm.contract/edit')}"
+               data-auth-delete="{:auth('crm.contract/delete')}"
+               data-auth-desc="{:auth('crm.contract/detail')}"
+               data-auth-fields="{:auth('system.fields/index')}"
+               data-auth-contract_receivables_add="{:auth('crm.contract_receivables/add')}"
+               data-auth-contract_receivables_plan_add="{:auth('crm.contract_receivables_plan/add')}"
+               data-auth-sendEmail="{:auth('crm.contract/sendEmail')}"
+                               lay-filter="contractTable">
+                        </table>
+                    </div>
+                </div>
+
             </div>
 
         </div>

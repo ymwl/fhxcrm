@@ -7,7 +7,7 @@ use app\BaseController;
 class Common extends BaseController
 {
 
-    protected $mod,$system,$module,$adminRules,$HrefId;
+    protected $adminRules,$HrefId;
 
     public $admin=[];
     public $auto_record_log=1;
@@ -50,10 +50,7 @@ class Common extends BaseController
             }
         }
 
-        $this->system = cache('System');
-        if(empty($this->system)){
-            $this->system=savecache('System');
-        }
+
         View::assign('system',$this->system);
         View::assign('admin',$this->admin);
 

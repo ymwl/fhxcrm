@@ -1,0 +1,142 @@
+<div class="layuimini-container">
+    <form id="app-form" class="layui-form layuimini-form">
+        <input type="hidden" name="id" value="{$row.id}">
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+            <div class="layui-form-item">
+                <label class="layui-form-label required">员工</label>
+                <div class="layui-input-block">
+                    <input type="text" class="layui-input" value="{$row.admin.username}({$row.admin.realname})" readonly style="background:#f5f5f5;">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label required">年份</label>
+                <div class="layui-input-block">
+                    <input type="text" name="year" class="layui-input" placeholder="请选择年份" value="{$row.year}"
+                           data-date="yyyy" data-date-type="year" lay-verify="required">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label required">业绩方式</label>
+                <div class="layui-input-block">
+                    <input type="text" class="layui-input" value="{$configName}" readonly style="background:#f5f5f5;">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">全年目标</label>
+                <div class="layui-input-block" style="display:flex;align-items:center;">
+                    <input type="number" name="yeartarget" class="layui-input" placeholder="可留空，自动计算12月之和" value="{$row.yeartarget}" style="flex:1;">
+                    <button type="button" id="btn-average" class="layui-btn layui-btn-sm layui-btn-normal" style="margin-left:10px;">平均分配</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">1月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="january" class="layui-input month-input" placeholder="0.00" value="{$row.january}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">2月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="february" class="layui-input month-input" placeholder="0.00" value="{$row.february}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">3月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="march" class="layui-input month-input" placeholder="0.00" value="{$row.march}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">4月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="april" class="layui-input month-input" placeholder="0.00" value="{$row.april}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">5月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="may" class="layui-input month-input" placeholder="0.00" value="{$row.may}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">6月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="june" class="layui-input month-input" placeholder="0.00" value="{$row.june}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">7月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="july" class="layui-input month-input" placeholder="0.00" value="{$row.july}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">8月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="august" class="layui-input month-input" placeholder="0.00" value="{$row.august}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">9月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="september" class="layui-input month-input" placeholder="0.00" value="{$row.september}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">10月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="october" class="layui-input month-input" placeholder="0.00" value="{$row.october}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">11月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="november" class="layui-input month-input" placeholder="0.00" value="{$row.november}">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md6 layui-col-lg4">
+            <div class="layui-form-item">
+                <label class="layui-form-label">12月</label>
+                <div class="layui-input-block">
+                    <input type="number" name="december" class="layui-input month-input" placeholder="0.00" value="{$row.december}">
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+            <div class="layui-form-item text-center">
+                <button type="submit" class="layui-btn layui-btn-normal" lay-submit>保存</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+
+    </form>
+</div>

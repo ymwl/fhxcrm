@@ -48,6 +48,118 @@ class TablHandle
         return $data;
     }
 
+    /**
+     * 为字段数据设置特殊默认值
+     * @param array $va 字段数据
+     * @param string $zhujian 主键字段名
+     * @param bool $isNewModel 是否为新模型（首次同步）
+     * @return array
+     */
+    protected static function setFieldDefaults($va, $zhujian, $isNewModel = false)
+    {
+        $fieldName = $va['field'];
+
+        if(in_array($fieldName, ['create_time', 'update_time', 'status'])){
+            $va['sort'] = 10;
+            if(in_array($fieldName, ['status', 'create_time', 'id'])){
+                $va['show'] = 1;
+                if($fieldName == 'status'){
+                    $va['edit'] = 1;
+                }
+            }
+            if(in_array($fieldName, ['create_time', 'update_time'])){
+                $va['width'] = 200;
+            }
+        }
+        if($fieldName == 'delete_time'){
+            $va['sort'] = 0;
+        }
+        if($fieldName == 'id'){
+            $va['sort'] = 9999;
+            $va['show'] = 1;
+            $va['is_key'] = 1;
+            if($isNewModel){
+                $va['width'] = 80;
+            }
+        }
+        if($fieldName == 'name'){
+            $va['sort'] = 9000;
+        }
+        if($fieldName == $zhujian){
+            $va['is_key'] = 1;
+        }
+        if($fieldName == 'status'){
+            $va['default'] = 1;
+        }
+
+        return $va;
+    }
+
+    /**
+     * 同步单条字段记录到system_field表
+     * @param array $va 字段数据
+     * @param string $table 表名
+     */
+    protected static function syncFieldRecord(&$va, $table)
+    {
+        $existingField = Db::name('system_field')
+            ->where('table', $table)
+            ->where('field', $va['field'])
+            ->findOrEmpty();
+
+        $va['addinput'] = self::create_add_input($va);
+        $va['editinput'] = self::create_edit_input($va);
+        $va['jscol'] = self::create_js_col($va);
+
+        if(empty($existingField)){
+            $va['create_time'] = time();
+            $va['update_time'] = time();
+            Db::name('system_field')->insert($va);
+        }else{
+            $va['update_time'] = time();
+            Db::name('system_field')
+                ->where('id', $existingField['id'])
+                ->update($va);
+        }
+    }
+
+    /**
+     * 校验并同步数据库表字段到system_field表
+     * @param array $newarray 字段数组
+     * @param string $table 表名
+     * @param string $zhujian 主键字段名
+     * @param bool $isNewModel 是否为新模型
+     * @return array 处理后的字段数组
+     */
+    protected static function syncTableFields($newarray, $table, $zhujian, $isNewModel = false)
+    {
+        $field_array = array_column($newarray, 'field');
+        $field_count = Db::name('system_field')
+            ->where('table', $table)
+            ->count();
+
+        // 字段数量不匹配时先清除旧数据
+        if(count($newarray) !== $field_count){
+            Db::name('system_field')->where('table', $table)->delete();
+        }else{
+            $match_count = Db::name('system_field')
+                ->where('table', $table)
+                ->where('field', 'in', $field_array)
+                ->count();
+            if($match_count !== count($newarray)){
+                Db::name('system_field')->where('table', $table)->delete();
+            }
+        }
+
+        foreach($newarray as $key => $va){
+            $va = self::setFieldDefaults($va, $zhujian, $isNewModel);
+            self::syncFieldRecord($va, $table);
+            $newarray[$key] = $va;
+        }
+
+        return $newarray;
+    }
+
     /**更新单表
      * @param $dan_table
      * @throws \think\db\exception\DbException  updatetable($table,$prefix,$database)
@@ -55,7 +167,6 @@ class TablHandle
     public static function updatetable( $table,$prefix='',$database=''){
 
         $fullTable = $prefix . $table;
-//            没有前缀的表
 
         $zhujian = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME= '".$fullTable."' AND COLUMN_KEY = 'PRI';";
         $zhujian = Db::query($zhujian);
@@ -63,205 +174,43 @@ class TablHandle
         $models = Db::name('system_model')
             ->where('table',$table)
             ->findOrEmpty();
-//                获取当前更新表信息
+
         $sql="select TABLE_NAME  AS 'table',TABLE_COMMENT as 'name',engine as 'engine' from information_schema.tables where table_schema='{$database}' AND TABLE_NAME ='{$fullTable}'";
         $value =Db::query($sql);
         $value=$value[0];
 
+        // 获取表字段信息
+        $newarray = Db::query('show full fields from '.$fullTable);
+        $newarray = TablHandle::CommentToTabl($newarray, $table);
+
+        // 同步字段到system_field表
+        $newarray = self::syncTableFields($newarray, $table, $zhujian, empty($models));
 
         if(empty($models)){
-            $newsql = 'show full fields from '.$fullTable;
-            $newarray = Db::query($newsql);
-            $newarray = TablHandle::CommentToTabl($newarray,$table);
-            $field_array = array_column($newarray,'field');
-            $field_count = Db::name('system_field')
-                ->where('table',$table)
-                ->count();
-            if(count($newarray)!==$field_count){
-                Db::name('system_field')
-                    ->where('table',$table)
-                    ->delete();
-            }else{
-                $field_count = Db::name('system_field')
-                    ->where('table',$table)
-                    ->where('field','in',$field_array)
-                    ->count();
-                if($field_count!==count($newarray)){
-                    Db::name('system_field')
-                        ->where('table',$table)
-                        ->delete();
-                }
-            }
-
-            foreach ($newarray as $key=>$va){
-                if($va['field']=='create_time'||$va['field']=='update_time'||$va['field']=='status'){
-                    $va['sort'] = 10;
-                    if($va['field']=='status'||$va['field']=='create_time'||$va['field']=='id'){
-                        $va['show'] = 1;
-                        if($va['field']=='status'){
-                            $va['edit'] = 1;
-                        }
-                    }
-                    if($va['field']=='create_time'||$va['field']=='update_time'){
-                        $va['width'] = 200;
-                    }
-                }
-                if($va['field']=='delete_time'){
-                    $va['sort'] = 0;
-                }
-                if($va['field']=='id'){
-                    $va['sort'] = 9999;
-                    $va['show'] = 1;
-                    $va['is_key'] = 1;
-                    $va['width'] = 80;
-                }
-                if($va['field']=='name'){
-                    $va['sort'] = 9000;
-                }
-                if($va['field']==$zhujian){
-                    $va['is_key'] = 1;
-                }
-                if($va['field']=='status'){
-                    $va['default'] = 1;
-                }
-                $field = Db::name('system_field')
-                    ->where('table',$table)
-                    ->where('field',$va['field'])
-                    ->findOrEmpty();
-
-                if(empty($field)){
-                    $va['create_time'] = time();
-                    $va['update_time'] = time();
-                    $va['addinput']=self::create_add_input($va);
-                    $va['editinput']=self::create_edit_input($va);
-                    $va['jscol']=self::create_js_col($va);
-                    $ids = Db::name('system_field')
-                        ->insertGetId($va);
-                }else{
-                    $va['update_time'] = time();
-                    $va['addinput']=self::create_add_input($va);
-                    $va['editinput']=self::create_edit_input($va);
-                    $va['jscol']=self::create_js_col($va);
-                    Db::name('system_field')
-                        ->where('id',$field['id'])
-                        ->update($va);
-                }
-                $newarray[$key] = $va;
-            }
-            $model = [
-                'name'=>$value['name'],
-                'table'=>$table,
-                'engine'=>$value['engine'],
-                'tabletype'=>'ordinary',
-                'is_page'=>1,
-                'create_time'=>time(),
-                'update_time'=>time(),
-                'status'=>1,
-            ];
-            $bo = Db::name('system_model')
-                ->insert($model);
-            $value['model'] = $newarray;
+            // 新建模型记录
+            Db::name('system_model')->insert([
+                'name' => $value['name'],
+                'table' => $table,
+                'engine' => $value['engine'],
+                'tabletype' => 'ordinary',
+                'is_page' => 1,
+                'create_time' => time(),
+                'update_time' => time(),
+                'status' => 1,
+            ]);
         }else{
-            $newarray=[];
-            $newarray['engine'] = $value['engine'];
-            $newarray['name'] = $value['name'];
-            $newarray['update_time'] = time();
+            // 更新模型记录
             Db::name('system_model')
-                ->where('id',$models['id'])
-                ->update($newarray);
-            $newsql = 'show full fields from '.$fullTable;
-            $newarray = Db::query($newsql);
-            $newarray = TablHandle::CommentToTabl($newarray,$table);
-            $field_array = array_column($newarray,'field');
-            $field_count = Db::name('system_field')
-                ->where('table',$table)
-                ->count();
-            if(count($newarray)!==$field_count){
-                Db::name('system_field')
-                    ->where('table',$table)
-                    ->delete();
-            }else{
-                $field_count = Db::name('system_field')
-                    ->where('table',$table)
-                    ->where('field','in',$field_array)
-                    ->count();
-                if($field_count!==count($newarray)){
-                    Db::name('system_field')
-                        ->where('table',$table)
-                        ->delete();
-                }
-            }
-            foreach ($newarray as $key=>$va){
-                $field = Db::name('system_field')
-                    ->where('table',$table)
-                    ->where('field',$va['field'])
-                    ->findOrEmpty();
-
-                if(empty($field)){
-                    if($va['field']==$zhujian){
-                        $va['is_key'] = 1;
-                    }
-                    if($va['field']=='id'){
-                        $va['show'] = 1;
-                    }
-                    if($va['field']=='create_time'||$va['field']=='update_time'||$va['field']=='status'){
-                        $va['sort'] = 10;
-                        if($va['field']=='status'||$va['field']=='create_time'||$va['field']=='id'){
-                            $va['show'] = 1;
-                            if($va['field']=='status'){
-                                $va['edit'] = 1;
-                            }
-                        }
-                    }
-                    if($va['field']=='delete_time'){
-                        $va['sort'] = 0;
-                    }
-                    if($va['field']=='id'){
-                        $va['sort'] = 9999;
-                        $va['show'] = 1;
-                        $va['is_key'] = 1;
-                    }
-                    if($va['field']=='name'){
-                        $va['sort'] = 9000;
-                    }
-                    if($va['field']==$zhujian){
-                        $va['is_key'] = 1;
-                    }
-                    if($va['field']=='status'){
-                        $va['default'] = 1;
-                    }
-                    $va['create_time'] = time();
-                    $va['update_time'] = time();
-                    $va['addinput']=self::create_add_input($va);
-                    $va['editinput']=self::create_edit_input($va);
-                    $va['jscol']=self::create_js_col($va);
-                    Db::name('system_field')
-                        ->insert($va);
-                }else{
-                    if($va['field']==$zhujian){
-                        $va['is_key'] = 1;
-                    }
-                    if($va['field']=='id'){
-                        $va['show'] = 1;
-                    }
-                    $va['update_time'] = time();
-                    $va['addinput']=self::create_add_input($va);
-                    $va['editinput']=self::create_edit_input($va);
-                    $va['jscol']=self::create_js_col($va);
-                    Db::name('system_field')
-                        ->where('id',$field['id'])
-                        ->update($va);
-                }
-                $newarray[$key] = $va;
-            }
-            $value['model'] = $newarray;
+                ->where('id', $models['id'])
+                ->update([
+                    'engine' => $value['engine'],
+                    'name' => $value['name'],
+                    'update_time' => time(),
+                ]);
         }
 
-
+        $value['model'] = $newarray;
         return true;
-    }
-    protected static function updatetableField(){
-
     }
 
     /**强制更新
@@ -606,7 +555,7 @@ class TablHandle
         }
         $field = Db::name('system_field')
             ->where('table',$data['table'])
-            ->field('name,field,type,lang,is_null,formtype,table,show,edit,search,total,export,sort,option,join_table')
+            ->field('name,field,type,lang,is_null,formtype,table,list,edit,search,total,export,sort,option,join_table')
             ->select()->toArray();
         $newfield = [];
         foreach ($field as $key=>$value){
@@ -646,110 +595,115 @@ class TablHandle
         return $field;
     }
 
+    /**
+     * 构建字段类型SQL片段
+     * @param array $data 字段数据
+     * @return string
+     */
+    protected static function buildTypeSql($data)
+    {
+        $type = '';
+        if(!isset($data['type']) || !$data['type']){
+            return $type;
+        }
+        if(isset($data['lang']) && $data['lang'] && !in_array($data['type'], ['mediumtext','tinytext','text','longtext'])){
+            $type = $data['type']."(".$data['lang'].") ";
+        }else{
+            if(in_array($data['formtype'] ?? '', ['datetime', 'month', 'date'])){
+                $type = "BIGINT(20) ";
+            }elseif($data['type'] == 'time'){
+                $type = $data['type']." ";
+            }else{
+                $type = $data['type']." ";
+            }
+        }
+        return $type;
+    }
+
+    /**
+     * 构建字段默认值SQL片段
+     * @param array $data 字段数据
+     * @return string
+     */
+    protected static function buildDefaultSql($data)
+    {
+        $default = '';
+        $dataType = $data['type'] ?? '';
+        $formtype = $data['formtype'] ?? '';
+
+        if(strpos($dataType, 'text') !== false){
+            // text类型不设默认值
+        }elseif(in_array($dataType, ['varchar'])){
+            $default .= "DEFAULT ";
+            $default .= ($data['default'] ?? null) ? ("'".$data['default']."' ") : "'' ";
+        }elseif((strpos($dataType, 'int') !== false) || in_array($dataType, ['float'])){
+            if(isset($data['default']) && $data['default']){
+                $default .= "DEFAULT ".$data['default']." ";
+            }else{
+                $default .= "DEFAULT 0 ";
+            }
+        }elseif(in_array($formtype, ['datetime', 'month', 'date'])){
+            $default .= "DEFAULT NULL ";
+        }elseif($dataType == 'time'){
+            $default .= "DEFAULT NULL ";
+        }else{
+            $da = $data['default'] ?? '';
+            $default .= "DEFAULT '$da' ";
+        }
+        return $default;
+    }
+
+    /**
+     * 构建字段COMMENT SQL片段
+     * @param array $data 字段数据
+     * @return string
+     */
+    protected static function buildCommentSql($data)
+    {
+        $comment = $data['name'] ?? '';
+        if(!empty($data['formtype'])){
+            $comment .= "{".$data['formtype']."}";
+        }
+        if(!empty($data['option'])){
+            $comment .= "(".$data['option'].")";
+        }
+        $comment .= '[';
+
+        $commentFields = ['show','edit','search','total','export','sort','join_table','default','foreign_key','status','describe'];
+        foreach($commentFields as $cf){
+            if(isset($data[$cf]) && $data[$cf]){
+                $val = ($cf === 'status') ? ($data[$cf] ?? 1) : ($data[$cf] ?? 0);
+                if(in_array($cf, ['sort','join_table','default','foreign_key','describe'])){
+                    $val = $data[$cf] ?? '';
+                }
+                $comment .= $cf.":".$val.',';
+            }
+        }
+
+        $comment = trim($comment, ',');
+        $comment .= ']';
+        return "COMMENT '$comment'";
+    }
+
     /**更新字段
-     * @param array $data
+     * @param array $originaldata
+     * @param array $newdata
      * @return bool
      */
-    public static function UpdateField(array  $originaldata=[],array $newdata=[]){
+    public static function UpdateField(array $originaldata=[], array $newdata=[]){
         $table = getDataBaseConfig('prefix').$originaldata['table'];
         $field = $originaldata['field'];
         $newfield = $newdata['field'];
 
-        if($field==$newfield){
+        if($field == $newfield){
             $sql = "alter table `$table` modify column `$field` ";
         }else{
             $sql = "alter table `$table` change `$field` `$newfield` ";
         }
 
-        $type = '';
-        if(isset($newdata['type']) && $newdata['type']){
-            if(isset($newdata['lang']) && $newdata['lang']  && !in_array($newdata['type'],['mediumtext','tinytext','text','longtext'])){
-                $type = $newdata['type']."(".$newdata['lang'].") ";
-            }else{
-                if($newdata['formtype']=='datetime' || $newdata['formtype']=='month' || $newdata['formtype']=='date'){
-                    $type = "BIGINT(20) ";
-                }elseif ($newdata['type']=='time'){
-                    $type = $newdata['type']." ";
-                }else{
-                    $type = $newdata['type']." ";
-                }
-            }
-        }
-        $sql .= $type;
-        $default = '';
-
-        if(strpos($newdata['type'],'text')!==false){
-//            $da = $data['default'];
-//            $default .= "DEFAULT NULL ";
-//            return 1;
-        }elseif (in_array($newdata['type'],['varchar'])){
-//            return 2;
-            $default .= "DEFAULT ";
-            $default .= ($newdata['default']??null)?("'".$newdata['default']."' "):"'' ";
-        }elseif ((strpos($newdata['type'],'int')!==false)||in_array($newdata['type'],['float'])){
-            if(isset($newdata['default'])&&$newdata['default']){
-//                return 3;
-                $default .= "DEFAULT ".$newdata['default']." ";
-            }else{
-//                return 4;
-                $default .= "DEFAULT 0 ";
-            }
-        }elseif ($newdata['formtype']=='datetime' || $newdata['formtype']=='month' || $newdata['formtype']=='date'){
-            $default .= "DEFAULT NULL ";
-        }elseif ($newdata['type']=='time'){
-            $default .= "DEFAULT NULL ";
-        }else{
-            $da = $newdata['default'];
-            $default .= "DEFAULT '$da' ";
-        }
-
-        $sql .= $default;
-        $comment = ''.$newdata["name"];
-        if(isset($newdata['formtype'])&&$newdata['formtype']){
-            $comment .= "{".$newdata['formtype']."}";
-        }
-        if(isset($newdata['option'])&&$newdata['option']){
-            $comment .= "(".$newdata['option'].")";
-        }
-        $comment .= '[';
-        if(isset($newdata['show'])&&$newdata['show']){
-            $comment .= "show:".($newdata['show']??0).',';
-        }
-        if(isset($newdata['edit'])&&$newdata['edit']){
-            $comment .= "edit:".($data['edit']??0).',';
-        }
-        if(isset($newdata['search'])&&$newdata['search']){
-            $comment .= "search:".($newdata['search']??0).',';
-        }
-        if(isset($newdata['total'])&&$newdata['total']){
-            $comment .= "total:".($newdata['total']??0).',';
-        }
-        if(isset($newdata['export'])&&$newdata['export']){
-            $comment .= "export:".($newdata['export']??0).',';
-        }
-        if(isset($newdata['sort'])&&$newdata['sort']){
-            $comment .= "sort:".($newdata['sort']??'').',';
-        }
-        if(isset($newdata['join_table'])&&$newdata['join_table']){
-            $comment .= "join_table:".($newdata['join_table']??'').',';
-        }
-        if(isset($newdata['default'])&&$newdata['default']){
-            $comment .= "default:".($newdata['default']??'').',';
-        }
-        if(isset($newdata['foreign_key'])&&$newdata['foreign_key']){
-            $comment .= "foreign_key:".($newdata['foreign_key']??'').',';
-        }
-        if(isset($newdata['status'])&&$newdata['status']){
-            $comment .= "status:".($newdata['status']??1).',';
-        }
-        if(isset($newdata['describe'])&&$newdata['describe']){
-            $comment .= "describe:".($newdata['describe']??'').',';
-        }
-        $comment = trim($comment,',');
-        $comment .= ']';
-//        return $comment;
-//        echo $comment;exit;
-        $sql .= "COMMENT '$comment'";
+        $sql .= self::buildTypeSql($newdata);
+        $sql .= self::buildDefaultSql($newdata);
+        $sql .= self::buildCommentSql($newdata);
 
         try{
             Db::execute($sql);
@@ -764,108 +718,18 @@ class TablHandle
      * @return bool
      */
     public static function AddField(array $data=[]){
-        $table = $data['table'];
-        $table = getDataBaseConfig('prefix').$table;
+        $table = getDataBaseConfig('prefix').$data['table'];
         $field = $data['field'];
         $sql = "ALTER TABLE `$table` ADD COLUMN `$field` ";
-        $type = '';
-        if(isset($data['type'])&&$data['type']){
+        $sql .= self::buildTypeSql($data);
+        $sql .= self::buildDefaultSql($data);
+        $sql .= self::buildCommentSql($data);
 
-            if(isset($data['lang'])&&$data['lang'] && !in_array($data['type'],['mediumtext','tinytext','text','longtext'])){
-                $type = $data['type']."(".$data['lang'].") ";
-            }else{
-                if($data['formtype']=='datetime' || $data['formtype']=='month' || $data['formtype']=='date'){
-                    $type = "BIGINT(20) ";
-                }elseif ($data['type']=='time'){
-                    $type = $data['type']." ";
-                }else{
-                    $type = $data['type']." ";
-                }
-            }
-        }
-        $sql .= $type;
-        $default = '';
-
-        if(strpos($data['type'],'text')!==false){
-//            $da = $data['default'];
-//            $default .= "DEFAULT NULL ";
-//            return 1;
-        }elseif (in_array($data['type'],['varchar'])){
-//            return 2;
-            $default .= "DEFAULT ";
-            $default .= ($data['default']??null)?("'".$data['default']."' "):"'' ";
-        }elseif ((strpos($data['type'],'int')!==false)||in_array($data['type'],['float'])){
-            if(isset($data['default'])&&$data['default']){
-//                return 3;
-                $default .= "DEFAULT ".$data['default']." ";
-            }else{
-//                return 4;
-                $default .= "DEFAULT 0 ";
-            }
-        }elseif ($data['formtype']=='datetime' || $data['formtype']=='month' || $data['formtype']=='date'){
-            $default .= "DEFAULT NULL ";
-        }elseif ($data['type']=='time'){
-            $default .= "DEFAULT NULL ";
-        }else{
-            $da = $data['default'];
-            $default .= "DEFAULT '$da' ";
-        }
-//        return $default;
-        $sql .= $default;
-        $comment = ''.$data["name"];
-        if(isset($data['formtype'])&&$data['formtype']){
-            $comment .= "{".$data['formtype']."}";
-        }
-        if(isset($data['option'])&&$data['option']){
-            $comment .= "(".$data['option'].")";
-        }
-        $comment .= '[';
-        if(isset($data['show'])&&$data['show']){
-            $comment .= "show:".($data['show']??0).',';
-        }
-        if(isset($data['edit'])&&$data['edit']){
-            $comment .= "edit:".($data['edit']??0).',';
-        }
-        if(isset($data['search'])&&$data['search']){
-            $comment .= "search:".($data['search']??0).',';
-        }
-        if(isset($data['total'])&&$data['total']){
-            $comment .= "total:".($data['total']??0).',';
-        }
-        if(isset($data['export'])&&$data['export']){
-            $comment .= "export:".($data['export']??0).',';
-        }
-        if(isset($data['sort'])&&$data['sort']){
-            $comment .= "sort:".($data['sort']??'').',';
-        }
-        if(isset($data['join_table'])&&$data['join_table']){
-            $comment .= "join_table:".($data['join_table']??'').',';
-        }
-        if(isset($data['default'])&&$data['default']){
-            $comment .= "default:".($data['default']??'').',';
-        }
-        if(isset($data['foreign_key'])&&$data['foreign_key']){
-            $comment .= "foreign_key:".($data['foreign_key']??'').',';
-        }
-        if(isset($data['status'])&&$data['status']){
-            $comment .= "status:".($data['status']??1).',';
-        }
-        if(isset($data['describe'])&&$data['describe']){
-            $comment .= "describe:".($data['describe']??'').',';
-        }
-        $comment = trim($comment,',');
-        $comment .= ']';
-        $sql .= "COMMENT '$comment'";
         try{
             Db::execute($sql);
-        }catch (\Exception $e){
-
-            throw new \Exception($e->getMessage(),0);
-        }catch (\Throwable $e)
-        {
-            throw new \Exception($e->getMessage(),0);
+        }catch (\Throwable $e){
+            throw new \Exception($e->getMessage(), 0);
         }
-
         return true;
     }
 
@@ -1158,11 +1022,15 @@ class TablHandle
                 $str .= '<div class="layui-input-block">';
                 $str .= '<input '.$required.' type="text" data-date="yyyy-MM-dd" data-date-type="date" name="'.$value['field'].'" class="layui-input date" id="'.$value['field'].'" value="'.$value['default'].'" autocomplete="off" lay-filter="'.$value['field'].'" >';
                 $str .= '</div>';
-            }elseif ($value['formtype']=='month'){
+            }elseif ($value['formtype']=='year'){
                 $str .= '<div class="layui-input-block">';
-                $str .= '<input '.$required.' type="text" data-date="yyyy-MM" data-date-type="month" name="'.$value['field'].'" class="layui-input month" id="'.$value['field'].'" value="'.$value['default'].'" autocomplete="off" lay-filter="'.$value['field'].'">';
+                $str .= '<input '.$required.' type="text" data-date="yyyy" data-date-type="year" name="'.$value['field'].'" class="layui-input year" id="'.$value['field'].'" value="'.$value['default'].'" autocomplete="off" lay-filter="'.$value['field'].'">';
                 $str .= '</div>';
-            }elseif ($value['formtype']=='time'){
+            }elseif ($value['formtype']=='month'){
+               $str .= '<div class="layui-input-block">';
+               $str .= '<input '.$required.' type="text" data-date="yyyy-MM" data-date-type="month" name="'.$value['field'].'" class="layui-input month" id="'.$value['field'].'" value="'.$value['default'].'" autocomplete="off" lay-filter="'.$value['field'].'">';
+               $str .= '</div>';
+           }elseif ($value['formtype']=='time'){
                 $str .= '<div class="layui-input-block">';
                 $str .= '<input '.$required.' type="text" data-date="HH:mm:ss" data-date-type="time" name="'.$value['field'].'" class="layui-input time" id="'.$value['field'].'" value="'.$value['default'].'" autocomplete="off" lay-filter="'.$value['field'].'">';
                 $str .= '</div>';
@@ -1194,7 +1062,7 @@ class TablHandle
             $required=' lay-verify="required" ';
             $label_required=' required';
         }
-        if(isset($value['edit_readonly']) && $value['edit_readonly'])$required.=' disabled="disabled" ';
+        if(isset($value['edit']) && $value['edit'])$required.=' disabled="disabled" ';
         if($value['formtype']=='none'){
             $str .= '<input type="hidden" lay-filter="'.$value['field'].'" name="'.$value['field'].'" value="{$row.'.$value['field'].'|default=\'\'}">';
         }else{
@@ -1406,7 +1274,7 @@ class TablHandle
                 $str .= '</div>';
             }elseif ($value['formtype']=='popup_selection'){
                 $join_table=PublicUse::UnderlineToHump($value['join_table']);
-                if(isset($value['edit_readonly']) && $value['edit_readonly'])$required=' disabled="disabled" ';
+                if(isset($value['edit']) && $value['edit'])$required=' disabled="disabled" ';
                 $str .= '<div class="layui-input-block">';
                 $str .= '<input type="hidden" name="'.$value['field'].'" lay-filter="'.$value['field'].'" value="{$'.$join_table.'.'.$value['relationship_primary_key'].'|default="'.$value['default'].'"}"><a href="javascript:void(0)" '.$required.' data-id="'.$value['field'].'" data-field="'.$value['foreign_key'].','.$value['relationship_primary_key'].'" data-title="'.$xsname.'" data-name="'.$value['foreign_key'].'" open-select="'.$value['href'].'" class="layui-input" >{$'.$join_table.'.'.$value['foreign_key'].'|default="【请点击选择】"}</a>';
                 $str .= '</div>';
@@ -1430,6 +1298,10 @@ class TablHandle
             }elseif ($value['formtype']=='date'){
                 $str .= '<div class="layui-input-block">';
                 $str .= '<input '.$required.' type="text"  autocomplete="off" data-date="yyyy-MM-dd" data-date-type="date" name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="layui-input date" id="'.$value['field'].'" {if is_numeric($row.'.$value['field'].')}value="{:mydate(\'Y-m-d\',$row.'.$value['field'].')}" {else}value="{$row.'.$value['field'].'}"{/if}>';
+                $str .= '</div>';
+            }elseif ($value['formtype']=='year'){
+                $str .= '<div class="layui-input-block">';
+                $str .= '<input '.$required.' type="text"  autocomplete="off" data-date="yyyy" data-date-type="year" name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="layui-input year" id="'.$value['field'].'" value="{$row.'.$value['field'].'}">';
                 $str .= '</div>';
             }elseif ($value['formtype']=='month'){
                 $str .= '<div class="layui-input-block">';
@@ -1487,7 +1359,7 @@ class TablHandle
         $field=[];
         $field['field']=$value['field'];
         $field['title']=$xsname;
-        if(isset($value['open_sort']) && $value['open_sort']){
+        if(isset($value['list_sort']) && $value['list_sort']){
             $field['sort']=true;
         }
         if($value['search']==1){

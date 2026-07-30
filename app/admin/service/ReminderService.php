@@ -83,27 +83,32 @@ class ReminderService
 
     /**
      * 检查并生成合同到期提醒
-     * @param int $daysBefore 提前天数
+     * 一次查询7天内到期的合同，根据实际剩余天数自动确定提醒级别
      * @return array
      */
-    public function checkContractExpireReminders($daysBefore = 7)
+    public function checkContractExpireReminders()
     {
         $reminders = [];
-        $deadline = strtotime("+{$daysBefore} day 23:59:59");
-        $now = strtotime('today');
+        $today = strtotime('today');
+        $deadline = strtotime('+7 day 23:59:59');
 
-        // 查找即将到期的合同
+        // 一次查询：查找7天内到期且审核通过、进行中的合同
         $contracts = Db::name('crm_contract')
             ->alias('c')
             ->join('crm_customer cu', 'c.customer_id = cu.id', 'left')
+            ->join('admin a', 'c.owner_admin_id = a.admin_id', 'left')
             ->where('c.check_status', 3)  // 已审批通过
-            ->where('c.end_time', '>=', $now)
+            ->where('c.contract_status', 0)  // 仅进行中的合同
+            ->where('c.end_time', '>=', $today)
             ->where('c.end_time', '<=', $deadline)
-            ->field('c.id, c.name, c.end_time, c.owner_admin_id, cu.pr_user, cu.name as customer_name')
+            ->field('c.id, c.name, c.end_time, c.owner_admin_id, a.username as admin_name, cu.name as customer_name')
             ->select()
             ->toArray();
 
         foreach ($contracts as $contract) {
+            $daysLeft = ceil(($contract['end_time'] - $today) / 86400);
+            $content = "客户 {$contract['customer_name']} 的合同《{$contract['name']}》将在 {$daysLeft} 天后到期，请及时处理续签事宜。";
+
             // 检查是否已存在未读的提醒
             $exists = Db::name('crm_reminder')
                 ->where('type', self::TYPE_CONTRACT_EXPIRE)
@@ -111,16 +116,33 @@ class ReminderService
                 ->where('status', self::STATUS_PENDING)
                 ->find();
 
-            if (!$exists) {
-                $daysLeft = ceil(($contract['end_time'] - time()) / 86400);
+            if ($exists) {
+                // 动态更新剩余天数
+                Db::name('crm_reminder')
+                    ->where('id', $exists['id'])
+                    ->update([
+                        'content' => $content,
+                        'update_time' => time(),
+                    ]);
+
+                $reminders[] = [
+                    'id' => $exists['id'],
+                    'contract_name' => $contract['name'],
+                    'customer_name' => $contract['customer_name'],
+                    'admin_name' => $contract['admin_name'],
+                    'days_left' => $daysLeft,
+                    'updated' => true,
+                ];
+            } else {
+                // 新建提醒
                 $reminderId = Db::name('crm_reminder')->insertGetId([
                     'type' => self::TYPE_CONTRACT_EXPIRE,
                     'related_id' => $contract['id'],
                     'related_type' => 'contract',
                     'title' => "合同到期提醒：{$contract['name']}",
-                    'content' => "客户 {$contract['customer_name']} 的合同《{$contract['name']}》将在 {$daysLeft} 天后到期，请及时处理续签事宜。",
+                    'content' => $content,
                     'admin_id' => $contract['owner_admin_id'],
-                    'admin_name' => Db::name('admin')->cache('admin_id_'.$contract['owner_admin_id'],3600)->where(['admin_id'=>$contract['owner_admin_id']])->value('username'),
+                    'admin_name' => $contract['admin_name'],
                     'remind_time' => $contract['end_time'],
                     'status' => self::STATUS_PENDING,
                     'create_time' => time(),
@@ -130,8 +152,9 @@ class ReminderService
                     'id' => $reminderId,
                     'contract_name' => $contract['name'],
                     'customer_name' => $contract['customer_name'],
-                    'admin_name' => $contract['pr_user'],
+                    'admin_name' => $contract['admin_name'],
                     'days_left' => $daysLeft,
+                    'updated' => false,
                 ];
             }
         }
@@ -222,7 +245,7 @@ class ReminderService
     }
 
     /**
-     * 删除过期提醒
+     * 删除过期提醒（不限状态，超过保留天数的全部清理）
      * @param int $days 保留天数
      * @return int 删除数量
      */
@@ -231,8 +254,7 @@ class ReminderService
         $deadline = strtotime("-{$days} day");
 
         return Db::name('crm_reminder')
-            ->where('status', self::STATUS_READ)
-            ->where('read_time', '<', $deadline)
+            ->where('create_time', '<', $deadline)
             ->delete();
     }
 
@@ -264,12 +286,15 @@ class ReminderService
         $tomorrow = strtotime('tomorrow') - 1;
 
         // 查找需要提醒的回款计划（未回款或部分回款状态）
+        // SQL层面预过滤：只查询30天内到期且未过期的计划，减少无效数据加载
         $plans = Db::name('crm_contract_receivables_plan')
             ->alias('p')
             ->join('crm_customer c', 'p.customer_id = c.id', 'left')
             ->join('crm_contract ct', 'p.contract_id = ct.id', 'left')
             ->join('admin a', 'p.owner_admin_id = a.admin_id', 'left')
-            ->where('p.status', 'in', [0, 2])  // 未回款或部分回款
+            ->where('p.status', 'in', [0, 1])  // 计划中或进行中
+            ->where('p.plan_date', '>=', $today)  // 排除已过期的计划
+            ->where('p.plan_date', '<=', strtotime('+31 day'))  // 最多提前30天提醒
             ->field('p.id, p.plan_no, p.plan_money, p.plan_date, p.remind_days, p.owner_admin_id, p.customer_id, p.contract_id, 
                      c.name as customer_name, ct.name as contract_name, a.username as admin_name')
             ->select()
@@ -332,7 +357,6 @@ class ReminderService
     public function checkBirthdayReminders($days = 1)
     {
         $reminders = [];
-        $now = time();
         $targetDate = strtotime("+{$days} day");
         
         // 获取目标日期的月和日
@@ -370,7 +394,8 @@ class ReminderService
                 ->find();
 
             if (!$exists) {
-                $birthdayDate = date('Y-m-d', $contact['birthday']);
+                // 显示今年的生日日期（月-日不变，年份用今年）
+                $birthdayDate = date('Y') . '-' . date('m-d', $contact['birthday']);
                 $age = date('Y') - date('Y', $contact['birthday']);
                 $reminderId = Db::name('crm_reminder')->insertGetId([
                     'type' => self::TYPE_BIRTHDAY,

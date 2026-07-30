@@ -4,26 +4,39 @@
         <div class="layui-form-item">
             <label class="layui-form-label">{:fy('customer')}</label>
             <div class="layui-input-block">
-                <input type="text" name="customer_id" data-toggle="selectPage" class="layui-input" data-source="{:url('crm.customer/selectpage')}"  data-field="name"  data-format-item="{name}"  data-primary-key="id"  placeholder="{:fy('Please select')}订单对应客户" data-params='{"custom[status]":1,"custom[pr_user]":"{$admin.username}"}'  lay-verify="required" value="{$result.customer_id}" >
+
+                <input type="hidden" name="customer_id" data-rule="required" value="{$result.customer_id}">
+
+                <a href="javascript:void(0)" class="layui-input" data-id="customer_id" data-title="选择客户" data-name="" open-select="crm.customer/index?isselect=1">{$result.cname|default='【请点击选择】'}</a>
             </div>
         </div>
 
         <div class="layui-form-item">
+            <label class="layui-form-label">联系人</label>
             <div class="layui-input-block">
-                <label class="" id="checklabel"></label>
+                <input type="text" id="ccontact" name="ccontact"  placeholder="请填写联系人" class="layui-input" value="{$result.ccontact|default=''}">
             </div>
         </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">手机号</label>
+            <div class="layui-input-block">
+                <input type="text" id="cphone" name="cphone"  placeholder="请填写联系人手机号" class="layui-input" value="{$result.cphone|default=''}">
+            </div>
+        </div>
+
+        <!-- 增加收货地址 -->
+        <div class="layui-form-item">
+            <label class="layui-form-label">{:fy('收货地址')}</label>
+            <div class="layui-input-block">
+                <input type="text" id="address" name="address"  placeholder="{:fy('Please enter')}{:fy('收货地址')}" class="layui-input" value="{$result.address|default=''}">
+            </div>
+        </div>
+
+
         <div class="layui-form-item">
             <label class="layui-form-label">{:fy('Order number')}</label>
             <div class="layui-input-block">
                 <input type="text" id="orderno" name="orderno"  placeholder="{:fy('Please enter')}{:fy('Order number')}" class="layui-input" value="{$result.orderno}" readonly>
-            </div>
-        </div>
-
-        <div class="layui-form-item">
-            <label class="layui-form-label">{:fy('Client Principal')}</label>
-            <div class="layui-input-block">
-                <input type="text" readonly id="pr_user" name="pr_user" lay-verify="required" value="{$result.pr_user}" class="layui-input">
             </div>
         </div>
 

@@ -25,13 +25,21 @@ class Contract extends AdminController
     public function index()
     {
         $customer_id=$this->request->param('customer_id',0);
+        $business_id=$this->request->param('business_id',0);
 //        判断当前的登录者是否有操作权限
         if($customer_id){
-            $pr_user=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('pr_user');
-            if(empty($pr_user)){
+            $owner_admin_id=\think\facade\Db::name('crm_customer')->where('id','=',$customer_id)->value('owner_admin_id');
+            if(empty($owner_admin_id)){
                 $this->error('当前客户不存在或已移入公海！');
             }
-            $this->modifyPermissionsByName($pr_user);
+            $this->modifyPermissionsByIds($owner_admin_id);
+        }elseif($business_id){
+//            查看当前商机是否有访问权限
+            $owner_admin_id=\think\facade\Db::name('crm_business')->where('id','=',$business_id)->value('owner_admin_id');
+            if(empty($owner_admin_id)){
+                $this->error('当前商机不存在或已移入公海！');
+            }
+            $this->modifyPermissionsByIds($owner_admin_id);
         }
         if ($this->request->isAjax()) {
             if (input('selectFields')) {
@@ -40,14 +48,17 @@ class Contract extends AdminController
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             if($customer_id){
                 $where[]=['crm_contract.customer_id','=',$customer_id];
+            }elseif($business_id){
+                $where[]=['crm_contract.business_id','=',$business_id];
             }else{
-                $scope=$this->request->get('scope', 1,'intval');
+                $scope=$this->request->get('scope', 1,'trim');
+                $datatype = $this->request->get('datatype', 'me', 'trim');
                 if($scope==2){
 //                    展示其他的  不包括自己
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -62,10 +73,10 @@ class Contract extends AdminController
 
                 }elseif($scope==3){
 //                    展示全部 包括自己
-                    $adminIds=(new \app\admin\model\Admin())->getViewAdminIds($this->admin,true);
+                    $adminIds=\app\service\AdminService::getViewAdminIds($this->admin,true);
                     if(empty($adminIds)){
                         return json([
-                            'code'  => 0,
+                            'code'  => 1,
                             'msg'   => '',
                             'count' => 0,
                             'data'  => [],
@@ -74,18 +85,39 @@ class Contract extends AdminController
                     if($adminIds!=='ALL'){
                         $where[] = ['crm_contract.owner_admin_id', 'in',$adminIds];
                     }
-                }elseif($scope==10){
-// 待跟进
-                    $where[] = ['crm_contract.next_time', '>', 0];
-                    $where[] = ['crm_contract.next_time', '<', strtotime('tomorrow')];
-// 待跟进限制展示自己的
-                    $where[] = ['crm_contract.owner_admin_id', '=', $this->admin['admin_id']];
+                }elseif($scope=='expiring'){
+// 展示审核通过的合同,并且是近一个月即将到期的合同
+                    $where[] = ['crm_contract.check_status', '=', 3];
+                    $where[] = ['crm_contract.renewal_id', '=', 0];
+//                    包括今天至未来一个月的合同
+                    $where[] = ['crm_contract.end_time', 'between', [strtotime('today'),strtotime('+1 month')]];
+// 限制展示自己的自己的
+                    if ($datatype == 'team') {
+                        $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
+                        if (empty($adminIds)) {
+                            return json([
+                                'code'  => 1,
+                                'msg'   => '',
+                                'count' => 0,
+                                'data'  => [],
+                            ]);
+                        }
+                        if ($adminIds !== 'ALL') {
+                            $where[] = ['crm_contract.owner_admin_id', 'in', $adminIds];
+                        } else {
+                            $where[] = ['crm_contract.owner_admin_id', '<>', $this->admin['admin_id']];
+                        }
 
-                }elseif($scope==11){
-// 今天已跟进
-                    $where[] = ['crm_contract.last_up_time', '>=', strtotime('today')];
-                    $where[] = ['crm_contract.last_up_time', '<', strtotime('tomorrow')];
-// 待跟进限制展示自己的
+                    }else{
+                        $where[] = ['crm_contract.owner_admin_id', '=', $this->admin['admin_id']];
+                    }
+
+                }elseif($scope=='expired'){
+// 已经过期的合同
+                    $where[] = ['crm_contract.check_status', '=', 3];
+                    $where[] = ['crm_contract.renewal_id', '=', 0];
+                    $where[] = ['crm_contract.end_time', '<', time()];
+// 限制展示自己的自己的
                     $where[] = ['crm_contract.owner_admin_id', '=', $this->admin['admin_id']];
 
                 }elseif($scope==12){
@@ -102,7 +134,7 @@ class Contract extends AdminController
             }
 
 
-           $count = $this->model ->withJoin(['crmCustomer' => ['name'], 'ownerAdmin' => ['username']], 'LEFT')->where($where)->count();
+           $count = $this->model ->withJoin(['crmCustomer' => ['name','email'], 'ownerAdmin' => ['username']], 'LEFT')->where($where)->count();
 //            下面的查询用说明变量接收
 /*
  *
@@ -142,7 +174,7 @@ WHERE
                 $contractTotalAmount = $result['contractTotalAmount'] ?? 0;
                 $receivedTotalAmount = $result['receivedTotalAmount'] ?? 0;
                 $list = $this->model
-                    ->withJoin(['crmCustomer' => ['name'], 'ownerAdmin' => ['username']], 'LEFT')
+                    ->withJoin(['crmCustomer' => ['name','email'], 'ownerAdmin' => ['username']], 'LEFT')
                     ->where($where)
                     ->page($page, $limit)
                     ->order($sort)
@@ -151,7 +183,7 @@ WHERE
             }
 
             $data = [
-                'code'  => 0,
+                'code'  => 1,
                 'msg'   => '',
                 'count' => $count,
                 'data'  => $list,
@@ -162,7 +194,7 @@ WHERE
         }
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `show`=1 AND `table`='crm_contract' AND `jscol` is not null order BY `sort` ASC,id ASC");
+        $fields=Db::query("SELECT `name`,`jscol` FROM `{$prefix}system_field` WHERE `list`=1 AND `table`='crm_contract' AND `jscol` is not null order BY `sort` ASC,id ASC");
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=$v['jscol'].',';
@@ -177,14 +209,18 @@ WHERE
         $this->assignconfig('cols_fields',json_decode('['.$fields_str.']',true));
 
         $this->assignconfig('getCheckStatus', \app\service\CrmContractService::getCheckStatus());
+        $this->assignconfig('getEditStatus', \app\service\CrmContractService::getEditStatus());
         $this->assignconfig(['customer_id'=>$customer_id]);
+        // 传递 scope 给前端，用于激活对应标签页
+        $this->assignconfig('scope', $this->request->get('scope', 1, 'trim'));
         return $this->fetch();
     }
 
     public function add()
     {
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`editinput`,`formtype`,`addinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract" order BY `sort` ASC,id ASC');
+        $pre_contract_id=$this->request->param('pre_contract_id',0,'intval');
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $post['contract']=$this->param_to_str($post['contract']);
@@ -202,7 +238,7 @@ WHERE
             }
             Db::startTrans();
             try {
-                $post['contract']=post_convert($post['contract'],$fields);
+                $post['contract']=post_convert($post['contract'],$fields,'add');
                 $post['contract']['sign_time'] = $post['contract']['sign_time'] ? strtotime($post['contract']['sign_time']) : null;
                 $post['contract']['start_time'] = $post['contract']['start_time'] ? strtotime($post['contract']['start_time']) : null;
                 $post['contract']['end_time'] = $post['contract']['end_time'] ? strtotime($post['contract']['end_time']) :null;
@@ -213,12 +249,13 @@ WHERE
                 $post['contract']['owner_admin_id'] =$this->admin['admin_id'];
                 $post['contract']['check_status'] =0;
                 $post['contract']['source'] =$row_customer['source'];
+                $post['contract']['pre_contract_id']=$pre_contract_id;
                 $save = $this->model->allowField($this->model->getTableFields())->save($post['contract']);
                 $total_price=0;
                 if(!empty($post['product'])){
                     $i=1;
                     foreach ($post['product'] as &$row) {
-                        unset($row['id']);
+                        if(empty($row['id']))unset($row['id']);
                         if(!is_numeric($row['nums']) || $row['nums'] < 1){
                             throw new \Exception('合同记录的产品'.$row['product_extend']['name'].'数量不对，'.$i.'行');
                         }
@@ -229,15 +266,17 @@ WHERE
                         }
                         $row['product_extend']=json_encode($row['product_extend'],256);
                         $row['contract_id'] =$this->model->id;
-                        ;
-
+                        $row['update_time']=$row['create_time']=time();
                         $total_price=bcadd($total_price,bcsub(bcmul($row['sale_price'],$row['nums'],2),$row['discount'],2),2);
 //                        $total_price=$total_price+$row['sale_price']*$row['nums']-$row['discount'];
                         $i++;
                      }
-                    Db::name('crm_contract_product')->insertAll($post['product']);
+                    (new \app\admin\model\CrmContractProduct())->insertAll($post['product']);
                 }
-
+                    if($pre_contract_id){
+//                        说明是续签合同
+                        Db::name('crm_contract')->where(['id'=>$pre_contract_id])->update(['renewal_id'=>$this->model->id]);
+                    }
 
                 $audit_management_id=Db::name('audit_management')->insertGetId([
                     'title'=>'合同审核',
@@ -246,9 +285,11 @@ WHERE
                     'url'=>'crm.contract/audit.html?id='.$this->model->id,
                     'createtime'=>time(),
                     'result'=>'To be reviewed',
-                    'admin_id'=>$this->admin['admin_id'], 'table_name'=>'crm_contract',
+                    'create_username'=>$this->admin['username'],
+                    'create_admin_id'=>$this->admin['admin_id'],
+                    'table_name'=>'crm_contract',
                     'table_id'=>$this->model->id,
-                    'show_auth_group_id'=>actiongroup('crm.contract/audit')
+                    'auditor_group_ids'=>actiongroup('crm.contract/audit')
                 ]);
                 $this->model->save(['total_price'=>$total_price,'audit_management_id'=>$audit_management_id]);
             } catch (\Exception $e) {
@@ -263,22 +304,52 @@ WHERE
                 $this->error(fy('Save failed'));
             }
         }
+//        存在说明是续签合同
 
-        $fields_str='';
-        foreach ($fields as $v){
-//         remark  替换成 contract[remark]  $v['field']
-            $v['addinput']=trim($v['addinput']);
-            if($v['addinput']){
-                $v['addinput'] = str_replace('"'.$v['field'].'"', '"contract['.$v['field'].']"', $v['addinput']);
-                $fields_str.=$v['addinput'];
+        $row=[]; $crmCustomer=[];
+        if($pre_contract_id){
+            $row=Db::name('crm_contract')->where('id', '=',$pre_contract_id)->find();
+
+            if(empty($row['id'])){
+                $row=[];
+            }else{
+                $this->modifyPermissionsByIds($row['owner_admin_id']);
+//                获取product_id用,分割  还需要去重复
+                $row_product_ids=Db::name('crm_contract_product')->where('contract_id', '=',$pre_contract_id)->column('product_id');
+                $row_product_ids=array_unique($row_product_ids);
+            $row['product_ids']=implode(',',$row_product_ids);
+                $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
             }
 
         }
+        if(!empty($row['start_time'])){
+            $renewal_dates=\tools\Hs::calcRenewalDates($row['start_time'],$row['end_time']);
+            $row['start_time']=$renewal_dates['start_date'];
+            $row['end_time']=$renewal_dates['end_date'];
+        }else{
+            $row['start_time']=date('Y-m-d');
+            $row['end_time']='';
+        }
+
+        $prefix=getDataBaseConfig('prefix');
+        $fields=Db::query('SELECT `field`,`editinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract" AND `addinput` is not null order BY `sort` ASC,id ASC');
+        $fields_str='';
+        foreach ($fields as $v){
+//         remark  替换成 contract[remark]  $v['field']
+            $v['editinput'] = str_replace('"'.$v['field'].'"', '"contract['.$v['field'].']"', $v['editinput']);
+            //            去除可能存在只读属性
+            $v['editinput']=str_replace('disabled="disabled"', '', $v['editinput']);
+            $fields_str.=trim($v['editinput']);
+
+        }
         $this->app->view->engine()->layout(false);
-        $fields_str=$this->display($fields_str,['row'=>[]]);
+        $fields_str=$this->display($fields_str,['row'=>$row]);
         $this->app->view->engine()->layout($this->layout);
         $this->assign('fields_str', $fields_str);
+        $this->assign(['row'=>$row]);
 
+
+        $this->assign('crmCustomer', $crmCustomer);
 
         $numbering=$this->model->autoNo($this->system['contract_format']);
         $this->assign(['numbering'=>$numbering]);
@@ -288,13 +359,17 @@ WHERE
     public function edit($id)
     {
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit_readonly`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`edit`,`editinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract" order BY `sort` ASC,id ASC');
 
-        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','check_status','customer_id'])))->find($id);
-        $this->modifyPermissions($row['owner_admin_id']);
+        $row = $this->model->field(array_unique(array_merge(array_column($fields, 'field'), ['id','name','check_status','numbering','customer_signer','business_id','sign_time','customer_id','customer_id','money','company_signer','start_time','end_time','remark','owner_admin_id'])))->find($id);
+
         empty($row) && $this->error(fy('The data does not exist'));
-        if($row['check_status']>=0){
-            $this->error('合同已审核，不能修改');
+
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
+//        //        check_status	tinyint(4) [0]	-1审核未通过0待审核、1草稿、2审核中、3审核通过   状态-1审核未通过和1草稿才允许修改
+
+        if(!in_array($row['check_status'],\app\service\CrmContractService::getEditStatus())){
+            $this->error('当前合同'.\app\service\CrmContractService::getCheckStatus($row['check_status']).'，不能修改');
         }
         if ($this->request->isPost()) {
             $post = $this->request->post();
@@ -319,15 +394,15 @@ WHERE
             $this->validater($post['contract'], $rule);
             $this->verifyFields($post['contract'], $fields,'crm_contract');
             foreach ($fields as $v){
-                if($v['edit_readonly']){
+                if($v['edit']){
 //                    只读的数据无需保存
                     unset($post['contract'][$v['field']]);
                 }
             }
             $row_customer=Db::name('crm_customer')->field('id,source')->where([['id','=',$post['contract']['customer_id']],['pr_user','=',$this->admin['username']]])->find();
-            if(empty($row_customer['id'])){
+          /*  if(empty($row_customer['id'])){
                 $this->error('合同只能选择自己的客户');
-            }
+            }*/
             Db::startTrans();
             try {
                 $post['contract']=post_convert($post['contract'],$fields);
@@ -343,32 +418,28 @@ WHERE
                 $post['contract']['check_status'] =0;
                 $save = $row->allowField($this->model->getTableFields())->save($post['contract']);
                 $total_price=0;
-//                先删除
-                Db::name('crm_contract_product')->where('contract_id', '=',$row->id)->delete();
                 if(!empty($post['product'])){
 //                    再重新增加
                     $i=1;
                     foreach ($post['product'] as &$v) {
-                        if(isset($v['id'])){
-                            unset($v['id']);
-                        }
+                        if(empty($v['id']))unset($v['id']);
 
                         if(!is_numeric($v['nums']) || $v['nums'] < 1){
                             throw new \Exception('合同记录的产品'.$v['product_extend']['name'].'数量不对，'.$i.'行');
                         }
 
-                        $row_product=Db::name('product')->field('id,name,inventory')->where('id', '=',$v['product_id'])->where('status', '=',1)->find();
+                        $row_product=Db::name('product')->field('id')->where('id', '=',$v['product_id'])->where('status', '=',1)->find();
                         if(empty($row_product['id'])){
                             throw new \Exception("不存在的产品");
                         }
                         $v['product_extend']=json_encode($v['product_extend'],256);
                         $v['contract_id'] =$row->id;
-                        ;
+//                        $v['update_time']=time();
 
                         $total_price=bcadd($total_price,bcsub(bcmul($v['sale_price'],$v['nums'],2),$v['discount'],2),2);
                         $i++;
                     }
-                    Db::name('crm_contract_product')->insertAll($post['product']);
+                    (new \app\admin\model\CrmContractProduct())->saveAll($post['product']);
                 }
 
 
@@ -378,10 +449,11 @@ WHERE
                     'url'=>'crm.contract/audit.html?id='.$row->id,
                     'createtime'=>time(),
                     'result'=>'To be reviewed',
-                    'admin_id'=>$this->admin['admin_id'],
+                    'create_username'=>$this->admin['username'],
+                    'create_admin_id'=>$this->admin['admin_id'],
                     'table_name'=>'crm_contract',
                     'table_id'=>$row->id,
-                    'show_auth_group_id'=>actiongroup('crm.contract/audit')
+                    'auditor_group_ids'=>actiongroup('crm.contract/audit')
                 ]);
                 $row->save(['total_price'=>$total_price,'audit_management_id'=>$audit_management_id]);
             } catch (\Exception $e) {
@@ -400,6 +472,16 @@ WHERE
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
+        }
+        $fields_str='';
+        foreach ($fields as $v){
+//         remark  替换成 contract[remark]  $v['field']
+            $v['editinput']=trim($v['editinput']);
+            if($v['editinput']){
+                $v['editinput'] = str_replace('"'.$v['field'].'"', '"contract['.$v['field'].']"', $v['editinput']);
+                $fields_str.=$v['editinput'];
+            }
+
         }
         $this->app->view->engine()->layout(false);
         $fields_str=$this->display($fields_str,['row'=>$row]);
@@ -435,7 +517,7 @@ WHERE
 
 //            加入事务处理过程
             Db::startTrans();
-            try {
+
                 if ($status > 0) {
                     //        status 1 审核通过  -1审核不通过
                     $updatearr = [];
@@ -448,7 +530,11 @@ WHERE
                     $todoDate = ['result' => 'Approved', 'result_mess' => $result_mess, 'is_finish' => 1];
                     //                    对应的商机也需要改成已成交
                     if ($row['business_id']) {
-                        Db::name('crm_business')->where('id', $row['business_id'])->update(['status' => 1]);
+                        Db::name('crm_business')->where('id', $row['business_id'])->update(['is_end' => 1]);
+                    }
+                    if($row['pre_contract_id']){
+//                        说明是续签合同
+                        Db::name('crm_contract')->where(['id'=>$row['pre_contract_id']])->update(['renewal_id'=>$row['id']]);
                     }
                     $msg = ['code' => 1, 'msg' => fy('Submitted successfully'), 'data' => []];
 
@@ -468,17 +554,13 @@ WHERE
                     $msg = ['code' => 0, 'msg' => fy('Submit failed'), 'data' => []];
                 }
                 Db::commit();
-            }catch (\Exception $e) {
-                Db::rollback();
-                $msg=$e->getMessage();
-                $msg = ['code' => 0, 'msg' =>fy('Save failed').':'.$msg, 'data' => []];
-            }
+
 
             return json($msg);
         }
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
@@ -491,7 +573,7 @@ WHERE
         return $this->fetch();
     }
 
-    public function desc(){
+    public function detail(){
         //        status 1 审核通过  -1审核不通过
         $id = $this->request->param('id',0,'intval');
         if(!$id){
@@ -499,9 +581,10 @@ WHERE
         }
         $row = $this->model->alias('crm_contract')->withJoin(['crmCustomer' => ['name'],'crmBusiness' => ['name'], 'ownerAdmin' => ['username']],'LEFT')->where('crm_contract.id',$id)->find();
         empty($row) && $this->error('需要审核的合同不存在');
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
 
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `edit`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`editinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_contract" AND `editinput` is not null order BY `sort` ASC,id ASC');
         $fields_str='';
         foreach ($fields as $v){
             $fields_str.=trim($v['editinput']);
@@ -547,16 +630,16 @@ WHERE
         }
     }
 
-    //    传入商机产品id 删除对应商机产品
+    //    传入合同id 删除对应合同对应产品
     public function delproduct(){
         if($this->request->isAjax()){
-            $product_id=$this->request->get('product_id');
-            if($product_id){
-                $res=Db::name('crm_contract_product')->where('id','=',$product_id)->delete();
+            $contract_product_id=$this->request->get('contract_product_id');
+            if($contract_product_id){
+                $res=Db::name('crm_contract_product')->where('id','=',$contract_product_id)->delete();
                 if($res){
                     $this->success(fy('Delete succeeded'));
                 }else{
-                    $this->success(fy('Delete failed'));
+                    $this->error(fy('Delete failed'));
                 }
 
             }
@@ -568,9 +651,13 @@ WHERE
         $id=$this->request->param('id');
         $this->checkPostRequest();
         $owner_admin_ids = $this->model->whereIn('id', $id)->column('DISTINCT owner_admin_id');
-        $this->modifyPermissions($owner_admin_ids);
+        $this->modifyPermissionsByIds($owner_admin_ids);
 
-        $c = $this->model->whereIn('id', $id)->where('check_status','>',1)->count();
+//         if(!in_array($row['check_status'],\app\service\CrmContractService::getEditStatus())){
+//            $this->error('当前合同'.\app\service\CrmContractService::getCheckStatus($row['check_status']).'，不能修改');
+//        }
+//        可以编辑的合同才支持删除
+        $c = $this->model->whereIn('id', $id)->where('check_status','NOT IN',\app\service\CrmContractService::getEditStatus())->count();
         if($c>0){
             $this->error('当前合同不能删除');
         }
@@ -580,7 +667,7 @@ WHERE
         $list->isEmpty() && $this->error(fy('The data does not exist'));
         try {
             foreach ($list as $v) {
-                change_success_customer($v->customer_id);
+                \app\service\CrmCustomerService::change_success_customer($v->customer_id);
                 $v->delete();
                 //            如果删除了则没有审核完成的标记为完成
                 Db::name('audit_management')->where('table_id',$v->id)->where('is_finish',0)->where('table_name','crm_contract')->update(['is_finish'=>1]);
@@ -595,7 +682,7 @@ WHERE
     public function sendEmail($id){
         $row = $this->model->find($id);
         empty($row) && $this->error(fy('The data does not exist'));
-        $this->modifyPermissions($row['owner_admin_id']);
+        $this->modifyPermissionsByIds($row['owner_admin_id']);
         if ($this->request->isPost()) {
             $param = $this->request->param();
 

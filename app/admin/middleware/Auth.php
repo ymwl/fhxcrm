@@ -44,6 +44,20 @@ class Auth
             return $next($request);
         }
 
+        // 授权软禁用拦截：存在禁用标记时拦截CRM功能（放行授权页crm.license与system.config以便重验解锁）
+        if (strpos($controller, 'crm.') === 0 && $controller !== 'crm.license'
+            && is_file(app()->getRuntimePath() . 'license.lock')) {
+            if ($request->isAjax()) {
+                return json([
+                    'code' => 0,
+                    'msg' => '系统授权已被禁用，请联系服务商',
+                    'url' => '',
+                    'data' => []
+                ]);
+            }
+            throw new \think\exception\HttpException(403, '系统授权已被禁用，请联系服务商');
+        }
+
         // 获取当前管理员
         $admin = Session::get('admin');
 

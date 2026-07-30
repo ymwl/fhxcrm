@@ -20,7 +20,7 @@ class Emailtpl extends TimeModel
 
     public function getTypeList()
     {
-        return ['customer'=>'客户','customer_contacts'=>'客户联系人','client_order'=>'订单','contract'=>'合同',];
+        return ['clue'=>'线索', 'customer'=>'客户', 'customer_contacts'=>'客户联系人','client_order'=>'订单','contract'=>'合同',];
     }
 
 
