@@ -73,6 +73,7 @@ public/temp/
 
 # Qoder AI 配置
 .qoder/
+.qoderignore
 
 # Reasonix 桌面主题数据（本地工具数据，不发布）
 .reasonix/
