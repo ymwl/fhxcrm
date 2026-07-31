@@ -12,6 +12,7 @@
 # 离线授权文件（客户现场生成，不随源码发布）
 /license.php
 config/license.dat
+config/install.lock
 
 # IDE 配置
 .codebuddy/
@@ -72,3 +73,10 @@ public/temp/
 
 # Qoder AI 配置
 .qoder/
+
+# Reasonix 桌面主题数据（本地工具数据，不发布）
+.reasonix/
+reasonix.toml
+
+# 主机推荐广告（本地保留，不纳入版本控制）
+广而告知.html
