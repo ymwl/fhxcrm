@@ -170,7 +170,7 @@ http://你的域名/install.php
 
 1. **检测环境**：自动检测 PHP 版本、必需扩展、上传限制、目录读写权限，全部通过后点击"下一步"；
 2. **创建数据**：填写数据库信息、网站配置、创始人（管理员）信息，见下方[数据库配置说明](#数据库配置说明)；
-3. **完成安装**：系统自动导入数据表并生成 `config/install.lock` 锁定文件。
+3. **完成安装**：系统自动导入数据表并生成 `config/install.lock` 锁定文件，同时为当前站点自动生成一个独立的 JWT 签名密钥并写入 `.env` 的 `APP_KEY`（用于移动端 API 的 Token 签发/验证，确保每个部署密钥唯一）。
 
 ### 5. 安装完成后的必做事项（重要）
 
@@ -239,7 +239,7 @@ http://你的域名/install.php
    > 若站点根目录指向 `public/`，则重命名 `public/admin.php`；指向项目根目录则重命名根目录的 `admin.php`。
 
 2. **删除安装程序**：安装完成后务必删除 `app/install/` 目录和 `install.php`，防止被恶意重装；
-3. **保护敏感文件**：`.env`、`config/database.php` 严禁泄露，`.gitignore` 已默认排除 `.env`；
+3. **保护敏感文件**：`.env`（包含 JWT 密钥 `APP_KEY`）、`config/database.php` 严禁泄露，`.gitignore` 已默认排除 `.env`；
 4. **生产环境关闭调试**：确认 `.env` 中未开启调试模式，`config/app.php` 中开发模式相关配置（`IS_DEV`）保持关闭；
 5. **定期备份**：定期备份数据库和 `public/upload/` 附件目录；
 6. **HTTPS 部署**：生产环境建议配置 SSL 证书，全站 HTTPS 访问。

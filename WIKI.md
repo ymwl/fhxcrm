@@ -81,6 +81,7 @@ think\App (框架)
 ```
 
 - `Authority.php`：从Header读取Token → JWT解析 → 查询admin表 → 权限验证
+- JWT签发（`app/api/common.php` 的 `getToken()`）与验证（`app/api/controller/Common.php` 的 `parseToken()`）均使用 `config('app.app_key')` 作为 HS256 密钥；该密钥优先取 `.env` 中的 `APP_KEY`，未配置时回退 `config/app.php` 默认值（php-jwt 7.0 要求密钥长度 >= 32 字节）
 - API控制器复用admin模块的Model类，返回统一JSON格式
 
 ### 1.5 核心依赖说明（composer.json）
@@ -255,6 +256,12 @@ composer install
 APP_DEBUG = 0
 APP_DEV = 0
 
+# API JWT 签名密钥（HS256，密钥长度须 >= 32 字节）。
+# 通过安装向导安装时会自动生成一个独立的随机密钥并写入此处；
+# 若未运行安装向导（如手动导入数据库），则回退使用 config/app.php 中的默认密钥，
+# 此时建议手动设置一个独立的 64 位随机字符串，避免多站点共用相同密钥。
+APP_KEY = 请填写至少32字节的随机字符串
+
 [DATABASE]
 TYPE = mysql
 HOSTNAME = 127.0.0.1
@@ -278,6 +285,8 @@ CHANNEL = file
 浏览器访问 `http://your-domain/install.php`，按提示填写数据库信息完成安装。
 
 安装完成后系统自动生成 `config/install.lock` 文件，删除该文件可重新安装。
+
+> **提示（JWT 密钥）**：安装向导在写入站点信息时，会自动生成一个独立的 64 位十六进制随机密钥（256 位）并写入 `.env` 的 `APP_KEY`，作为 API 移动端 JWT Token 的 HS256 签名密钥，确保每个部署的密钥唯一。已安装的老站点升级后不会重新运行安装向导，将回退使用 `config/app.php` 中的默认密钥，建议手动在其 `.env` 中设置独立的 `APP_KEY`。
 
 ### 3.3 数据库配置详解
 
