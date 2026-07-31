@@ -23,9 +23,7 @@ class ContractReceivables extends AdminController
     {
         $contract_id=$this->request->param('contract_id',0);
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
 
             $scope=$this->request->get('scope', 1,'trim');

@@ -1156,12 +1156,15 @@ if (this.nav_scope) {
 ```
 addons/{plugin_name}/
 ├── Plugin.php              # 插件主类（生命周期钩子）
-├── info.json               # 插件信息配置
+├── info.json               # 插件信息配置（含可选的版本兼容性声明）
 ├── menu.php                # 菜单注册（可选）
-├── install.sql             # 安装时执行的SQL（可选）
+├── install.sql             # 安装时执行的SQL（可选，表名需符合命名规范）
 ├── uninstall.sql           # 卸载时执行的SQL（可选）
-├── config.json             # 插件配置项（可选）
+├── config.php              # 插件配置结构与默认值（可选，见 9.8 插件配置管理）
+├── config.json             # 插件配置项（可选，老插件方式）
 ├── route.php               # 插件路由（可选）
+├── db_map.json             # 安装时自动生成：插件创建的数据表清单（供卸载清理）
+├── file_map.json           # 安装时自动生成：移入项目的文件清单（供卸载移回）
 ├── app/                    # 插件控制器（可选）
 │   └── admin/controller/
 ├── library/                # 插件类库（可选）
@@ -1169,6 +1172,21 @@ addons/{plugin_name}/
 ├── view/                   # 插件视图（可选）
 └── public/                 # 插件静态资源（可选）
 ```
+
+#### 插件数据表命名规范
+
+新插件 `install.sql` 中创建的数据表**必须**以 `addon_{插件名}_` 为前缀（或恰好等于 `addon_{插件名}`），安装时系统会强制校验，不符合规范将阻断安装：
+
+```sql
+-- 正确（插件名为 demo，ymwl_ 为占位前缀，安装时自动替换为实际前缀）
+CREATE TABLE IF NOT EXISTS `ymwl_addon_demo_log` (...);
+
+-- 错误：未使用 addon_demo_ 前缀，安装时报错
+CREATE TABLE IF NOT EXISTS `ymwl_demo_log` (...);
+```
+
+老插件白名单（`wechat`、`database`、`databaseapp`）豁免此校验，保持存量兼容。
+统一前缀的意义：卸载时可按 `addon_{插件名}` 前缀扫描兜底清理，避免表残留。
 
 ### 9.3 插件配置文件（info.json）
 
@@ -1183,7 +1201,10 @@ addons/{plugin_name}/
     "author": "zrwx978",
     "version": "1.0.0",
     "build": "2025-07-01 00:00:00",
-    "is_set": 0
+    "is_set": 0,
+    "require_php": "8.0.0",
+    "require_crm": "5.0.0",
+    "max_crm": "6.0.0"
 }
 ```
 
@@ -1196,6 +1217,18 @@ addons/{plugin_name}/
 | install | 安装状态（0未安装/1已安装） |
 | version | 插件版本号 |
 | is_set | 是否有配置页 |
+| require_php | （可选）要求的最低 PHP 版本 |
+| require_crm | （可选）要求的最低 CRM 系统版本（对比 config/version.php 的 version） |
+| max_crm | （可选）兼容的最高 CRM 系统版本 |
+
+#### 版本兼容性检查
+
+系统在**安装、升级、启用**三个环节自动执行兼容性检查（`AddonLifecycle::checkCompatibility()`）：
+
+- 声明了 `require_php`：当前 PHP 版本低于要求时阻断操作
+- 声明了 `require_crm`：当前系统版本低于要求时阻断操作（提示先升级系统）
+- 声明了 `max_crm`：当前系统版本高于声明值时阻断操作（插件可能不兼容）
+- **未声明对应字段时自动跳过该项检查**，存量老插件不受影响
 
 ### 9.4 插件主类（Plugin.php）
 
@@ -1246,16 +1279,24 @@ class Plugin extends Addons
 
 ### 9.6 插件管理操作
 
-通过后台 `Addon` 控制器提供以下操作：
+通过后台 `Addon` 控制器提供以下操作（生命周期编排由 `app/admin/service/AddonLifecycle.php` 负责）：
 
 | 操作 | 说明 |
 |------|------|
 | 本地列表 | 扫描addons目录，同步到数据库 |
 | 在线商店 | 从 `cloud.laikephp.com` 获取可用插件列表 |
-| 安装 | 执行install.sql + 调用Plugin::install() + 注册菜单 |
-| 卸载 | 执行uninstall.sql + 调用Plugin::uninstall() + 移除菜单 |
-| 启用/禁用 | 调用Plugin::enabled()/disabled() + 更新状态 |
-| 升级 | 下载新版本 + 执行升级SQL |
+| 安装 | 兼容性检查 → 表命名校验 → 事务执行（菜单 + install.sql）→ 记录 db_map.json/file_map.json → 移入文件 → 更新缓存 |
+| 卸载 | 事务执行（删菜单 + uninstall.sql）→ 兜底清理（数据表/system_field/addon_config/缓存）→ 移回文件 → 更新缓存 |
+| 启用/禁用 | 启用前检查已安装 + 兼容性检查 → 事务内处理菜单显隐/路由映射 → 调用 Plugin::enabled()/disabled() + 触发事件，异常自动回滚 |
+| 升级 | 下载升级包 → 兼容性检查（读新版 info.json）→ 事务执行（菜单更新 + 升级SQL），失败自动回滚 |
+
+#### 卸载时的三层兜底清理
+
+卸载插件时除执行 `uninstall.sql` 外，系统还会自动执行兜底清理（`AddonLifecycle::cleanupAddonData()`）：
+
+1. **数据表**：按 `db_map.json` 记录的清单 + `addon_{插件名}` 前缀扫描，删除插件创建的全部数据表
+2. **自定义字段**：清理 `system_field` 中该插件表的字段配置及对应字段缓存
+3. **插件配置**：删除 `addon_config` 表中该插件的配置及 `addon_config_{插件名}` 缓存
 
 ### 9.7 插件配置（config/addons.php）
 
@@ -1266,6 +1307,39 @@ return [
     'route'    => [],      // 插件路由
     'service'  => [],      // 插件服务
 ];
+```
+
+### 9.8 插件配置管理（双层存储）
+
+> 基于 `ymwl/think8-addons` v1.1.0+，详细说明见 `vendor/ymwl/think8-addons/README.md` 的「插件配置管理」章节
+
+插件配置采用「双层存储」架构：
+
+| 存储层 | 角色 | 说明 |
+|--------|------|------|
+| 插件目录 `config.php` | 结构定义 + 默认值 | 插件开发者随插件包提供，升级时随代码更新 |
+| `ymwl_addon_config` 数据表 | 用户修改后的实际值 | 优先生效，升级不丢失，卸载时按 addon 字段统一清理 |
+
+建表脚本：`update/addon_config_table.sql`；未建表时所有函数自动降级为纯文件模式。
+
+#### 助手函数（vendor/ymwl/think8-addons/src/helper.php）
+
+```php
+// 读取完整配置结构（文件默认值 + 数据库覆盖，后台配置页用）
+$config = get_addons_config('插件名');
+
+// 读取简化键值映射（插件业务代码直接取值）
+$values = get_addons_config('插件名', true);
+
+// 整体保存（双写：config.php 文件 + addon_config 数据表，自动清缓存）
+set_addons_config('插件名', $config);
+
+// 单个配置项读写（写入仅操作数据表，不碰文件）
+get_addons_config_value('插件名', '配置键', '默认值');
+set_addons_config_value('插件名', '配置键', '配置值');
+
+// 读取数据表配置（带缓存，缓存键 addon_config_{插件名}）
+get_addons_db_config('插件名');
 ```
 
 ---

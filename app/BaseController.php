@@ -101,7 +101,7 @@ abstract class BaseController
      * @param  mixed $data 返回的数据
      * @param  integer $wait 跳转等待时间
      * @param  array $header 发送的Header信息
-     * @return void
+     * @return never
      */
     protected function success($msg = '', string $url = '', $data = '', int $wait = 3, array $header = [])
     {
@@ -139,7 +139,7 @@ abstract class BaseController
      * @param  mixed $data 返回的数据
      * @param  integer $wait 跳转等待时间
      * @param  array $header 发送的Header信息
-     * @return void
+     * @return never
      */
     protected function error($msg = '', string $url = '', $data = [], int $wait = 3, array $header = [],$code=0)
     {

@@ -20,6 +20,12 @@ use think\facade\Lang;
 class AddonLifecycle
 {
     /**
+     * 老插件白名单：表命名规范校验豁免（增量兼容，不影响已安装插件）
+     * @var array
+     */
+    protected array $legacyAddons = ['wechat', 'database', 'databaseapp'];
+
+    /**
      * 插件下载服务
      * @var AddonDownloader
      */
@@ -69,6 +75,9 @@ class AddonLifecycle
             throw new Exception('插件已安装，无需重新安装');
         }
 
+        // 版本兼容性检查（info.json 未声明兼容性字段时自动跳过）
+        $this->checkCompatibility($name, $addonInfo);
+
         $result = $class->install();
         if ($result === false) {
             throw new Exception('插件安装失败');
@@ -89,9 +98,14 @@ class AddonLifecycle
             }
 
             // 执行安装 SQL
+            $createdTables = [];
             $sqlFile = $addonsPath . 'install.sql';
             if (is_file($sqlFile)) {
-                $prefix = getDataBaseConfig('prefix');
+                $prefix     = getDataBaseConfig('prefix');
+                $sqlContent = file_get_contents($sqlFile) ?: '';
+                // 校验插件表命名规范（新插件强制 addon_{name}_ 前缀，老插件白名单豁免）
+                $this->checkTableNaming($sqlContent, $name);
+                $createdTables = $this->parseCreatedTables($sqlContent);
                 $this->executeSqlFile($sqlFile, $prefix);
             }
 
@@ -102,6 +116,14 @@ class AddonLifecycle
         } catch (Throwable $e) {
             Db::rollback();
             throw $e;
+        }
+
+        // 记录插件创建的数据表清单，供卸载时兜底清理
+        if (!empty($createdTables)) {
+            file_put_contents(
+                $addonsPath . 'db_map.json',
+                json_encode(['version' => 1, 'tables' => $createdTables], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+            );
         }
 
         // 第二阶段：移动插件文件到项目目录
@@ -206,6 +228,9 @@ class AddonLifecycle
             throw $e;
         }
 
+        // 兜底清理插件残留数据（数据表、自定义字段配置、插件配置及缓存）
+        $this->cleanupAddonData($name, $addonsPath);
+
         // 第二阶段：根据 file_map.json 移回插件文件
         $mapFile = $addonsPath . 'file_map.json';
         if (is_file($mapFile)) {
@@ -253,25 +278,185 @@ class AddonLifecycle
         $version    = $result['version'];
         $count      = $result['count'];
 
-        // 更新菜单
-        $menu = $addonsPath . 'update' . DIRECTORY_SEPARATOR . 'menu_' . $version . '.php';
-        if (is_file($menu)) {
-            $menuConfig = require_once($menu);
-            if (!empty($menuConfig)) {
-                $addonService = new AddonService();
-                $addonService->updateMenu($menuConfig, $menuConfig[0]['pid'], $name);
-            }
-        }
+        // 版本兼容性检查：升级包解压后 info.json 已更新，直接读取文件获取最新声明
+        // （不用 getInfo() 避免取到同请求内的旧缓存）
+        $this->checkCompatibility($name);
 
-        // 执行升级 SQL
-        $updateSql = $addonsPath . 'update' . DIRECTORY_SEPARATOR . $version . '.sql';
-        if (is_file($updateSql)) {
-            \tools\Hs::sql($updateSql);
+        // 菜单更新与升级 SQL 纳入事务，保证升级失败时可回滚（DDL 除外）
+        try {
+            Db::startTrans();
+
+            // 更新菜单
+            $menu = $addonsPath . 'update' . DIRECTORY_SEPARATOR . 'menu_' . $version . '.php';
+            if (is_file($menu)) {
+                $menuConfig = require_once($menu);
+                if (!empty($menuConfig)) {
+                    $addonService = new AddonService();
+                    $addonService->updateMenu($menuConfig, $menuConfig[0]['pid'], $name);
+                }
+            }
+
+            // 执行升级 SQL
+            $updateSql = $addonsPath . 'update' . DIRECTORY_SEPARATOR . $version . '.sql';
+            if (is_file($updateSql)) {
+                \tools\Hs::sql($updateSql);
+            }
+
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollback();
+            throw $e;
+        } catch (Throwable $e) {
+            Db::rollback();
+            throw $e;
         }
 
         $this->clearCache();
 
         return ['version' => $version, 'count' => $count];
+    }
+
+    /**
+     * 插件版本兼容性检查
+     *
+     * 读取插件 info.json 中可选的兼容性声明字段：
+     * - require_php：要求的最低 PHP 版本，如 "8.0.0"
+     * - require_crm：要求的最低 CRM 系统版本，如 "5.0.0"（对比 config/version.php 的 version）
+     * - max_crm：兼容的最高 CRM 系统版本（可选）
+     * 未声明对应字段时跳过该项检查，存量老插件不受影响。
+     *
+     * @param string $name 插件标识名
+     * @param array|null $info 插件信息数组，为 null 时自动读取插件目录的 info.json
+     * @return void
+     * @throws Exception 版本不满足要求时抛出
+     */
+    public function checkCompatibility(string $name, ?array $info = null): void
+    {
+        if ($info === null) {
+            $infoFile = $this->getAddonsPath($name) . 'info.json';
+            $info     = is_file($infoFile) ? json_decode((string)file_get_contents($infoFile), true) : [];
+            if (!is_array($info)) {
+                $info = [];
+            }
+        }
+
+        // PHP 版本检查
+        if (!empty($info['require_php']) && version_compare(PHP_VERSION, (string)$info['require_php'], '<')) {
+            throw new Exception("插件 {$name} 要求 PHP >= {$info['require_php']}，当前 PHP 版本为 " . PHP_VERSION);
+        }
+
+        // CRM 系统版本检查
+        $crmVersion = (string)(config('version.version') ?: '');
+        if ($crmVersion !== '') {
+            if (!empty($info['require_crm']) && version_compare($crmVersion, (string)$info['require_crm'], '<')) {
+                throw new Exception("插件 {$name} 要求系统版本 >= {$info['require_crm']}，当前系统版本为 {$crmVersion}，请先升级系统");
+            }
+            if (!empty($info['max_crm']) && version_compare($crmVersion, (string)$info['max_crm'], '>')) {
+                throw new Exception("插件 {$name} 最高兼容系统版本 {$info['max_crm']}，当前系统版本为 {$crmVersion}，插件可能不兼容");
+            }
+        }
+    }
+
+    /**
+     * 校验 install.sql 中的表命名规范
+     *
+     * 新插件的数据表必须以 addon_{插件名}_ 为前缀（或恰好等于 addon_{插件名}），
+     * 老插件在 $legacyAddons 白名单中豁免。
+     *
+     * @param string $sql install.sql 文件内容
+     * @param string $name 插件标识名
+     * @return void
+     * @throws Exception
+     */
+    private function checkTableNaming(string $sql, string $name): void
+    {
+        if (in_array($name, $this->legacyAddons)) {
+            return;
+        }
+        $tables = $this->parseCreatedTables($sql);
+        foreach ($tables as $table) {
+            if ($table !== 'addon_' . $name && strpos($table, 'addon_' . $name . '_') !== 0) {
+                throw new Exception("插件数据表 {$table} 不符合命名规范，表名必须以 addon_{$name}_ 开头");
+            }
+        }
+    }
+
+    /**
+     * 解析 SQL 中所有 CREATE TABLE 的表名（不含前缀）
+     *
+     * @param string $sql SQL 内容
+     * @return array 表名列表（已去除 ymwl_ 占位前缀）
+     */
+    private function parseCreatedTables(string $sql): array
+    {
+        preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`ymwl_([a-zA-Z0-9_]+)`/i', $sql, $matches);
+        return array_values(array_unique($matches[1]));
+    }
+
+    /**
+     * 卸载时兜底清理插件残留数据
+     *
+     * 清理内容：
+     * 1. db_map.json 记录的表清单 + addon_{name} 前缀扫描到的残留表
+     * 2. system_field 中该插件表的自定义字段配置及对应字段缓存
+     * 3. addon_config 表中该插件的独立配置及缓存
+     *
+     * @param string $name 插件标识名
+     * @param string $addonsPath 插件目录绝对路径
+     * @return void
+     */
+    private function cleanupAddonData(string $name, string $addonsPath): void
+    {
+        $prefix = getDataBaseConfig('prefix');
+        $tables = [];
+
+        // 1. 读取安装时记录的表清单
+        $dbMapFile = $addonsPath . 'db_map.json';
+        if (is_file($dbMapFile)) {
+            $dbMap = json_decode(file_get_contents($dbMapFile), true);
+            if (!empty($dbMap['tables']) && is_array($dbMap['tables'])) {
+                $tables = $dbMap['tables'];
+            }
+        }
+
+        // 2. 按 addon_{name} 前缀扫描兜底（防止 db_map.json 丢失或清单不全）
+        $like = str_replace('_', '\_', $prefix . 'addon_' . $name) . '%';
+        $rows = Db::query("SHOW TABLES LIKE '{$like}'");
+        foreach ($rows as $row) {
+            $tables[] = substr((string)current($row), strlen($prefix));
+        }
+        $tables = array_values(array_unique($tables));
+
+        // 3. 删除数据表
+        foreach ($tables as $table) {
+            Db::execute('DROP TABLE IF EXISTS `' . $prefix . $table . '`');
+        }
+
+        // 4. 清理 system_field 中该插件表的自定义字段配置及字段缓存
+        if (!empty($tables)) {
+            try {
+                Db::name('system_field')->whereIn('table', $tables)->delete();
+                $defaultWhere = [['list', '=', 1]];
+                foreach ($tables as $table) {
+                    Cache::delete($table . '_fields_' . md5(serialize($defaultWhere)));
+                }
+            } catch (Throwable $e) {
+                // system_field 清理失败不阻断卸载流程
+            }
+        }
+
+        // 5. 清理插件独立配置及缓存
+        try {
+            Db::name('addon_config')->where('addon', $name)->delete();
+            Cache::delete('addon_config_' . $name);
+        } catch (Throwable $e) {
+            // addon_config 表尚未创建时忽略
+        }
+
+        // 6. 删除表清单文件
+        if (is_file($dbMapFile)) {
+            unlink($dbMapFile);
+        }
     }
 
     /**

@@ -30,9 +30,7 @@ class Record extends AdminController
     public function index()
     {
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             $scope=$this->request->get('scope', 1,'trim');
             $customer_id=$this->request->get('customer_id', 0,'intval');

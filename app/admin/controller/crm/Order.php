@@ -28,9 +28,7 @@ class Order extends AdminController {
             $this->modifyPermissionsByIds($owner_admin_id);
         }
         if($this->request->isAjax()){
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             if($customer_id){
                 $where[]=['customer_id','=',$customer_id];

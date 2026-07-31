@@ -165,6 +165,36 @@ function sp_create_db_config($config)
 }
 
 /**
+ * 更新或追加根目录 .env 文件中的某个配置项
+ * 用于安装时为当前部署生成独立的密钥（如 APP_KEY）
+ * @param string $key   环境变量名（如 APP_KEY）
+ * @param string $value 值
+ * @return bool 是否写入成功
+ */
+function sp_update_env_value($key, $value)
+{
+    $envFile = app()->getRootPath() . '.env';
+    try {
+        $content = file_exists($envFile) ? file_get_contents($envFile) : '';
+        if ($content === false) {
+            $content = '';
+        }
+        $line = $key . ' = ' . $value;
+        // 已存在同名配置项则替换整行，否则追加到末尾
+        if (preg_match('/^\s*' . preg_quote($key, '/') . '\s*=.*$/m', $content)) {
+            $content = preg_replace('/^\s*' . preg_quote($key, '/') . '\s*=.*$/m', $line, $content);
+        } else {
+            $content = rtrim($content, "\r\n");
+            $content = ($content === '' ? '' : $content . PHP_EOL) . $line . PHP_EOL;
+        }
+        $result = file_put_contents($envFile, $content);
+        return $result !== false;
+    } catch (\Exception $e) {
+        return false;
+    }
+}
+
+/**
  * 切分SQL文件成多个可以单独执行的sql语句
  * @param        $file            string sql文件路径
  * @param        $tablePre        string 表前缀

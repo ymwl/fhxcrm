@@ -23,9 +23,7 @@ class Log extends AdminController
     {
         if ($this->request->isAjax()) {
 
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             /*
              * <li class="layui-this" data-value="mine" data-field="scope">我的</li>

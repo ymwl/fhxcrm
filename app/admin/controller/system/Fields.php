@@ -69,9 +69,7 @@ class Fields extends AdminController
             $this->error(fy('Parameter error'));
         }
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             $where=[];
             list($page, $limit, $where,$sort)= $this->buildTableParames();
             if(!empty($filter['name'])){

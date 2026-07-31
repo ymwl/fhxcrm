@@ -74,9 +74,7 @@ class Customer extends AdminController
 
 
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             $scope=$this->request->get('scope', 1,'trim');
 
@@ -234,9 +232,7 @@ class Customer extends AdminController
             $this->model->autoRecycle($this->system);
             $this->sort_by = 'to_gh_time';
             $this->sort_order = 'ASC';
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             $where[]=['status','=',2];
             $count = $this->model
@@ -298,9 +294,7 @@ class Customer extends AdminController
 
     public function reduplicate(){
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             $list = $this->model->field('`id`,`name`,`phone`,`contact`,`at_user`,`pr_user`,`last_up_time`,`issuccess`,`create_time`,`update_time`')
                 ->where($where)
@@ -352,9 +346,7 @@ class Customer extends AdminController
         if ($this->request->isAjax()) {
             $this->sort_by = 'success_time';
             $this->sort_order = 'DESC';
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             $scope=$this->request->get('scope', 1,'trim');
             if($scope==2){
@@ -821,12 +813,6 @@ class Customer extends AdminController
 
                             }else{
                                 if(empty($val))continue;
-                                 // 数据表字段容量
-                                // 计算备注文本的实际长度（以 UTF-8 编码为例）
-                                if (mb_strlen($val, 'utf-8') > $arr_fields[$fields[$column]]['lang']) {
-                                    // 如果实际长度超过了允许的最大长度，则提示错误信息
-                                    throw new  exception(fy("The length of the field %s exceeds the maximum length of %s",[$fields[$column],$arr_fields[$fields[$column]]['lang']]));
-                                }
                                 $data[$fields[$column]]=$val;
                             }
                         }
@@ -859,6 +845,7 @@ class Customer extends AdminController
                                         case 'datetime':
                                         case 'date':
                                             if(!is_numeric($v)){
+                                                $v = str_replace(['年', '月', '日'], ['-', '-', ''], $v);
                                                 $data[$k]=strtotime($v);
                                             }
                                             break;

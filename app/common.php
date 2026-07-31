@@ -1008,6 +1008,8 @@ if (!function_exists('rmdirs')) {
 }
 
 function real_field_val($field,$value,$tpl=0){
+    if($value===null || $value==='')return $value;
+
 
     if($field['formtype']==='datetime'){
         if(trim($value)=='0'){
@@ -1058,7 +1060,7 @@ function real_field_val($field,$value,$tpl=0){
             }
             $value=$temp;
         }
-    }elseif(($field['formtype']==='select' || $field['formtype']==='radio') && is_numeric($value) && !empty(trim($field['option']))){
+    }elseif(($field['formtype']==='select' || $field['formtype']==='radio') && is_numeric($value) && !empty(trim((string)$field['option']))){
         $option=explode(',',$field['option']);
         $selectList=[];
         foreach ($option as $v){

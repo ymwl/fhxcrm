@@ -38,9 +38,7 @@ class Clue extends AdminController
         $fields = \tools\Cache::zdy_fields('crm_clue');
 
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where, $sort) = $this->buildTableParames();
             $scope = $this->request->get('scope', 1, 'trim');
             $where[] = ['to_customer_id', '=', 0];
@@ -433,9 +431,6 @@ class Clue extends AdminController
                                 }
                             } else {
                                 if (empty($val)) continue;
-                                if (mb_strlen($val, 'utf-8') > $arr_fields[$fields[$column]]['lang']) {
-                                    throw new \Exception(fy("The length of the field %s exceeds the maximum length of %s", [$fields[$column], $arr_fields[$fields[$column]]['lang']]));
-                                }
                                 $data[$fields[$column]] = $val;
                             }
                         }
@@ -736,9 +731,7 @@ class Clue extends AdminController
         $fields = \tools\Cache::zdy_fields('crm_clue');
 
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where, $sort) = $this->buildTableParames();
             // 线索池：只显示 status=4
             $where[] = ['status', '=', 4];
@@ -808,9 +801,7 @@ class Clue extends AdminController
         $fields = \tools\Cache::zdy_fields('crm_clue',$where );
 
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where, $sort) = $this->buildTableParames();
             $scope = $this->request->get('scope', 1, 'trim');
 

@@ -71,6 +71,7 @@ public function index()
                                 case 'datetime':
                                 case 'date':
                                     if(!is_numeric($v)){
+                                        $v = str_replace(['年', '月', '日'], ['-', '-', ''], $v);
                                         $post[$k]=strtotime($v);
                                     }
                                     break;

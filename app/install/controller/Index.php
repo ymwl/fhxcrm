@@ -247,7 +247,8 @@ class Index extends BaseController
             $sql=file_get_contents(dirname(__DIR__) . '/data/web.sql');
         $sql = str_replace(" `ymwl_", " `{$dbConfig['prefix']}", $sql);
         if($dbConfig['charset'] != 'utf8mb4'){
-            $sql = str_replace(" utf8mb4", " {$dbConfig['charset']}", $sql);
+            // 全局替换编码,兼容 CHARSET=utf8mb4、COLLATE=utf8mb4_unicode_ci 等无空格写法
+            $sql = str_replace("utf8mb4", $dbConfig['charset'], $sql);
         }
 
         $this->updateDbConfig($dbConfig);
@@ -307,6 +308,15 @@ class Index extends BaseController
             ]);*/
             \think\facade\Db::name('system_config')->where('field','=','name')->update(['value'=>$siteInfo['site_name']]);
             \think\facade\Db::name('system_config')->where('field','=','site_abbr')->update(['value'=>$siteInfo['site_seo_keywords']]);
+            // 重新生成安装唯一标识(UUID v4),避免所有站点共用web.sql中的固定install_id(离线授权使用)
+            $bytes = random_bytes(16);
+            $bytes[6] = chr(ord($bytes[6]) & 0x0f | 0x40);
+            $bytes[8] = chr(ord($bytes[8]) & 0x3f | 0x80);
+            $installId = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
+            \think\facade\Db::name('system_config')->where('field','=','install_id')->update(['value'=>$installId, 'update_time'=>time()]);
+            // 为当前部署生成独立的 JWT 签名密钥(APP_KEY),写入 .env,避免所有站点共用相同密钥
+            // HS256 要求密钥至少 32 字节,这里生成 64 位十六进制(256 位)
+            sp_update_env_value('APP_KEY', bin2hex(random_bytes(32)));
         } catch (\Exception $e) {
             $this->error("网站创建失败!" . $e->getMessage());
         }

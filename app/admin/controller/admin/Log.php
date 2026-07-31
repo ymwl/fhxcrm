@@ -24,9 +24,7 @@ class Log extends AdminController
     public function index()
     {
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             if($this->admin['group_id']>1){
                 $adminLst=\app\service\AdminService::getChildrenAdminIds($this->admin,true);

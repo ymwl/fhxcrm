@@ -21,6 +21,8 @@ return [
     'app_name'               => '',
     // 应用地址
     'app_host'               => Env::get('app.host', ''),
+    // API JWT 签名密钥（Token 签发/验证），HS256 算法要求密钥长度至少 32 字节（256 位）
+    'app_key'                => Env::get('app.key', '369c13e0d8a36a4193b5b3a4ff6de9cc72625da1e4d7b36882f0b243b68eb2ea'),
     // 应用调试模式
 
     // 是否启用路由

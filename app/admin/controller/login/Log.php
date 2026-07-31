@@ -27,9 +27,7 @@ class Log extends AdminController
     public function index()
     {
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
 //            不是管理员只能看到自己的
             if($this->admin['group_id']>1){

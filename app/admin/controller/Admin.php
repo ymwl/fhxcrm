@@ -25,10 +25,9 @@ class Admin extends AdminController
      */
     public function index()
     {
+        exit('This method is not allowed');
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where) = $this->buildTableParames();
             $status=$this->request->get('status',0,'intval');
             if($status){

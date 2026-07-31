@@ -15,9 +15,7 @@ class Auth extends AdminController
     //管理员列表
     public function adminList(){
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             $this->model=new \app\admin\model\Admin();
             $this->sort = ['admin_id'=>'desc'] ;
 

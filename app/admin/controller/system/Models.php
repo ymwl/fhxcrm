@@ -48,9 +48,7 @@ class Models extends AdminController
     public function index()
     {
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             $count = $this->model
                 ->where($where)

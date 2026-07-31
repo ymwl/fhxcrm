@@ -6,8 +6,10 @@ use app\common\controller\AdminController;
 use app\admin\service\AddonDownloader;
 use app\admin\service\AddonFileManager;
 use app\admin\service\AddonLifecycle;
+use app\admin\service\LicenseService;
 
 use think\App;
+use think\exception\HttpResponseException;
 use think\facade\Cache;
 use think\facade\Config;
 use think\facade\Lang;
@@ -39,20 +41,23 @@ class Addon extends AdminController
                 $is_sync=Cache::get('addons_sync');
                 if(!$is_sync){
                     $license=$this->system['license_key'];
-                    if(empty($license)){
+                    // 授权参数：密钥与离线授权文件二选一，全部不可用则终止同步
+                    $auth = (new LicenseService())->buildCloudAuthParams($license);
+                    if(!$auth['ok']){
                         $data = [
                             'code'  => -1,
-                            'msg'   => '授权使用联系微信:zrwx978',
+                            'msg'   => $auth['msg'],
                         ];
                         return json($data);
                     }
                     $domain=$_SERVER['HTTP_HOST'];
                     $data=[
                         'domain'=>$domain,
-                        'source'=>'fhx_crm_plugin_ids',
+                        'source'=>'fhx_crm_addons',
                         'license'=>$license,
                         'php'=>PHP_VERSION
                     ];
+                    $data = array_merge($data, $auth['params']);
 //                    ($url, $method, $postfields = null, $headers = [], $debug = false)
                     $res=httpRequest('https://cloud.laikephp.com/index/fhx.addon/index','POST',$data,[],true);
                     $res_arr=json_decode($res,true);
@@ -76,6 +81,9 @@ class Addon extends AdminController
                         return json($data);
                     }
                 }
+                //同步本地插件最新状态（安装/卸载/升级后 info.json 已变更，需回写数据库，否则互联网列表状态不会及时刷新）
+                $addons=get_addons_list();
+                $this->model->sync($addons);
                 $where[]=['net_version','<>',''];
 //               判断今天是否同步过
             }else{
@@ -197,7 +205,7 @@ class Addon extends AdminController
         }
 
         $msg = $result['count'] > 1 ? "升级到版本{$result['version']}成功" : '升级完成';
-        $this->success($msg, null, ['count' => $result['count'], 'version' => $result['version']]);
+        $this->success($msg, '', ['count' => $result['count'], 'version' => $result['version']]);
     }
 
     public function config()
@@ -290,7 +298,19 @@ class Addon extends AdminController
             $this->success('操作成功');
         }
 
-        /*try {*/
+        // 4.1 启用前置检查：必须已安装，且通过版本兼容性检查
+        if ($value == 1) {
+            if (empty($addoninfo['install'])) {
+                $this->error('插件尚未安装，请先安装后再启用');
+            }
+            try {
+                (new AddonLifecycle())->checkCompatibility($name, $addoninfo);
+            } catch (\Exception $e) {
+                $this->error($e->getMessage());
+            }
+        }
+
+        try {
             \think\facade\Db::startTrans();
 
             // 5. 更新插件 info 状态
@@ -320,11 +340,6 @@ class Addon extends AdminController
                 $addonService->clearPluginRoutes($name);
             }
 
-            // 9. 刷新插件缓存
-            if (function_exists('refreshaddons')) {
-                refreshaddons();
-            }
-
             // 10. 保存数据库状态
             $addon->status = $value;
             $addon->save();
@@ -340,13 +355,16 @@ class Addon extends AdminController
                 \think\facade\Event::trigger('AddonDisabled', ['name' => $name]);
             }
 
-     /*   } catch (\Exception $e) {
+        } catch (HttpResponseException $e) {
+            // success/error 响应直接放行，避免被当作异常回滚
+            throw $e;
+        } catch (\Exception $e) {
             \think\facade\Db::rollback();
             $this->error($e->getMessage());
         } catch (\Throwable $e) {
             \think\facade\Db::rollback();
             $this->error($e->getMessage());
-        }*/
+        }
 
         // 12. 清除管理后台缓存
         $this->clearCache();

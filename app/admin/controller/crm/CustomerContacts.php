@@ -42,9 +42,7 @@ class CustomerContacts extends AdminController
 
 
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             if($customer_id){
                 $where[]=['crm_customer_contacts.customer_id','=',$customer_id];

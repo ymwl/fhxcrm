@@ -3,6 +3,7 @@
 namespace app\admin\controller;
 
 
+use app\admin\service\LicenseService;
 use app\common\controller\AdminController;
 
 //技术支持 w w w . 8 0 z x . c o m
@@ -26,8 +27,12 @@ class Cloud extends AdminController
 
         $domain=$_SERVER['HTTP_HOST'];
         $license=$this->system['license_key'];
-        if(empty($license)){
-            $this->error('授权使用联系微信:zrwx978');
+
+        // 升级前置授权校验：密钥与离线授权文件二选一，验证全部失败则禁止执行文件更新
+        $licenseService = new LicenseService();
+        $auth = $licenseService->buildCloudAuthParams($license);
+        if(!$auth['ok']){
+            $this->error($auth['msg'] . '，升级已终止');
         }
 //        domain={$domain}&license={$license}&build={$version['build']}&php=".PHP_VERSION."&no={$version['no']}
         $data=[
@@ -37,6 +42,8 @@ class Cloud extends AdminController
             'php'=>PHP_VERSION,
             'no'=>$version['no']
         ];
+        // 授权参数：install_id恒定携带，本地验签通过的离线授权文件随license_file上送，服务端按签发记录(bind_install_id)放行升级
+        $data = array_merge($data, $auth['params']);
         $res=httpRequest('https://cloud.laikephp.com/index/fhx.version/upgrade','POST',$data);
 //        var_dump($res);
         $res_arr=json_decode($res,true);

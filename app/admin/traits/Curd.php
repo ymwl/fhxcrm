@@ -318,7 +318,20 @@ trait Curd
                 }
             };
         }
-//        限定数据只能查看自己的和包括团队的
+        // 限定数据只能查看自己的和包括团队的（仅在子类未自定义 scopeWhere、且表存在 owner_admin_id 时生效）
+        if (empty($this->scopeWhere)
+            && $primaryvalue === null
+            && !empty($this->admin['group_id']) && $this->admin['group_id'] != 1
+            && in_array('owner_admin_id', $this->model->getTableFields())
+        ) {
+            $adminIds = \app\service\AdminService::getViewAdminIds($this->admin, true);
+            if ($adminIds !== 'ALL') {
+                if (empty($adminIds)) {
+                    return json(['code' => 1, 'count' => 0, 'data' => []]);
+                }
+                $this->scopeWhere = [['owner_admin_id', 'in', $adminIds]];
+            }
+        }
 
         $list = [];
         $total = $this->model->where($where)->where($this->scopeWhere)->count();

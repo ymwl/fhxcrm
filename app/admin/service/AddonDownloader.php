@@ -39,8 +39,10 @@ class AddonDownloader
             throw new Exception('插件安装失败，请联系作者');
         }
 
-        if (empty($license)) {
-            throw new Exception('授权使用联系微信:zrwx978');
+        // 授权参数：密钥与离线授权文件二选一，全部不可用则终止下载
+        $auth = (new LicenseService())->buildCloudAuthParams($license);
+        if (!$auth['ok']) {
+            throw new Exception($auth['msg']);
         }
 
         $data = [
@@ -49,6 +51,7 @@ class AddonDownloader
             'php'     => PHP_VERSION,
             'no'      => $no,
         ];
+        $data = array_merge($data, $auth['params']);
 
         $res     = httpRequest($this->cloudInstallUrl, 'POST', $data);
         $res_arr = json_decode($res, true);
@@ -83,8 +86,10 @@ class AddonDownloader
      */
     public function downloadUpgrade(string $name, string $no, string $license, string $build): array
     {
-        if (empty($license)) {
-            throw new Exception('授权使用联系微信:zrwx978');
+        // 授权参数：密钥与离线授权文件二选一，全部不可用则终止升级
+        $auth = (new LicenseService())->buildCloudAuthParams($license);
+        if (!$auth['ok']) {
+            throw new Exception($auth['msg']);
         }
 
         $data = [
@@ -94,6 +99,7 @@ class AddonDownloader
             'php'     => PHP_VERSION,
             'no'      => $no,
         ];
+        $data = array_merge($data, $auth['params']);
 
         $res     = httpRequest($this->cloudUpgradeUrl, 'POST', $data);
         $res_arr = json_decode($res, true);

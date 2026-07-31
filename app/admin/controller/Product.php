@@ -28,9 +28,7 @@ class Product extends AdminController
     public function index()
     {
         if ($this->request->isAjax()) {
-            if (input('selectFields')) {
-                return $this->selectList();
-            }
+            
             list($page, $limit, $where,$sort) = $this->buildTableParames();
             $status=$this->request->get('status',0,'intval');
             if($status){
