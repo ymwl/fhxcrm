@@ -1,6 +1,5 @@
 # ThinkPHP 运行时
 /runtime/*
-!/runtime/.gitkeep
 
 # Composer 依赖
 /vendor/
