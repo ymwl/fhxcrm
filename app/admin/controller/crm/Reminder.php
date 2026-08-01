@@ -254,7 +254,7 @@ class Reminder extends AdminController
     public function delete()
     {
         $this->checkPostRequest();
-        $id = $this->request->param('id');
+        $id = $this->request->param('ids', $this->request->param('id'));
 
         if (empty($id)) {
             $this->error('请选择要删除的数据');

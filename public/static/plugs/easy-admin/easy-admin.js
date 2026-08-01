@@ -1533,9 +1533,9 @@ define(["jquery", "lang"], function ($,Lang) {
                         ids.push(v.id);
                     });
                     if (url.indexOf("?") === -1) {
-                        url += '?id=' + ids.join(',');
+                        url += '?ids=' + ids.join(',');
                     } else {
-                        url += '&id=' + ids.join(',');
+                        url += '&ids=' + ids.join(',');
                     }
                 }
 
@@ -1656,7 +1656,8 @@ define(["jquery", "lang"], function ($,Lang) {
                     $.each(data, function (i, v) {
                         ids.push(v[field]);
                     });
-                    postData[field] = ids;
+                    // 统一多选ID参数格式：逗号分隔的单个 ids 参数
+                    postData['ids'] = ids.join(',');
                 }
 
                 if (addons !== true && addons !== 'true') {

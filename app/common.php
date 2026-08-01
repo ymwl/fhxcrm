@@ -8,6 +8,30 @@ use think\helper\Str;
 
 use think\exception\HttpResponseException;
 
+/**
+ * 归一化批量ID参数：统一多选ID参数格式（ids 优先，兼容旧 id）
+ * 支持：标量(5)、逗号分隔字符串('1,2,3')、数组([1,2,3])
+ * @param mixed $ids 显式传入的ID值（不传时自动读取请求参数 ids，兼容 id）
+ * @return array intval过滤、去重后的ID数组
+ */
+function parseIds($ids = null) {
+    if ($ids === null || $ids === '') {
+        $ids = request()->param('ids');
+        if ($ids === null || $ids === '') {
+            $ids = request()->param('id');
+        }
+    }
+    if (is_array($ids)) {
+        $arr = $ids;
+    } else {
+        $arr = explode(',', (string)$ids);
+    }
+    $arr = array_filter(array_map('intval', $arr), function ($v) {
+        return $v > 0;
+    });
+    return array_values(array_unique($arr));
+}
+
 function myjson($arr){
     throw new HttpResponseException(json($arr));
 }
@@ -377,7 +401,7 @@ function rand_string($len=6,$type='',$addChars='') {
     }else{
         // 中文随机字
         for($i=0;$i<$len;$i++){
-            $str.= msubstr($chars, floor(mt_rand(0,mb_strlen($chars,'utf-8')-1)),1);
+            $str.= mb_substr($chars, floor(mt_rand(0,mb_strlen($chars,'utf-8')-1)),1);
         }
     }
     return $str;

@@ -628,7 +628,7 @@ class Customer extends AdminController
 
     public function delete()
     {
-        $id=$this->request->param('id');
+        $id = parseIds();
         $this->checkPostRequest();
         $adminIds = $this->model->whereIn('id', $id)->column('DISTINCT owner_admin_id');
         $this->modifyPermissionsByIds($adminIds);
@@ -648,7 +648,7 @@ class Customer extends AdminController
     public function alter_pr_user(){
         //1，获取提交的线索ID 【1,2,3,4,】
 //        获取客户ID
-        $ids = $this->request->param('id');
+        $ids = $this->request->param('ids', $this->request->param('id'));
         $cus_lst=$this->model->field('id,name,owner_admin_id')->where('id','in',$ids)->select();
         if($cus_lst->isEmpty()){
             $this->error(fy("Customer data does not exist"));
@@ -1091,7 +1091,7 @@ class Customer extends AdminController
     //移入公海
     public function to_move_gh(){
         //1，获取提交的线索ID 【1,2,3,4,】
-        $ids = Request::param('id');
+        $ids = parseIds();
 
         if ($this->request->isAjax()){
             $count = 0;
@@ -1120,7 +1120,7 @@ class Customer extends AdminController
 //客户共享
     public function share(){
 //        总针对一个id
-        $ids = $this->request->param('id');
+        $ids = $this->request->param('ids', $this->request->param('id'));
 
         //查询所有管理员（去除admin）
         $adminResult = Db::name('admin')->where('is_open','=',1)->where('admin_id','<>',$this->admin['admin_id'])->field('admin_id,username')->select();
@@ -1149,6 +1149,7 @@ class Customer extends AdminController
 //取消共享
     public function del_share($id)
     {
+        $id = $this->request->param('ids', $id);
         $this->checkPostRequest();
         $row = $this->model->field('id,share_admin_ids')->whereIn('id', $id)->select();
         $row->isEmpty() && $this->error(fy('The data does not exist'));

@@ -160,7 +160,7 @@ class ClueRecord extends AdminController
      */
     public function delete()
     {
-        $id = $this->request->param('id');
+        $id = parseIds();
         $this->checkPostRequest();
         
         $admin_ids = $this->model->whereIn('id', $id)->column('DISTINCT admin_id');

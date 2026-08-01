@@ -34,7 +34,7 @@ class Type extends AdminController
      */
     public function delete()
     {
-        $id=$this->request->param('id');
+        $id = parseIds();
         $this->checkPostRequest();
         $row = $this->model->whereIn('id', $id)->select();
 //        判断当前是否还有子分类  存在子分类禁止删除

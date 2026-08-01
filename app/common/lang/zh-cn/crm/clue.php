@@ -69,7 +69,11 @@ return [
     'This clue has been converted to a customer'       => '该线索已转化为客户',
     'Conversion failed'       => '转化失败',
     'Conversion successful, Customer ID: %s'       => '转化成功，客户ID：%s',
+    'Conversion successful, Customer ID: %s, skipped %d converted'       => '转化成功，客户ID：%s（跳过已转化线索 %d 条）',
     'No records found to move into the clue pool'       => '未找到可移入线索池的记录',
     'Converted leads'       => '已转线索',
+    'Clue %s conversion failed: %s cannot be empty'       => '线索「%s」转化失败：【%s】不能为空',
+    'Clue %s conversion failed: %s value %s already exists'       => '线索「%s」转化失败：【%s】值 %s 已存在，请勿重复转化',
+    'Clue %s conversion failed: %s value %s duplicates within the batch'       => '线索「%s」转化失败：【%s】值 %s 与同批转化线索重复',
 
 ];

@@ -42,6 +42,8 @@ class Clue extends AdminController
             list($page, $limit, $where, $sort) = $this->buildTableParames();
             $scope = $this->request->get('scope', 1, 'trim');
             $where[] = ['to_customer_id', '=', 0];
+            // 排除已转化状态的线索（防止手动改状态导致 to_customer_id=0 的"假已转化"线索出现在列表中）
+            $where[] = ['status', '<>', 2];
             if ($scope == 2) {
                 // 下属的
                 $adminIds = \app\service\AdminService::getViewAdminIds($this->admin);
@@ -95,6 +97,8 @@ class Clue extends AdminController
                 $where[] = ['owner_admin_id', '=', $this->admin['admin_id']];
             }
             $where[] = ['to_customer_id', '=', 0];
+            // 排除已转化状态的线索（防止手动改状态导致 to_customer_id=0 的"假已转化"线索出现在列表中）
+            $where[] = ['status', '<>', 2];
             $count = $this->model
                 ->where($where)
                 ->count();
@@ -260,7 +264,7 @@ class Clue extends AdminController
      */
     public function delete()
     {
-        $id = $this->request->param('id');
+        $id = parseIds();
         $this->checkPostRequest();
         $owner_admin_id = $this->model->whereIn('id', $id)->column('DISTINCT owner_admin_id');
         $this->modifyPermissionsByIds($owner_admin_id);
@@ -278,35 +282,34 @@ class Clue extends AdminController
 
     /**
      * @NodeAnotation(title="转化为客户")
+     * 支持单条转化（行内按钮，id 为标量）与批量转化（工具栏勾选，id 为数组）
      */
-    public function toCustomer($id)
+    public function toCustomer($id = 0)
     {
-        $clue = $this->model->find($id);
-        if (!$clue) {
+        // 归一化 ID 列表：兼容单个ID、逗号分隔、数组提交（easy-admin 多选提交 ids，行内提交 id）
+        $ids = $this->parseClueIds($this->request->param('ids', $id));
+        if (empty($ids)) {
+            $this->error(fy('Parameter error'));
+        }
+
+        // 查询线索并过滤已转化的（批量中跳过已转化线索，不中断整体流程）
+        $clues = $this->model->whereIn('id', $ids)->select();
+        if ($clues->isEmpty()) {
             $this->error(fy('Clue does not exist'));
         }
-        if ($clue['status'] == 2) {
+        $todoClues = [];
+        foreach ($clues as $clue) {
+            if ($clue['status'] != 2) {
+                $todoClues[] = $clue;
+            }
+        }
+        if (empty($todoClues)) {
             $this->error(fy('This clue has been converted to a customer'));
         }
 
-        // 获取 crm_customer 表物理字段
-        $customerFields = Db::query('SHOW COLUMNS FROM `' . getDataBaseConfig('prefix') . 'crm_customer`');
-        $customerFieldNames = array_column($customerFields, 'Field');
-
-        // 映射线索数据到客户字段
-        $customerData = [];
-        $clueData = $clue->toArray();
-
-        // 1. 业务字段硬编码映射（标准业务字段，字段名/语义可能不完全一致）
+        // 获取 crm_customer 表物理字段 与 自定义同名字段（循环外一次性查询）
+        $customerFieldNames = array_column(Db::query('SHOW COLUMNS FROM `' . getDataBaseConfig('prefix') . 'crm_customer`'), 'Field');
         $mapFields = ['name', 'contact', 'phone', 'email', 'wechat', 'source', 'pr_user', 'owner_admin_id', 'at_user', 'remark'];
-        foreach ($mapFields as $field) {
-            if (isset($clueData[$field]) && in_array($field, $customerFieldNames)) {
-                $customerData[$field] = $clueData[$field];
-            }
-        }
-
-        // 2. 动态映射自定义字段：查找线索表和客户表 system_field 中同名字段，自动带入
-        $prefix = getDataBaseConfig('prefix');
         $clueSysFields = Db::name('system_field')
             ->where('table', 'crm_clue')
             ->where('field', 'not in', $mapFields) // 排除已映射的业务字段
@@ -315,6 +318,73 @@ class Clue extends AdminController
             ->where('table', 'crm_customer')
             ->column('field');
         $commonFields = array_intersect($clueSysFields, $customerSysFields);
+
+        // 唯一性验证：查询客户表 system_field 中配置了 unique 约束的字段（field => 显示名）
+        $uniqueFields = [];
+        $uniqueFieldRows = Db::name('system_field')
+            ->where('table', 'crm_customer')
+            ->whereRaw("CONCAT(',',rule,',') LIKE '%,unique,%'")
+            ->select()
+            ->toArray();
+        foreach ($uniqueFieldRows as $row) {
+            $uniqueFields[$row['field']] = fy($row['xsname'] ? $row['xsname'] : $row['name']);
+        }
+
+        // 插入前预验证：unique 字段必填 + 客户表唯一 + 同批不重复（事务外执行，失败直接终止，无需回滚）
+        if (!empty($uniqueFields)) {
+            $batchValues = [];
+            try {
+                foreach ($todoClues as $clue) {
+                    $customerData = $this->buildCustomerData($clue, $customerFieldNames, $commonFields, $mapFields);
+                    $this->validateCustomerUnique($customerData, $uniqueFields, $clue, $batchValues);
+                }
+            } catch (\Exception $e) {
+                $this->error($e->getMessage());
+            }
+        }
+
+        // 批量转化：整体事务，任一条失败则全部回滚
+        $customerIds = [];
+        Db::startTrans();
+        try {
+            foreach ($todoClues as $clue) {
+                $customerIds[] = $this->convertClueToCustomer($clue, $customerFieldNames, $commonFields, $mapFields);
+            }
+            Db::commit();
+        } catch (\Exception $e) {
+            Db::rollback();
+            $this->error(fy('Conversion failed') . '：' . $e->getMessage());
+        }
+
+        // 部分线索已转化被跳过时，明确提示跳过的数量，避免用户误以为批量转化失败
+        $skippedCount = count($clues) - count($todoClues);
+        if ($skippedCount > 0) {
+            $this->success(fy('Conversion successful, Customer ID: %s, skipped %d converted', [implode(',', $customerIds), $skippedCount]));
+        }
+        $this->success(fy('Conversion successful, Customer ID: %s', [implode(',', $customerIds)]));
+    }
+
+    /**
+     * 构造新客户数据（提取公共逻辑，供唯一性验证与插入复用）
+     * @param mixed $clue 线索模型记录
+     * @param array $customerFieldNames 客户表物理字段名
+     * @param array $commonFields 线索与客户自定义字段同名字段
+     * @param array $mapFields 业务字段映射清单
+     * @return array 待插入客户表的数据
+     */
+    private function buildCustomerData($clue, array $customerFieldNames, array $commonFields, array $mapFields)
+    {
+        $clueData = $clue->toArray();
+
+        // 1. 业务字段硬编码映射（标准业务字段，字段名/语义可能不完全一致）
+        $customerData = [];
+        foreach ($mapFields as $field) {
+            if (isset($clueData[$field]) && in_array($field, $customerFieldNames)) {
+                $customerData[$field] = $clueData[$field];
+            }
+        }
+
+        // 2. 动态映射自定义字段：线索表和客户表 system_field 中同名字段自动带入
         foreach ($commonFields as $field) {
             if (isset($clueData[$field]) && in_array($field, $customerFieldNames)) {
                 $customerData[$field] = $clueData[$field];
@@ -326,42 +396,100 @@ class Clue extends AdminController
         $customerData['create_time'] = time();
         $customerData['update_time'] = time();
 
-        Db::startTrans();
-        try {
-            $customerId = Db::name('crm_customer')->insertGetId($customerData);
+        return $customerData;
+    }
 
-            // 创建默认联系人
-            $contactId = Db::name('crm_customer_contacts')->insertGetId([
-                'customer_id'    => $customerId,
-                'contact'        => !empty($clueData['contact']) ? $clueData['contact'] : $clueData['name'],
-                'phone'          => $clueData['phone'] ?? '',
-                'email'          => $clueData['email'] ?? '',
-                'wechat'         => $clueData['wechat'] ?? '',
-                'create_username' => $this->admin['username'],
-                'owner_admin_id' => $this->admin['admin_id'],
-                'create_time'    => time(),
-                'update_time'    => time(),
-            ]);
-
-            if ($contactId) {
-                Db::name('crm_customer')->where('id', $customerId)->update(['contacts_id' => $contactId]);
+    /**
+     * 唯一性验证：校验转化数据满足客户表 system_field 配置的 unique 约束
+     * 必填验证 + 客户表唯一性验证 + 同批转化批次内查重，任一不满足抛出异常
+     * @param array $customerData 构造好的客户数据
+     * @param array $uniqueFields unique 字段配置（field => 显示名）
+     * @param mixed $clue 线索记录
+     * @param array $batchValues 同批已用值（field => [值 => true]）
+     * @throws \Exception
+     */
+    private function validateCustomerUnique(array $customerData, array $uniqueFields, $clue, array &$batchValues)
+    {
+        $clueName = !empty($clue['name']) ? $clue['name'] : ('ID:' . $clue['id']);
+        foreach ($uniqueFields as $field => $fieldName) {
+            $value = isset($customerData[$field]) ? trim((string)$customerData[$field]) : '';
+            // 必填验证：unique 约束字段值不能为空
+            if ($value === '') {
+                throw new \Exception(fy('Clue %s conversion failed: %s cannot be empty', [$clueName, $fieldName]));
             }
+            // 唯一性验证：目标客户表中不能已存在相同值
+            $exists = Db::name('crm_customer')->where($field, '=', $value)->count();
+            if ($exists > 0) {
+                throw new \Exception(fy('Clue %s conversion failed: %s value %s already exists', [$clueName, $fieldName, $value]));
+            }
+            // 批次内查重：同一次批量转化中不能出现相同值
+            if (isset($batchValues[$field][$value])) {
+                throw new \Exception(fy('Clue %s conversion failed: %s value %s duplicates within the batch', [$clueName, $fieldName, $value]));
+            }
+            $batchValues[$field][$value] = true;
+        }
+    }
 
-            // 更新线索为已转化
-            $this->model->where('id', $id)->update([
-                'status'           => 2,
-                'to_customer_id'   => $customerId,
-                'to_customer_time' => time(),
-                'update_time'      => time(),
-            ]);
+    /**
+     * 单条线索转化为客户（提取公共逻辑，供单条/批量转化复用）
+     * @param mixed $clue 线索模型记录
+     * @param array $customerFieldNames 客户表物理字段名
+     * @param array $commonFields 线索与客户自定义字段同名字段
+     * @param array $mapFields 业务字段映射清单
+     * @return int 新客户ID
+     * @throws \Exception
+     */
+    private function convertClueToCustomer($clue, array $customerFieldNames, array $commonFields, array $mapFields)
+    {
+        $customerData = $this->buildCustomerData($clue, $customerFieldNames, $commonFields, $mapFields);
+        $clueData = $clue->toArray();
 
-            Db::commit();
-        } catch (\Exception $e) {
-            Db::rollback();
-            $this->error(fy('Conversion failed') . '：' . $e->getMessage());
+        $customerId = Db::name('crm_customer')->insertGetId($customerData);
+
+        // 创建默认联系人
+        $contactId = Db::name('crm_customer_contacts')->insertGetId([
+            'customer_id'     => $customerId,
+            'contact'         => !empty($clueData['contact']) ? $clueData['contact'] : $clueData['name'],
+            'phone'           => $clueData['phone'] ?? '',
+            'email'           => $clueData['email'] ?? '',
+            'wechat'          => $clueData['wechat'] ?? '',
+            'create_username' => $this->admin['username'],
+            'owner_admin_id'  => $this->admin['admin_id'],
+            'create_time'     => time(),
+            'update_time'     => time(),
+        ]);
+
+        if ($contactId) {
+            Db::name('crm_customer')->where('id', $customerId)->update(['contacts_id' => $contactId]);
         }
 
-        $this->success(fy('Conversion successful, Customer ID: %s', [$customerId]));
+        // 更新当前线索为已转化（仅本条，避免批量时误更新其他线索）
+        Db::name('crm_clue')->where('id', $clue['id'])->update([
+            'status'           => 2,
+            'to_customer_id'   => $customerId,
+            'to_customer_time' => time(),
+            'update_time'      => time(),
+        ]);
+
+        return $customerId;
+    }
+
+    /**
+     * 归一化线索ID参数：兼容标量、逗号分隔字符串、数组
+     * @param mixed $id
+     * @return array
+     */
+    private function parseClueIds($id)
+    {
+        if (is_array($id)) {
+            $ids = $id;
+        } else {
+            $ids = explode(',', (string)$id);
+        }
+        $ids = array_filter(array_map('intval', $ids), function ($v) {
+            return $v > 0;
+        });
+        return array_values(array_unique($ids));
     }
 
     /**
@@ -671,7 +799,7 @@ class Clue extends AdminController
      */
     public function alterPrUser()
     {
-        $ids = $this->request->param('id');
+        $ids = $this->request->param('ids', $this->request->param('id'));
         $cus_lst = $this->model->field('id,name,pr_user,owner_admin_id')->where('id', 'in', $ids)->select();
         if ($cus_lst->isEmpty()) {
             $this->error(fy("Data does not exist"));
@@ -908,7 +1036,7 @@ class Clue extends AdminController
      */
     public function toPool()
     {
-        $ids = $this->request->param('id');
+        $ids = $this->request->param('ids', $this->request->param('id'));
         if (empty($ids)) {
             $this->error('请选择线索');
         }

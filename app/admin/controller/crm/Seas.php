@@ -16,7 +16,7 @@ use think\facade\View;
 class Seas  extends AdminController{
     //领取客户
     public function robClient(){
-        $ids = $this->request->param('id');
+        $ids = parseIds();
 //        技术QQ3623820285 开启事务,防止2人同时抢造成混乱
         if(empty($ids)){
             $this->error('请选择客户');

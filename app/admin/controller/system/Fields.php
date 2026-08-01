@@ -197,7 +197,7 @@ class Fields extends AdminController
 
     public function delete()
     {
-        $id=$this->request->param('id');
+        $id = parseIds();
         $row = $this->model->whereIn('id', $id)->select();
         $row->isEmpty() && $this->error(fy('The data does not exist'));
 

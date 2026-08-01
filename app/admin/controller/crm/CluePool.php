@@ -9,7 +9,7 @@ class CluePool extends AdminController
     // 领取线索
     public function rob()
     {
-        $ids = $this->request->param('id');
+        $ids = parseIds();
         if(empty($ids)){
             $this->error(fy('请选择线索'));
         }

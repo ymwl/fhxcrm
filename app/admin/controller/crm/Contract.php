@@ -646,7 +646,7 @@ WHERE
     }
 
     public function delete(){
-        $id=$this->request->param('id');
+        $id = parseIds();
         $this->checkPostRequest();
         $owner_admin_ids = $this->model->whereIn('id', $id)->column('DISTINCT owner_admin_id');
         $this->modifyPermissionsByIds($owner_admin_ids);

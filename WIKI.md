@@ -122,6 +122,83 @@ think\App (框架)
 | 公海管理 | `crm\Seas` | crm.seas | 公海池配置、客户回收/领取 |
 | 提醒管理 | `crm\Reminder` | crm.reminder | 待办提醒、合同到期、回款提醒、生日提醒 |
 
+#### 2.1.1 线索转化为客户规则
+
+**触发入口与权限**
+
+- 后台：线索列表操作列「转为客户」按钮（单条），工具栏「转为客户」（勾选多条批量转化），请求地址 `crm.clue/toCustomer?id=xx`（单条）或 `crm.clue/toCustomer?ids=1,2,3`（多选批量，统一逗号分隔单参数）
+- 移动端：API 接口 `crm.clue/toCustomer`（`app/api/controller/crm/Clue.php`），Admin 与 API 两端转化逻辑完全一致
+- 权限节点：`crm.clue/toCustomer`，无权限时按钮不显示、接口返回无权限
+
+**前置校验**
+
+1. 线索必须存在，否则提示「线索不存在」
+2. 已转化线索（`status = 2`）禁止再次转化；批量转化中已转化线索自动跳过、不中断整体流程，全部已转化时提示「该线索已转化为客户」
+
+**字段映射规则（线索 → 客户）**
+
+1. 硬编码业务字段映射：`name`、`contact`、`phone`、`email`、`wechat`、`source`、`pr_user`、`owner_admin_id`、`at_user`、`remark` —— 仅当 `crm_customer` 表物理存在同名字段时才带入
+2. 自定义字段动态映射：取 `system_field` 表中 `crm_clue` 与 `crm_customer` 两表共同配置的字段名（自动排除上述已映射业务字段），且客户表物理存在该字段时，自动将线索值带入客户记录
+
+**唯一性验证（插入前）**
+
+转化数据在插入客户表之前，会根据 `system_field` 表配置的 unique 约束执行验证（Admin 与 API 两端一致），任一不满足则提示错误并阻止转化。验证在**事务外**执行，失败即终止，不会产生脏数据：
+
+| 验证项 | 规则 | 错误提示 |
+|--------|------|----------|
+| 必填 | unique 字段值不能为空（`''`/`null`） | 线索「xx」转化失败：【字段名】不能为空 |
+| 唯一性 | `crm_customer` 表中不能已存在相同值 | 线索「xx」转化失败：【字段名】值 xx 已存在，请勿重复转化 |
+| 批次内查重 | 同一次批量转化中不能出现相同值 | 线索「xx」转化失败：【字段名】值 xx 与同批转化线索重复 |
+
+- 约束来源：`system_field` 表 `table='crm_customer'` 且 `rule` 含 `unique` 的字段（如 `name` 字段 `rule='require,unique'`）
+- 提示中的「xx」为线索名称（名称为空时显示 `ID:线索ID`），「字段名」取 `xsname` 优先、否则 `name`
+- 数据构造逻辑由公共方法 `buildCustomerData()` 承担（验证与插入复用），验证方法为 `validateCustomerUnique()`
+
+**新客户记录初始化**
+
+- `status = 1`（正常客户，区别于线索/公海状态）
+- `to_kh_time` = 转化时间戳（转客户时间）
+- `create_time` / `update_time` = 转化时间戳
+- 负责人（`pr_user`、`owner_admin_id`）沿用线索的负责人，转化后仍归原负责人跟进
+
+**默认联系人自动创建**
+
+转化成功后自动创建一条默认联系人（`crm_customer_contacts`）：
+
+| 字段 | 取值规则 |
+|------|----------|
+| `contact` | 优先取线索 `contact`，为空则取线索 `name` |
+| `phone` / `email` / `wechat` | 取线索对应字段值 |
+| `create_username` | 当前操作人用户名 |
+| `owner_admin_id` | 当前操作人 `admin_id` |
+
+联系人创建成功后，回填新客户的 `contacts_id` 字段建立关联。
+
+**线索状态更新**
+
+转化成功后原线索更新为：
+
+- `status = 2`（已转化）
+- `to_customer_id` = 新客户 ID
+- `to_customer_time` = 转化时间戳
+
+**事务保障**
+
+创建客户、创建联系人、回填 `contacts_id`、更新线索状态在**同一数据库事务**中执行，任一步失败整体回滚，提示「转化失败：原因」；成功提示「转化成功，客户ID：xxx」，若批量中存在被跳过的已转化线索，额外提示跳过数量（如「转化成功，客户ID：26（跳过已转化线索 1 条）」），避免用户误以为批量转化失败。
+
+**已转线索查看**
+
+- 「已转线索」列表（`converted`）：筛选 `to_customer_id > 0` 的线索，并展示 `to_customer_time` 字段
+- 普通线索列表（Admin 与 API 一致）：筛选 `to_customer_id = 0 AND status <> 2`，排除已转化状态但 `to_customer_id = 0` 的「假已转化」线索（如后台编辑功能手动将 status 改为 2 产生的不一致数据），避免其出现在列表中误导勾选
+
+**线索 status 字段含义**
+
+| 值 | 含义 |
+|----|------|
+| 0 | 待跟进（正常线索，有负责人） |
+| 2 | 已转化为客户 |
+| 4 | 线索池中（待领取） |
+
 ### 2.2 跟进与记录模块
 
 | 模块 | 控制器 | 功能说明 |
@@ -396,11 +473,76 @@ config/           ← 755（配置文件，安装时需写入）
 
 1. **录入线索**：手动添加 / 导入 / 外部表单提交
 2. **跟进线索**：添加线索跟进记录（`crm\ClueRecord`）
-3. **线索转化**：将线索转化为客户（`Clue::converted` 方法）
-   - 自动创建客户记录
-   - 可选同时创建联系人
-   - 标记线索为已转化状态
+3. **线索转化**：将线索转化为客户（`Clue::toCustomer` 方法），规则详见 [4.2.1 线索转客户规则](#421-线索转客户规则)
 4. **线索池**：未分配/回收的线索进入公共池（`crm\CluePool`），支持领取/分配
+
+### 4.2.1 线索转客户规则
+
+**功能入口：**
+
+| 端 | 入口 | 权限 |
+|----|------|------|
+| 后台 | 线索列表工具栏"转为客户"按钮（支持勾选多条）、行内"转为客户"按钮 | `crm.clue/toCustomer` |
+| 移动端 | 线索列表"转客户"按钮、线索详情"更多 → 转客户"（接口 `crm.clue/toCustomer`） | `crm.clue/toCustomer` |
+
+**实现方法：** `app/admin/controller/crm/Clue.php::toCustomer()` 与 `app/api/controller/crm/Clue.php::toCustomer()`，两端逻辑完全一致。
+
+**转化前置条件：**
+
+1. 线索必须存在，否则提示"线索不存在"
+2. 线索状态不能为已转化（`status = 2`），否则提示"该线索已转化为客户"
+
+**转化过程（整体事务执行）：**
+
+> 第一步：创建客户记录（`crm_customer`）
+
+- **业务字段映射**（线索字段有值且客户表存在同名字段时带入）：
+
+| 字段 | 说明 |
+|------|------|
+| name | 客户名称 |
+| contact | 联系人 |
+| phone | 电话 |
+| email | 邮箱 |
+| wechat | 微信 |
+| source | 来源 |
+| pr_user | 负责人 |
+| owner_admin_id | 创建人 |
+| at_user | 跟进人 |
+| remark | 备注 |
+
+- **自定义字段映射**：线索表和客户表在 `system_field` 中配置的**同名字段**自动带入（排除上述已映射的业务字段）
+- **固定值**：`status = 1`（启用）、`to_kh_time = 当前时间戳`（记录转化为客户的时间）、`create_time / update_time = 当前时间戳`
+
+> 第二步：创建默认联系人（`crm_customer_contacts`）
+
+- `customer_id` = 新客户ID
+- `contact` = 线索的联系人姓名，为空时取线索名称 `name`
+- `phone` / `email` / `wechat` 从线索原样带入
+- `create_username` = 当前操作人用户名；`owner_admin_id` = 当前操作人ID
+- 联系人创建成功后，将联系人ID写回客户的 `contacts_id` 字段（客户与默认联系人建立关联）
+
+> 第三步：更新线索为已转化
+
+- `status = 2`（已转化）
+- `to_customer_id` = 新客户ID（记录转化关联）
+- `to_customer_time` = 当前时间戳（转化时间）
+
+**事务性：** 以上三步在一个数据库事务中执行，任一步失败整体回滚，提示"转化失败"。
+
+**转化后的效果：**
+
+- 线索不再出现在线索列表（线索列表仅查询 `to_customer_id = 0` 的记录）
+- 可在"已转线索"（`crm.clue/converted`）中查看，按转化时间 `to_customer_time` 展示
+- 客户列表新增客户（状态为启用），客户详情可查看自动创建的默认联系人
+
+**批量转化说明（当前实现行为）：**
+
+- 后台工具栏支持勾选多条线索后点击"转为客户"，接口统一接收 `id` 参数（行内按钮单条提交标量，如 `?id=5`；工具栏勾选多条提交 `id[]` 数组）
+- 每条勾选线索**独立转化**：逐条创建客户记录、默认联系人，并将该条线索更新为已转化状态（`status=2`、`to_customer_id` 指向各自的新客户），多条勾选时生成对应数量的客户记录
+- 批量中已转化（`status=2`）的线索自动跳过，不中断整体流程；若全部已转化，提示"该线索已转化为客户"
+- 整体事务：任一条线索转化失败则全部回滚，不产生部分转化数据
+- 移动端线索详情"转客户"调用同一接口（传 `id`），参数与后台保持一致
 
 ### 4.3 客户管理流程
 
@@ -818,11 +960,12 @@ http://your-domain/api.php/{控制器路径}/{方法名}
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `crm.clues/index` | GET | 线索列表 |
-| `crm.clues/add` | POST | 添加线索 |
-| `crm.clues/edit` | GET/POST | 编辑线索 |
-| `crm.clues/delete` | POST | 删除线索 |
-| `crm.clues/converted` | POST | 线索转化为客户 |
+| `crm.clue/index` | GET | 线索列表（未转化，`to_customer_id=0`） |
+| `crm.clue/add` | POST | 添加线索 |
+| `crm.clue/edit` | GET/POST | 编辑线索 |
+| `crm.clue/delete` | POST | 删除线索 |
+| `crm.clue/toCustomer` | POST | 线索转化为客户（详见 4.2.1 规则） |
+| `crm.clue/converted` | GET | 已转线索列表（`to_customer_id>0`） |
 | `crm.clue_pool/index` | GET | 线索池列表 |
 
 #### 订单管理
@@ -900,6 +1043,64 @@ GET /api.php/crm.customer/index?page=1&limit=15&search=张三&scope=1&sort_by=cr
 | `>` | 大于 | `{"amount":">"}` + `{"amount":"1000"}` |
 | `<` | 小于 | `{"amount":"<"}` + `{"amount":"5000"}` |
 | `range` | 时间区间 | `{"create_time":"range"}` + `{"create_time":"2025-01-01 - 2025-12-31"}` |
+
+### 7.7 多选ID参数统一规范
+
+项目中所有支持多选（批量操作）的功能，统一使用 **`ids`** 参数传递逗号分隔的 ID 列表。
+
+**参数格式：**
+
+```
+POST /admin.php/crm.clue/toCustomer
+Content-Type: application/x-www-form-urlencoded
+
+ids=14,15,22    ← 逗号分隔，单个参数名
+```
+
+**前端 easy-admin.js 处理机制：**
+
+| 模式 | 触发条件 | 参数传递方式 | 示例 |
+|------|----------|-------------|------|
+| `data-open` | 工具栏按钮 method:'open' + checkbox | URL 拼接 `?ids=` | `crm.clue/toCustomer?ids=14,15` |
+| `data-request` | 工具栏按钮 method:'request' + checkbox | POST body `ids=` | `ids=14,15` |
+| 行内按钮 | method:'request' + field:'' | URL 拼接 `?id={行ID}` | 单条语义，不走 ids |
+| `data-table-export` | 导出按钮 | filter JSON `{"id":"1,2,3"}` | 走 filter/op 机制，不涉及 ids |
+
+> **注意**：`data-request` 多选时，`field` 默认值为 `'id'`（从表格行数据提取 ID 字段），POST 参数名固定为 `'ids'`。两者是分离的，不可混淆。
+
+**后端统一接收：`parseIds()` 函数**
+
+位置：`app/common.php`，全局可用。
+
+```php
+/**
+ * 归一化批量ID参数：统一多选ID参数格式（ids 优先，兼容旧 id）
+ * 支持：标量(5)、逗号分隔字符串('1,2,3')、数组([1,2,3])
+ * @return array intval过滤、去重后的ID数组
+ */
+function parseIds($ids = null)
+```
+
+**使用示例：**
+
+```php
+// 标准用法：自动从请求中读取 ids（兼容 id）参数
+$id = parseIds();
+
+// 多选删除
+$row = $this->model->whereIn('id', $id)->select();
+
+// 保持字符串形态（后续有 explode 或 where('pid','=',$id) 检查时）
+$id = $this->request->param('ids', $this->request->param('id'));
+```
+
+**uniapp 移动端调用：**
+
+```javascript
+// 提交时传逗号分隔字符串，非数组
+this.$u.post('crm.clue/toCustomer', { ids: '14,15' });
+this.$u.post('crm.clue/delete', { ids: item.id });  // 单条也兼容
+```
 
 ---
 
@@ -1511,4 +1712,4 @@ http://你的域名/index.php/cron/index?token=your_secure_token_here_2026
 
 ---
 
-> 本文档基于符号象CRM v5.1.0 生成，最后更新：2026-07-25
+> 本文档基于符号象CRM v5.1.0 生成，最后更新：2026-08-01
