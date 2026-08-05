@@ -316,7 +316,7 @@ WHERE
                 $row_product_ids=Db::name('crm_contract_product')->where('contract_id', '=',$pre_contract_id)->column('product_id');
                 $row_product_ids=array_unique($row_product_ids);
             $row['product_ids']=implode(',',$row_product_ids);
-                $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
+                $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.owner_admin_id=a.admin_id')->where('c.id','=',$row['customer_id'])->find ();
             }
 
         }
@@ -487,7 +487,7 @@ WHERE
         $this->assign('fields_str', $fields_str);
 
 
-        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
+        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.owner_admin_id=a.admin_id')->where('c.id','=',$row['customer_id'])->find ();
         $this->assign('crmCustomer', $crmCustomer);
         $this->assign('row', $row);
         return $this->fetch();
@@ -591,7 +591,7 @@ WHERE
         $fields_str=$this->display($fields_str,['row'=>$row]);
         $this->app->view->engine()->layout($this->layout);
         $this->assign('fields_str', $fields_str);
-        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
+        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.owner_admin_id=a.admin_id')->where('c.id','=',$row['customer_id'])->find ();
         $this->assign('crmCustomer', $crmCustomer);
         $this->assign('row', $row);
 

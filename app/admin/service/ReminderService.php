@@ -200,6 +200,96 @@ class ReminderService
     }
 
     /**
+     * 获取我的待办事项统计（8项待办，口径与后台首页 index/main、手机端 crm.dashboard/getNotice 一致）
+     * 用于头部导航待办数字角标
+     * @param int $adminId 管理员ID
+     * @return array key => 数量
+     */
+    public function getBacklogCounts($adminId)
+    {
+        // 待跟进时间窗口：系统设置 daigenjin（提前N天提醒），默认到明天
+        $system = Db::name('system_config')->where('status', 1)->cache('system_config', 3600)->column('value', 'field');
+        if (isset($system['daigenjin']) && is_numeric($system['daigenjin'])) {
+            $nextTimeEnd = strtotime("+{$system['daigenjin']} day 00:00:00");
+        } else {
+            $nextTimeEnd = strtotime('tomorrow');
+        }
+
+        // 1. 待跟线索（与 crm.clue/index scope=10 条件一致）
+        $pending_clue = Db::name('crm_clue')
+            ->where([
+                ['to_customer_id', '=', 0],
+                ['status', '<>', 2],
+                ['next_time', '>', 0],
+                ['next_time', '<', $nextTimeEnd],
+                ['owner_admin_id', '=', $adminId],
+            ])->count();
+
+        // 2. 待跟客户（与 crm.customer/index scope=10 条件一致）
+        $pending_customer = Db::name('crm_customer')
+            ->where('owner_admin_id', '=', $adminId)
+            ->whereNotNull('next_time')
+            ->where('next_time', '<>', 0)
+            ->where('next_time', '<', $nextTimeEnd)
+            ->count();
+
+        // 3. 待跟商机（与 crm.business/index scope=10 条件一致）
+        $pending_business = Db::name('crm_business')
+            ->where([
+                ['next_time', '>', 0],
+                ['next_time', '<', strtotime('tomorrow')],
+                ['owner_admin_id', '=', $adminId],
+            ])->count();
+
+        // 4. 即将到期合同（与 crm.contract/index scope=expiring 条件一致）
+        $expiring_contract = Db::name('crm_contract')
+            ->where([
+                ['check_status', '=', 3],
+                ['renewal_id', '=', 0],
+                ['end_time', 'between', [strtotime('today'), strtotime('+1 month')]],
+                ['owner_admin_id', '=', $adminId],
+            ])->count();
+
+        // 5. 待回款（与 crm.contract_receivables_plan/index scope=pending_payment 条件一致）
+        $now = time();
+        $pending_receivables = Db::name('crm_contract_receivables_plan')
+            ->where([
+                ['status', 'in', [0, 1, 3]],
+                ['owner_admin_id', '=', $adminId],
+                ['', 'exp', Db::raw("(plan_date - IFNULL(remind_days, 0) * 86400 <= {$now} OR plan_date < {$now})")],
+            ])->count();
+
+        // 6-8. 审批类待办（仅统计当前用户具有审批权限的记录，管理员组默认拥有全部权限）
+        $group_id = Db::name('admin')->where('admin_id', $adminId)->value('group_id');
+        $auditCount = function ($title) use ($adminId, $group_id) {
+            $query = Db::name('audit_management')
+                ->where('is_finish', 0)
+                ->where('title', $title);
+            if ($group_id != 1) {
+                $query->whereRaw('(FIND_IN_SET(:group_id, auditor_group_ids) OR FIND_IN_SET(:admin_id, auditor_admin_ids))', [
+                    'group_id' => $group_id,
+                    'admin_id' => $adminId,
+                ]);
+            }
+            return $query->count();
+        };
+        $audit_contract = $auditCount('合同审核');
+        $audit_receivables = $auditCount('回款审核');
+        $audit_order = $auditCount('Order review');
+
+        return [
+            'pending_clue'        => $pending_clue,
+            'pending_customer'    => $pending_customer,
+            'pending_business'    => $pending_business,
+            'expiring_contract'   => $expiring_contract,
+            'pending_receivables' => $pending_receivables,
+            'audit_contract'      => $audit_contract,
+            'audit_receivables'   => $audit_receivables,
+            'audit_order'         => $audit_order,
+        ];
+    }
+
+    /**
      * 标记提醒为已读
      * @param int $reminderId 提醒ID
      * @param int $adminId 管理员ID（用于权限验证）

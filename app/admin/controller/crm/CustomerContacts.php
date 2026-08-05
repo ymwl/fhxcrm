@@ -144,7 +144,7 @@ class CustomerContacts extends AdminController
         if(empty($customer_id)){
             $this->error('客户联系人必须在客户详情页面添加');
         }
-        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$customer_id)->find ();
+        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.owner_admin_id=a.admin_id')->where('c.id','=',$customer_id)->find ();
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }
@@ -189,7 +189,7 @@ class CustomerContacts extends AdminController
         empty($row) && $this->error('数据不存在');
 
 
-        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
+        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.owner_admin_id=a.admin_id')->where('c.id','=',$row['customer_id'])->find ();
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }
@@ -230,7 +230,7 @@ class CustomerContacts extends AdminController
         $row = $this->model->find($id);
 
         empty($row) && $this->error(fy('The data does not exist'));
-        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
+        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.owner_admin_id=a.admin_id')->where('c.id','=',$row['customer_id'])->find ();
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }

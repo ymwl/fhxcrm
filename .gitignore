@@ -14,7 +14,6 @@ config/license.dat
 config/install.lock
 
 # IDE 配置
-.codebuddy/
 .idea/
 .vscode/
 *.swp
@@ -37,46 +36,3 @@ Thumbs.db
 
 # Node 模块
 node_modules/
-#个人开发笔记
-md/
-update/
-
-# 构建输出
-crm_uniapp/unpackage/
-crm_uniapp/node_modules/
-
-
-# AI 项目指引
-CODEBUDDY.md
-
-# 自动提交脚本（可选排除）
-auto-commit.bat
-auto-commit-watcher.ps1
-
-git.md
-
-# 插件目录（本地独立版本控制）
-addons/
-
-# API模块（手机端接口，不发布到线上）
-app/api/
-/api.php
-public/api.php
-
-# 手机端uniapp项目
-crm_uniapp/
-
-# 上传目录
-public/upload/
-public/temp/
-
-# Qoder AI 配置
-.qoder/
-.qoderignore
-
-# Reasonix 桌面主题数据（本地工具数据，不发布）
-.reasonix/
-reasonix.toml
-
-# 主机推荐广告（本地保留，不纳入版本控制）
-广而告知.html

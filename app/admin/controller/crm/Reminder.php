@@ -281,7 +281,7 @@ class Reminder extends AdminController
     }
 
     /**
-     * 获取未读提醒数量（用于头部消息通知）
+     * 获取未读提醒数量与待办总数（用于头部导航角标）
      */
     public function getUnreadCount()
     {
@@ -291,9 +291,13 @@ class Reminder extends AdminController
         // 获取最新的5条提醒
         $list = $service->getUserReminders($this->admin['admin_id'], ReminderService::STATUS_PENDING, 5);
 
+        // 待办事项总数（我的所有待办事项的总和：待跟线索/客户/商机、即将到期合同、待回款、待审合同/回款/订单）
+        $backlog = (int)array_sum($service->getBacklogCounts($this->admin['admin_id']));
+
         return json([
             'code' => 1,
             'count' => $count,
+            'backlog' => $backlog,
             'data' => $list
         ]);
     }

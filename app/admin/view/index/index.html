@@ -54,6 +54,23 @@ $l='';
             z-index: 10;
             box-shadow: 0 1px 4px rgba(255,87,34,.4);
         }
+        /* 头部导航待办/提醒角标 */
+        .layuimini-header-content .layui-nav .header-badge {
+            display: inline-block;
+            min-width: 16px;
+            height: 16px;
+            line-height: 16px;
+            padding: 0 5px;
+            margin-left: 5px;
+            background: #FF5722;
+            color: #fff;
+            font-size: 10px;
+            font-weight: normal;
+            text-align: center;
+            border-radius: 8px;
+            vertical-align: 1px;
+            box-shadow: 0 1px 4px rgba(255,87,34,.4);
+        }
     </style>
 </head>
 <body class="layui-layout-body layuimini-all">
@@ -102,11 +119,22 @@ $l='';
                         </dd>
                     </dl>
                 </li>-->
-<!--                这里增加按钮 包括手机图标+手机版
-需要实现的功能点击弹窗展示二维码
-二维码下面的提示文字'5分钟内直接扫一扫即可登录'  二维码内容就是 当前域名地址+fhxcrm/#/pages/login/index?token=
-crm_uniapp手机端需要在页面pages/login/index.vue需要实现对token进行处理并解码成功后才实现自动化登录当前账号
--->
+
+                <!-- 待办事项 + 数字角标（我的所有待办事项的总和，点击跳转首页查看详情） -->
+                <li class="layui-nav-item" lay-unselect>
+                    <a href="javascript:;" data-nav-href="{:myurl('index/main')}" data-title="待办事项">
+                        <i class="fa fa-tasks"></i> 待办
+                        <span class="header-badge" id="headerTodoBadge" style="display:none;">0</span>
+                    </a>
+                </li>
+                <!-- 提醒 + 数字角标（未读提醒数量，点击跳转提醒管理） -->
+                <li class="layui-nav-item" lay-unselect>
+                    <a href="javascript:;" data-nav-href="{:myurl('crm.reminder/index')}" data-title="提醒管理">
+                        <i class="fa fa-bell"></i> 提醒
+                        <span class="header-badge" id="headerReminderBadge" style="display:none;">0</span>
+                    </a>
+                </li>
+
                 <li class="layui-nav-item layui-hide-xs" lay-unselect>
                     <a href="javascript:;" class="js-mobile-qrcode" title="手机版扫码登录"><i class="fa fa-mobile" style="font-size:17px;"></i> 手机版</a>
                 </li>

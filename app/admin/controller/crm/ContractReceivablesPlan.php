@@ -114,7 +114,7 @@ class ContractReceivablesPlan extends AdminController
             $field_str=$jscol_str='';
             foreach ($fields as $key=>$value){
                 $field_str.=$value['field'].',';
-                if($value['show']==1){
+                if($value['list']==1){
                     $jscol_str.=$value['jscol'].',';
                 }
             }
@@ -370,7 +370,7 @@ class ContractReceivablesPlan extends AdminController
         empty($row) && $this->error('数据不存在');
 
 
-        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.pr_user=a.username')->where('c.id','=',$row['customer_id'])->find ();
+        $crmCustomer=\think\facade\Db::name('crm_customer')->field('c.id,c.name,a.admin_id')->alias('c')->join('admin a','c.owner_admin_id=a.admin_id')->where('c.id','=',$row['customer_id'])->find ();
         if(empty($crmCustomer)){
             $this->error('不存在的客户信息!');
         }

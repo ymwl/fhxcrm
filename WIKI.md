@@ -1,6 +1,6 @@
 # 符号象CRM客户关系管理系统 - Wiki文档
 
-> 版本：v5.1.0 | 构建时间：2026-07-25 | 框架：ThinkPHP 8
+> 版本：v5.1.1 | 构建时间：2026-08-05 | 框架：ThinkPHP 8
 
 ---
 
@@ -223,8 +223,26 @@ think\App (框架)
 |------|--------|----------|
 | 审批管理 | `process\Audit` | 合同/回款/订单审批列表、通过/驳回 |
 | 提醒管理 | `crm\Reminder` | 待办提醒（跟进/合同到期/回款/生日）、标记已读、全部已读、删除、详情查看 |
-| 提醒服务 | `ReminderService` | 自动检查并生成跟进提醒、合同到期提醒、回款提醒、生日提醒 |
+| 提醒服务 | `ReminderService` | 自动检查并生成跟进提醒、合同到期提醒、回款提醒、生日提醒、**待办事项统计** |
 | 计划任务 | `index\Cron` | HTTP定时任务入口，执行提醒检查 + 合同到期自动状态变更 |
+
+**待办事项统计（getBacklogCounts）：**
+
+`ReminderService::getBacklogCounts($adminId)` 方法统计当前用户 8 类待办事项数量，供后台首页待办卡片和头部导航角标使用。口径与后台首页 `Index::main()` 及手机端 `crm.dashboard/getNotice` 保持一致：
+
+| 待办项 | key | 数据来源与筛选条件 |
+|--------|-----|--------------------|
+| 待跟线索 | pending_clue | `crm_clue` WHERE to_customer_id=0, status≠2, next_time>0 且 < 待跟进截止时间, owner_admin_id=当前用户 |
+| 待跟客户 | pending_customer | `crm_customer` WHERE owner_admin_id=当前用户, next_time>0 且 < 待跟进截止时间 |
+| 待跟商机 | pending_business | `crm_business` WHERE owner_admin_id=当前用户, next_time>0 且 < 明天 |
+| 即将到期合同 | expiring_contract | `crm_contract` WHERE check_status=3, renewal_id=0, end_time 在今天~1个月内, owner_admin_id=当前用户 |
+| 待回款 | pending_receivables | `crm_contract_receivables_plan` WHERE status in(0,1,3), owner_admin_id=当前用户, plan_date-remind_days≤今天 或 plan_date<今天 |
+| 待审合同 | audit_contract | `audit_management` WHERE is_finish=0, title='合同审核', 当前用户有审批权限 |
+| 待审回款 | audit_receivables | `audit_management` WHERE is_finish=0, title='回款审核', 当前用户有审批权限 |
+| 待审订单 | audit_order | `audit_management` WHERE is_finish=0, title='Order review', 当前用户有审批权限 |
+
+- **待跟进截止时间**：读取 `system_config` 中 `daigenjin`（提前N天提醒），默认到明天 00:00:00
+- **审批权限判断**：管理员组(group_id=1)默认拥有全部权限；其他组通过 `FIND_IN_SET` 匹配 `auditor_group_ids` 或 `auditor_admin_ids`
 
 **提醒类型说明：**
 
@@ -731,6 +749,40 @@ crm.laikephp.com/
 | `SystemFieldService.php` | 自定义字段查询与缓存 |
 | `CheckStatusConst.php` | 审批状态常量定义（0待审批/1审批中/2已驳回/3已通过） |
 
+#### `app/admin/controller/Index.php` - 后台首页控制器
+
+首页（main 页面）提供仪表盘数据与 AJAX 图表刷新接口：
+
+| 方法 | 访问方式 | 说明 |
+|------|----------|------|
+| `main()` | GET | 首页渲染：问候语、跟进统计、待办事项、业绩概况、图表数据注入 |
+| `achievement()` | AJAX GET | 业绩概况仪表盘数据刷新（参数 `row_config/row_year/row_month`） |
+| `achievementEchart()` | AJAX GET | 业绩趋势折线图数据（合同/回款/订单按月或按天） |
+| `customerEchart()` | AJAX GET | 客户量趋势折线图（参数 `date_range`，默认近30天） |
+| `clueEchart()` | AJAX GET | 线索量趋势折线图（参数 `date_range`，默认近30天） |
+| `recordTypeEchart()` | AJAX GET | 跟进方式占比环形图（参数 `date_range`） |
+
+**私有辅助方法：**
+
+| 方法 | 说明 |
+|------|------|
+| `getCustomerEchartData($dateRange)` | 按时间粒度（小时/天/月）统计客户新增、跟进、成交数量 |
+| `getClueEchartData($dateRange)` | 按时间粒度统计线索新增、转化数量 |
+| `getTrendEchartData($dateRange)` | 合同/回款/订单数量与金额趋势（自动判断粒度） |
+| `getRecordTypeData($dateRange, $source)` | 按跟进方式分组统计记录数 |
+| `getAchievementData($config, $year, $month)` | 业绩目标与完成率计算（config: 1合同/2回款/3订单） |
+| `mFristAndLast($year, $month)` | 计算指定年月的起止时间戳 |
+
+#### `app/admin/service/ReminderService.php` - 提醒与待办服务
+
+| 方法 | 说明 |
+|------|------|
+| `checkAndCreateReminders()` | 检查并自动创建跟进/合同到期/回款/生日提醒 |
+| `getUserReminders($adminId, $status, $limit)` | 获取用户提醒列表 |
+| `getUnreadCount($adminId)` | 获取用户未读提醒数量 |
+| `getBacklogCounts($adminId)` | 获取 8 类待办事项统计（详见 2.4 节） |
+| `markAsRead($reminderId)` | 标记单条提醒已读 |
+
 ### 5.3 前端JS自动加载机制
 
 后台采用 RequireJS 模块化加载：
@@ -778,7 +830,7 @@ define(["jquery", "easy-admin"], function ($, ea) {
 | `crm_record` | 跟进记录表 | customer_id, content, record_type |
 | `crm_receivables_plan` | 回款计划表 | contract_id, plan_no, plan_money, plan_date, remind_days, status |
 | `crm_reminder` | 提醒表 | type, related_id, related_type, title, admin_id, remind_time, status |
-| `crm_achievement` | 业绩目标表 | admin_id, month, target_amount |
+| `crm_achievement` | 业绩目标表 | admin_id, config(1合同金额/2回款金额/3订单金额), yeartarget, january~december(按月目标) |
 
 ### 6.3 系统管理表
 
@@ -1000,7 +1052,7 @@ http://your-domain/api.php/{控制器路径}/{方法名}
 | `crm.reminder/markRead` | POST | 标记单条已读 |
 | `crm.reminder/markAllRead` | POST | 全部标记已读 |
 | `crm.reminder/delete` | POST | 删除提醒 |
-| `crm.reminder/getUnreadCount` | GET | 获取未读提醒数量 |
+| `crm.reminder/getUnreadCount` | GET | 获取未读提醒数量与待办总数（返回 `count` + `backlog`） |
 | `crm.reminder/detail` | GET | 提醒详情（自动标记已读） |
 
 #### 系统接口
@@ -1008,7 +1060,8 @@ http://your-domain/api.php/{控制器路径}/{方法名}
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `fields/get_fields` | GET | 获取自定义字段配置 |
-| `crm.dashboard/index` | GET | 首页数据看板 |
+| `crm.dashboard/index` | GET | 首页数据看板（achievement 节点统一返回合同/回款/订单三项金额及当前业绩方式的目标与完成率，支持 config/year/month 筛选参数） |
+| `crm.dashboard/getOrderAchievement` | GET | 订单业绩独立统计（保留备用，首页已改用 dashboard/index 统一数据） |
 | `crm.performance/index` | GET | 业绩目标 |
 | `analysis.admin/index` | GET | 业绩分析 |
 
@@ -1160,6 +1213,55 @@ ea.selectPage({
 });
 ```
 
+#### 首页业绩概况模块
+
+后台首页（`app/admin/view/index/main.html` + `public/static/admin/js/index.js` + `app/admin/controller/Index.php`）采用全新仪表盘设计：
+
+**页面布局（从上到下）：**
+
+1. **问候横幅**：渐变色背景，显示问候语（根据时间段动态切换）+ 当前日期星期；右侧嵌入客户/线索/商机三组实时跟进统计卡片（今日跟进数、待跟进数、跟进率进度条）
+2. **系统公告条**：横幅下方单行公告摘要（取 `system_config.notice` 富文本去标签），点击弹窗查看完整富文本内容
+3. **关键指标统计卡片**（5 列响应式布局）：我的线索、公海客户、我的客户、我的商机、我的合同，每张卡片含图标 + 当期数量 + 总量，点击跳转对应列表页
+4. **中部三等分等高行**：
+   - 左：**待办事项网格**（2×4 网格，8 项待办：待跟线索/客户/商机、即将到期合同、待回款、待审合同/回款/订单），数据来源 `ReminderService::getBacklogCounts()`，卡片显示数量 + 名称，点击跳转对应 scope 筛选列表
+   - 中：**业绩概况仪表盘**（ECharts gauge），支持下拉选择业绩方式（合同/回款/订单金额）+ 年份 + 月份筛选，颜色区间 ≤20% 蓝 `#1890ff`、>20% 绿 `#2fc25b`、>80% 金 `#faad14`，目标标签随业绩方式动态变化
+   - 右：**跟进方式占比环形图**（ECharts pie），共享时间段筛选
+5. **图表区域**：客户量趋势折线图 + 线索量趋势折线图，各支持快捷时间段按钮（今日/昨日/近7天/近30天）和自定义日期范围选择器（laydate range 模式），AJAX 刷新
+6. **跟进动态**：最近跟进记录列表（头像 + 用户名 + 跟进方式 + 客户名 + 内容摘要 + 时间）
+7. **待跟进列表**：即将到期的待跟客户/线索列表（名称 + 下次跟进时间 + 负责人）
+
+**问候语生成规则（PHP 8 match 表达式）：**
+
+| 时间段 | 问候语 |
+|--------|--------|
+| 0~2 点 | 夜深了，注意休息 |
+| 3~5 点 | 凌晨了，早点休息 |
+| 6~8 点 | 早上好 |
+| 9~10 点 | 上午好 |
+| 11~12 点 | 中午好 |
+| 13~17 点 | 下午好 |
+| 18~22 点 | 晚上好 |
+| 23~24 点 | 夜深了，注意休息 |
+
+问候语前缀显示管理员的 `realname`（无则回退 `username`）。
+
+**跟进统计口径：**
+
+- **今日跟进数**：`crm_record` 中 `owner_admin_id=当前用户` 且 `create_time` 在今天范围内的记录对应的不重复客户/线索/商机数
+- **待跟进数**：`next_time > 0` 且 `next_time < 待跟进截止时间` 的记录数（截止时间为系统配置 `daigenjin` 天数后的 00:00:00，默认明天）
+- **跟进率**：`今日跟进数 / (今日跟进数 + 待跟进数) × 100%`（总数为 0 时显示 0%）
+
+**头部导航角标：**
+
+后台框架头部导航栏（`app/admin/view/index/index.html`）新增两个入口按钮：
+
+| 按钮 | 角标 ID | 数据来源 | 点击跳转 |
+|------|---------|----------|----------|
+| 待办 | `#headerTodoBadge` | `getUnreadCount` 返回的 `backlog`（8 类待办总和） | `index/main`（首页待办卡片） |
+| 提醒 | `#headerReminderBadge` | `getUnreadCount` 返回的 `count`（未读提醒数） | `crm.reminder/index`（提醒管理列表） |
+
+角标由 `index.js` 的 `refreshReminderBadge()` 函数统一管理，60 秒轮询自动刷新；数量 >99 显示 `99+`，为 0 时隐藏角标。首页 main 页面额外维护一个 `#mainTodoBadge` 待办总角标（与头部导航同源数据）。
+
 ### 8.2 移动端（uni-app）
 
 #### 请求封装
@@ -1245,7 +1347,7 @@ this.$getFields('crm_customer', 'index').then(fields => {
 
 | 分包 | 目录 | 包含模块 |
 |------|------|----------|
-| 主包 | `pages/` | 首页、客户列表、商机列表、线索列表、数据看板、登录、筛选 |
+| 主包 | `pages/` | 首页、客户列表、商机列表、线索列表、数据看板、登录 |
 | packageCrm | `packageCrm/pages/` | 客户详情/添加/筛选/跟进/共享/邮件/查重/公海、线索详情/添加/筛选/池/转化/邮件、线索跟进、商机详情/添加/筛选/跟进、联系人列表/详情/添加/筛选/邮件/关联、跟进记录、发送信息 |
 | packageDeal | `packageDeal/pages/` | 合同列表/添加/详情/筛选/审批、订单列表/添加/详情/筛选/审批、回款列表/添加/详情/筛选/审批、回款计划列表/添加/筛选、产品列表/添加/选择/分类 |
 | packageAdmin | `packageAdmin/pages/` | 成员管理/添加/第三方登录、功能列表/图标预览/订阅消息/个人信息/云呼设置、审批管理/审核、业绩快速设置/筛选 |
@@ -1303,11 +1405,11 @@ if (this.nav_scope) {
 
 #### 未读提醒角标刷新机制
 
-接口：`GET crm.reminder/getUnreadCount`，返回未读提醒数量 `count` 及最新 5 条提醒列表。
+接口：`GET crm.reminder/getUnreadCount`，返回未读提醒数量 `count`、待办事项总数 `backlog`（8 类待办总和）及最新 5 条提醒列表。
 
 统一入口为 `common/fa.mixin.js`（tools mixin）的 `refreshReminderBadge(force)` 方法：
 
-- 请求成功后将未读数写入全局 `vuex_unread_count`（供头部消息通知位置绑定展示）；tabBar 配置包含提醒页时，同步更新 `vuex_config.tabbar.list` 中提醒项的 `count` 角标（fa-tabbar 组件 u-badge 渲染）
+- 请求成功后将未读数写入全局 `vuex_unread_count`（供头部消息通知位置绑定展示）；tabBar 配置包含提醒页时，同步更新 `vuex_config.tabbar.list` 中提醒项的 `count` 角标（fa-tabbar 组件 u-badge 渲染）；`backlog` 字段可用于移动端待办角标展示
 - **节流保护**：模块级时间戳全局共享，30 秒内重复调用直接跳过；传入 `force=true` 可跳过节流强制刷新
 - 未登录（无 `vuex_token`）时自动跳过，不发请求
 
@@ -1330,6 +1432,7 @@ if (this.nav_scope) {
 | `vuex_theme` | 主题色配置 |
 | `vuex_user` | 当前用户信息 |
 | `vuex_filter` | tabBar页面筛选条件暂存 |
+| `vuex_Tfilter` | 首页业绩筛选条件暂存（config/year/month，由首页筛选弹窗写入） |
 | `nav_scope` | 跨tabBar页scope传递中转 |
 | `vuex_unread_count` | 未读提醒数量（由 `refreshReminderBadge` 刷新，不持久化） |
 
@@ -1339,6 +1442,14 @@ if (this.nav_scope) {
 <view class="btn" v-if="itemAuth.edit == 1" @click.stop="editItem(item)">编辑</view>
 <view class="btn" v-if="itemAuth.delete == 1" @click.stop="deleteItem(item)">删除</view>
 ```
+
+#### 首页业绩模块（pages/index/index.vue）
+
+与后台业绩概况保持一致的统一展示：
+
+- **统一业绩展示**：合同/回款/订单三项金额与当前业绩方式的目标、完成率在同一个仪表盘展示（原独立"订单金额"模块已并入），目标标签随业绩方式动态显示合同目标/回款目标/订单目标
+- **弹窗筛选**：业绩方式/年份/月份三列选择通过 `u-picker`（multiSelector 模式）底部弹窗在当前页完成，确认后写入 `vuex_Tfilter` 并原地刷新数据；原独立筛选页 `pages/index/filter.vue` 及其 pages.json 路由注册已删除
+- **数据源**：`crm.dashboard/index` 的 achievement 节点（config/year/month 筛选参数经 `vuex_Tfilter` 携带），仪表盘颜色区间与后台一致（≤20% 蓝、>20% 绿、>80% 金）
 
 ### 8.3 后台与移动端权限对等
 
@@ -1710,6 +1821,25 @@ http://你的域名/index.php/cron/index?token=your_secure_token_here_2026
 | 页面空白 | 检查runtime目录权限、PHP错误日志 |
 | 插件无法安装 | 检查addons目录权限、info.json格式 |
 
+### 10.11 v5.1.1 版本变更记录
+
+**新增功能：**
+
+- **后台首页仪表盘重构**：全新布局设计，包含问候横幅、系统公告条、关键指标统计卡片（5 张）、8 项待办网格、业绩仪表盘、跟进方式占比图、客户/线索趋势图、跟进动态、待跟进列表
+- **头部导航待办/提醒角标**：后台框架顶部导航栏新增待办、提醒两个入口按钮，显示数字角标，60 秒轮询自动刷新
+- **待办事项统计服务**：`ReminderService::getBacklogCounts()` 统计 8 类待办（待跟线索/客户/商机、即将到期合同、待回款、待审合同/回款/订单）
+- **首页图表 AJAX 刷新**：客户量趋势、线索量趋势、业绩仪表盘、跟进方式占比均支持独立 AJAX 刷新与时间段筛选
+
+**接口变更：**
+
+- `crm.reminder/getUnreadCount`：新增 `backlog` 字段（待办事项总数），与 `count`（未读提醒数）并列返回
+
+**Bug 修复：**
+
+- **客户-管理员关联查询修复**：`Contract`、`CustomerContacts`、`ContractReceivablesPlan` 控制器中 `crm_customer` 与 `admin` 表的 JOIN 条件从 `c.pr_user=a.username` 修正为 `c.owner_admin_id=a.admin_id`（pr_user 存储的是用户名而非 admin_id，导致关联查询失败）
+- **回款计划列表字段显示修复**：`ContractReceivablesPlan` 列表渲染判断条件从 `$value['show']==1` 修正为 `$value['list']==1`（与 system_field 表的 list 字段语义一致）
+- **PHP 8 类型比较修复**：`app/common.php` 中 `cpDecode()` 函数增加 `(int)` 强转避免 PHP 8 下字符串与数字比较的 TypeError
+
 ---
 
-> 本文档基于符号象CRM v5.1.0 生成，最后更新：2026-08-01
+> 本文档基于符号象CRM v5.1.1 生成，最后更新：2026-08-05

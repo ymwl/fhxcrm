@@ -1,33 +1,142 @@
 <link rel="stylesheet" type="text/css" href="__MY_PUBLIC__/static/admin/css/admin.css" />
 <style>
-    .layuimini-notice:hover {background:#f6f6f6;}
-    .layuimini-notice {clear:both;font-size:12px !important;cursor:pointer;position:relative;transition:background 0.2s ease-in-out;}
-    .layuimini-notice-title,.layuimini-notice-label {
-        padding-right: 70px !important;text-overflow:ellipsis!important;overflow:hidden!important;white-space:nowrap!important;}
-    .layuimini-notice-title {line-height:28px;font-size:14px;}
-    .layuimini-notice-extra {position:absolute;top:50%;margin-top:-8px;right:16px;display:inline-block;height:16px;color:#999;}
-    #jxphb tbody tr:nth-child(1){background:#ffcc99;}
-    #jxphb tbody tr:nth-child(2){background:#ccccff;}
-    #jxphb tbody tr:nth-child(3){background:#ffcccc;}
-    /* 数据概览卡片等宽布局 */
-    .main-stat-cards {display:flex;flex-wrap:wrap;gap:15px;margin-bottom:15px;}
-    .main-stat-cards .layui-card {flex:1;min-width:170px;margin-bottom:0;}
-    /* 待办项可点击 */
-    .todo-link {cursor:pointer;}
-    .todo-link:hover {background:#f6f6f6;}
-    .todo-link td:last-child {font-weight:bold;color:#FF5722;}
-    .todo-link:hover td:last-child {color:#1E9FFF;}
-    /* 待办卡片网格布局 */
-    .todo-grid {display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;}
-    .todo-card {text-align:center;padding:10px 6px;border-radius:6px;background:#f9f9f9;cursor:pointer;transition:all .2s;border:1px solid #f0f0f0;}
-    .todo-card:hover {background:#e6f7ff;transform:translateY(-2px);box-shadow:0 2px 8px rgba(0,0,0,.1);border-color:#91d5ff;}
-    .todo-amount {font-size:20px;font-weight:bold;color:#FF5722;line-height:1.3;}
-    .todo-card:hover .todo-amount {color:#1E9FFF;}
-    .todo-name {font-size:11px;color:#666;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    /* 排行表头 */
-    #jxphb thead th {background:#f2f2f2;font-weight:bold;white-space:nowrap;}
+    /* ========== 首页重设计样式 ========== */
     /* 空状态提示 */
     .main-empty {text-align:center;color:#999;padding:15px 0;font-size:13px;}
+
+    /* ---------- 1. 问候横幅 ---------- */
+    .welcome-card {border:none;overflow:hidden;}
+    .welcome-box {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:22px 26px;border-radius:4px;background:linear-gradient(120deg,#1E9FFF 0%,#0d8bff 50%,#36cfc9 100%);color:#fff;}
+    /* 左侧最大宽度 = 容器宽 - 右侧统计区占位（240px*3卡片 + 14px*2间距 + 24px左边距 = 772px）；窄屏 calc 为负自动失效，右侧统计区换行到下一行 */
+    .welcome-left {min-width:0;max-width:calc(100% - 772px);}
+    .welcome-title {font-size:22px;font-weight:bold;text-shadow:0 1px 2px rgba(0,0,0,.15);}
+    .welcome-date {margin-top:6px;font-size:13px;opacity:.85;}
+    .welcome-stats {display:flex;flex-wrap:wrap;gap:14px;margin-left:24px;flex-shrink:0;}
+    .welcome-col {min-width:170px;flex:1;max-width:240px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:12px 16px;backdrop-filter:blur(2px);}
+    .welcome-col-title {font-size:13px;font-weight:600;opacity:.92;margin-bottom:8px;}
+    .welcome-col-title::before {content:'';display:inline-block;width:4px;height:12px;background:#ffe58f;border-radius:2px;margin-right:6px;vertical-align:-1px;}
+    .welcome-col-nums {display:flex;justify-content:space-between;margin-bottom:10px;font-size:12px;opacity:.9;}
+    .welcome-link {color:#fff;cursor:pointer;}
+    .welcome-link:hover {color:#ffe58f;}
+    .welcome-link b {font-size:20px;color:#ffe58f;margin:0 2px;}
+    .welcome-col-rate {font-size:12px;margin-top:6px;opacity:.9;}
+    .welcome-col-rate b {font-size:15px;color:#ffe58f;}
+    .rate-bar {height:10px;border-radius:5px;background:rgba(255,255,255,.25);overflow:hidden;}
+    .rate-bar-inner {height:100%;border-radius:5px;background:linear-gradient(90deg,#ffe58f,#ffc53d);transition:width .8s ease;}
+
+    /* ---------- 2. 统计卡片 ---------- */
+    .main-stat-cards {display:flex;flex-wrap:wrap;gap:15px;margin-bottom:15px;}
+    .main-stat-cards .layui-card {flex:0 0 calc(20% - 12px);box-sizing:border-box;margin-bottom:0;border-radius:6px;overflow:hidden;cursor:pointer;transition:all .25s ease;}
+    @media (max-width: 1280px) {
+        .main-stat-cards .layui-card {flex:0 0 calc(33.333% - 10px);}
+    }
+    @media (max-width: 992px) {
+        .main-stat-cards .layui-card {flex:0 0 calc(50% - 7.5px);}
+    }
+    .main-stat-cards .layui-card:hover {transform:translateY(-4px);box-shadow:0 6px 16px rgba(0,0,0,.12);}
+    .stat-card-body {display:flex;align-items:center;padding:18px 16px;}
+    .stat-icon {width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-right:14px;flex-shrink:0;}
+    .stat-icon .layui-icon {font-size:28px;color:#fff;}
+    .stat-info {min-width:0;flex:1;}
+    .stat-title {font-size:13px;color:#666;white-space:nowrap;}
+    .stat-num {font-size:26px;font-weight:bold;color:#333;line-height:1.3;}
+    .stat-sub {font-size:12px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .stat-sub span {font-weight:bold;}
+    .stat-card-blue .stat-icon {background:linear-gradient(135deg,#5ad8ff,#1E9FFF);}
+    .stat-card-orange .stat-icon {background:linear-gradient(135deg,#ffc53d,#FFB800);}
+    .stat-card-green .stat-icon {background:linear-gradient(135deg,#73d13d,#5FB878);}
+    .stat-card-purple .stat-icon {background:linear-gradient(135deg,#b37feb,#722ED1);}
+    .stat-card-red .stat-icon {background:linear-gradient(135deg,#ff9c6e,#FF5722);}
+    .stat-card-blue .stat-sub span {color:#1E9FFF;}
+    .stat-card-orange .stat-sub span {color:#FFB800;}
+    .stat-card-green .stat-sub span {color:#5FB878;}
+    .stat-card-purple .stat-sub span {color:#722ED1;}
+    .stat-card-red .stat-sub span {color:#FF5722;}
+    /* 卡片头部 */
+    .main-card-header .card-tag {font-size:12px;font-weight:normal;color:#999;background:#f5f5f5;border-radius:10px;padding:1px 10px;}
+    /* 待办事项卡片头部总角标（与头部导航 header-badge 样式一致） */
+    .main-card-header .header-badge {display:inline-block;min-width:16px;height:16px;line-height:16px;padding:0 5px;margin-left:6px;background:#FF5722;color:#fff;font-size:10px;font-weight:normal;text-align:center;border-radius:8px;vertical-align:1px;box-shadow:0 1px 4px rgba(255,87,34,.4);}
+
+    /* ---------- 3. 图表区 ---------- */
+    .chart-body {padding:10px 16px 16px;}
+    #main_customer-echart,#main_clue_customer-echart {height:300px;width:100%;}
+
+    /* 3.1 中部三卡等高对齐（待办事项/业绩概况/跟进方式占比）：外层 flex 行使同行卡片等高，上下齐平 */
+    .main-mid-row {display:flex;flex-wrap:wrap;}
+    .main-mid-row > .layui-col-md4 {float:none;display:flex;flex:1 1 0;min-width:0;}
+    .main-mid-row .layui-card {width:100%;display:flex;flex-direction:column;margin-bottom:0;}
+    .main-mid-row .layui-card-body {flex:1;display:flex;flex-direction:column;}
+    .main-mid-row .todo-grid {flex:1;grid-auto-rows:1fr;}
+    .main-mid-row .todo-card {display:flex;flex-direction:column;justify-content:center;}
+    @media (max-width:992px) {.main-mid-row > .layui-col-md4 {flex:0 0 100%;}}
+    /* 图表容器弹性填满卡片剩余高度（图表延时初始化，此时 flex 高度已确定） */
+    .chart-fill {flex:1;min-height:260px;width:100%;}
+
+    /* ---------- 4. 待办网格 ---------- */
+    .todo-grid {display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+    .todo-card {text-align:center;padding:14px 6px;border-radius:8px;background:#f8fafc;cursor:pointer;transition:all .2s;border:1px solid #f0f2f5;position:relative;overflow:hidden;}
+    .todo-card::before {content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#1E9FFF;opacity:.65;}
+    .todo-card:hover {background:#e6f7ff;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:#91d5ff;}
+    .todo-amount {font-size:22px;font-weight:bold;color:#FF5722;line-height:1.3;}
+    .todo-card:hover .todo-amount {color:#1E9FFF;}
+    .todo-name {font-size:12px;color:#666;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* ---------- 5. 提醒信息 ---------- */
+    .layuimini-notice:hover {background:#f6f6f6;}
+    .layuimini-notice {clear:both;font-size:12px !important;cursor:pointer;position:relative;transition:background 0.2s ease-in-out;padding:9px 12px;border-bottom:1px dashed #f0f0f0;}
+    .layuimini-notice:last-child {border-bottom:none;}
+    .layuimini-notice-title,.layuimini-notice-label {padding-right:70px !important;text-overflow:ellipsis!important;overflow:hidden!important;white-space:nowrap!important;}
+    .layuimini-notice-title {line-height:28px;font-size:14px;}
+    .layuimini-notice-extra {position:absolute;top:50%;margin-top:-8px;right:16px;display:inline-block;height:16px;color:#999;}
+
+    /* ---------- 6. 跟进动态 ---------- */
+    .layuiadmin-card-status dd {display:flex;align-items:flex-start;padding:10px 0;border-bottom:1px dashed #f2f2f2;}
+    .layuiadmin-card-status dd:last-child {border-bottom:none;}
+    .layuiadmin-card-status .layui-status-img {flex-shrink:0;margin-right:12px;}
+    .layuiadmin-card-status .layui-status-img img {width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #eee;}
+    .follow-content {flex:1;min-width:0;}
+    .follow-content p {margin-bottom:4px;line-height:1.6;}
+    .follow-content .follow-time {color:#999;font-size:12px;}
+    .follow-content .follow-user {color:#333;font-weight:600;}
+    .follow-content .follow-action {color:#FF5722;font-size:12px;margin:0 4px;}
+    .follow-content .follow-name {color:#1E9FFF;}
+    .follow-content .follow-text {color:#606266;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+    /* ---------- 7. 待跟进列表 ---------- */
+    .wait-list {padding:0;}
+    .wait-item {display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px dashed #f2f2f2;transition:background .2s;}
+    .wait-item:hover {background:#f8fafc;}
+    .wait-item:last-child {border-bottom:none;}
+    .wait-main {min-width:0;flex:1;margin-right:10px;}
+    .wait-name {color:#333;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .wait-name em {font-style:normal;color:#FF5722;font-size:12px;font-weight:normal;margin-right:4px;}
+    .wait-name .wait-name-link {color:#333;}
+    .wait-name .wait-name-link:hover {color:#1E9FFF;}
+    .wait-time {color:#999;font-size:12px;margin-top:4px;}
+    .wait-user {width:64px;text-align:right;color:#666;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* ---------- 8. 系统公告 ---------- */
+    .notice-body {line-height:1.9;color:#555;font-size:13px;max-height:300px;overflow-y:auto;}
+    /* 8.1 横幅公告条（单行纯文本摘要，点击弹窗查看完整富文本，对齐手机端交互） */
+    .welcome-notice {display:flex;align-items:center;gap:8px;margin-top:12px;padding:8px 12px;border-radius:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);cursor:pointer;transition:background .2s;}
+    .welcome-notice:hover {background:rgba(255,255,255,.26);}
+    .welcome-notice-icon {font-size:16px;color:#ffe58f;flex-shrink:0;}
+    .welcome-notice-text {flex:1;min-width:0;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .welcome-notice-more {font-size:12px;color:#fff;opacity:.8;flex-shrink:0;}
+    /* 公告详情弹窗（完整富文本渲染；高度由 layer maxHeight 管理，窄屏宽度自适应） */
+    .notice-layer {max-width:92vw !important;}
+    .notice-pop-body {line-height:1.9;color:#555;font-size:13px;height:100%;overflow-y:auto;word-break:break-all;padding:15px 20px;box-sizing:border-box;}
+    .notice-pop-body img {max-width:100%;}
+    .notice-pop-body table {max-width:100%;}
+    @media (max-width:768px) {.welcome-notice {max-width:100%;}}
+
+    /* ---------- 9. 业绩概况 ---------- */
+    .achievement-tag {padding:3px 10px;background:#e6f7ff;color:#1E9FFF;}
+    .achievement-tag span {color:#FF5722;font-weight:bold;}
+    .achievement-toolbar {display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:4px;}
+    .achievement-select {height:32px;border:1px solid #e6e6e6;border-radius:3px;padding:0 8px;outline:none;background:#fff;font-size:13px;color:#333;}
+    .achievement-input {height:32px;width:120px;border:1px solid #e6e6e6;border-radius:3px;padding:0 8px;outline:none;font-size:13px;color:#333;box-sizing:border-box;background:#fff;cursor:pointer;}
+    .achievement-tip {color:#999;font-size:12px;}
 </style>
 <div class="layuimini-container">
     <div class="layuimini-main">
@@ -42,299 +151,296 @@
             </div>
         </div>
         <?php } ?>
-        <div class="layui-col-md8">
-            <div class="main-stat-cards">
-                <div class="layui-card layui-panel">
-                    <div class="layui-card-header">
-                        我的线索
-                    </div>
-                    <div class="layui-card-body layuiadmin-card-list">
-                        <p class="layuiadmin-big-font">{$cluesCount_week}</p>
-                        <p>
-                            总线索
-                            <span class="layuiadmin-span-color">{$cluesCount} 条</span>
-                        </p>
-                    </div>
-                </div>
 
-                <div class="layui-card layui-panel">
-                    <div class="layui-card-header">
-                        {:fy('client pool')}
-                    </div>
-                    <div class="layui-card-body layuiadmin-card-list">
-                        <p class="layuiadmin-big-font">{$liberumCount}</p>
-                        <p>
-                            线索池
-                            <span class="layuiadmin-span-color"><?php
-echo \think\facade\Db::name('crm_clue')->where('status', '=', 4)->count();
-?></span>
-                        </p>
-                    </div>
-                </div>
-
-                <div class="layui-card layui-panel">
-                    <div class="layui-card-header">
-                        {:fy('My clients')}
-                    </div>
-                    <div class="layui-card-body layuiadmin-card-list">
-                        <p class="layuiadmin-big-font">{$clientCount_month}</p>
-                        <p>
-                            {:fy('Total clients')}
-                            <span class="layuiadmin-span-color">{$clientCount}</span>
-                        </p>
-                    </div>
-                </div>
-
-                <div class="layui-card layui-panel">
-                    <div class="layui-card-header">
-                        {:fy('My Business Opportunities')}
-                    </div>
-                    <div class="layui-card-body layuiadmin-card-list">
+        <!-- 1. 问候横幅 -->
+        <div class="layui-col-md12">
+            <div class="layui-card layui-panel welcome-card">
+                <div class="welcome-box">
+                    <div class="welcome-left">
+                        <div class="welcome-title">{$wenhou}</div>
+                        <div class="welcome-date">今天是{:date('Y年m月d日')} <?php $weekMap = ['日', '一', '二', '三', '四', '五', '六']; echo '星期' . $weekMap[date('N') % 7]; ?></div>
                         <?php
-                            $business_total=\think\facade\Db::name('crm_business')->count();
-                            $business_my_total=\think\facade\Db::name('crm_business')->where('owner_admin_id','=',$admin['admin_id'])->count();
+                            $notice_html = isset($system['notice']) ? $system['notice'] : '';
+                            $notice_text = trim(preg_replace('/\s+/', ' ', str_replace("\xc2\xa0", ' ', html_entity_decode(strip_tags($notice_html), ENT_QUOTES, 'UTF-8'))));
                         ?>
-                        <p class="layuiadmin-big-font">{$business_my_total}</p>
-                        <p>
-                            {:fy('Total opportunities')}
-                            <span class="layuiadmin-span-color">{$business_total}</span>
-                        </p>
+                        <div class="welcome-notice" id="welcome-notice" title="点击查看完整公告" <?php if ($notice_text === '') echo 'style="display:none;"'; ?>>
+                            <i class="layui-icon layui-icon-notice welcome-notice-icon"></i>
+                            <span class="welcome-notice-text">{$notice_text}</span>
+                            <i class="layui-icon layui-icon-right welcome-notice-more"></i>
+                        </div>
+                        <!-- 公告全文（隐藏，点击公告条时注入弹窗展示完整富文本） -->
+                        <div id="welcome-notice-html" style="display:none;">{$system['notice']|raw}</div>
+                    </div>
+                    <div class="welcome-stats">
+                        <!-- 客户跟进 -->
+                        <div class="welcome-col">
+                            <div class="welcome-col-title">客户</div>
+                            <div class="welcome-col-nums">
+                                <a href="javascript:;" class="welcome-link" layuimini-content-href="{:myurl('crm.customer/index')}?scope=11" data-title="今日已跟进客户">今日跟进 <b>{$today_followed_count}</b></a>
+                                <a href="javascript:;" class="welcome-link" layuimini-content-href="{:myurl('crm.customer/index')}?scope=10" data-title="待跟客户">待跟进 <b>{$not_followed_count}</b></a>
+                            </div>
+                            <div class="rate-bar"><div class="rate-bar-inner" data-rate="{$genjinlv}"></div></div>
+                            <div class="welcome-col-rate">跟进率 <b>{$genjinlv}%</b></div>
+                        </div>
+                        <!-- 线索跟进 -->
+                        <div class="welcome-col">
+                            <div class="welcome-col-title">线索</div>
+                            <div class="welcome-col-nums">
+                                <a href="javascript:;" class="welcome-link" layuimini-content-href="{:myurl('crm.clue/index')}?scope=11" data-title="今日已跟进线索">今日跟进 <b>{$today_followed_clue_count}</b></a>
+                                <a href="javascript:;" class="welcome-link" layuimini-content-href="{:myurl('crm.clue/index')}?scope=10" data-title="待跟线索">待跟进 <b>{$pending_clue_count}</b></a>
+                            </div>
+                            <div class="rate-bar"><div class="rate-bar-inner" data-rate="{$clue_genjinlv}"></div></div>
+                            <div class="welcome-col-rate">跟进率 <b>{$clue_genjinlv}%</b></div>
+                        </div>
+                        <!-- 商机跟进 -->
+                        <div class="welcome-col">
+                            <div class="welcome-col-title">商机</div>
+                            <div class="welcome-col-nums">
+                                <a href="javascript:;" class="welcome-link" layuimini-content-href="{:myurl('crm.business/index')}?scope=11" data-title="今日已跟进商机">今日跟进 <b>{$today_followed_business_count}</b></a>
+                                <a href="javascript:;" class="welcome-link" layuimini-content-href="{:myurl('crm.business/index')}?scope=10" data-title="待跟商机">待跟进 <b>{$pending_business_count}</b></a>
+                            </div>
+                            <div class="rate-bar"><div class="rate-bar-inner" data-rate="{$business_genjinlv}"></div></div>
+                            <div class="welcome-col-rate">跟进率 <b>{$business_genjinlv}%</b></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 关键指标统计卡片 -->
+        <div class="layui-col-md12">
+            <div class="main-stat-cards">
+                <div class="layui-card layui-panel stat-card-blue" layuimini-content-href="{:myurl('crm.clue/index')}" data-title="线索管理">
+                    <div class="stat-card-body">
+                        <div class="stat-icon"><i class="layui-icon layui-icon-list"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-title">我的线索</div>
+                            <div class="stat-num">{$cluesCount_week}</div>
+                            <div class="stat-sub">总线索 <span>{$cluesCount}</span> 条</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="layui-card layui-panel">
+                <div class="layui-card layui-panel stat-card-orange" layuimini-content-href="{:myurl('crm.customer/seas')}" data-title="公海客户">
+                    <div class="stat-card-body">
+                        <div class="stat-icon"><i class="layui-icon layui-icon-location"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-title">{:fy('client pool')}</div>
+                            <div class="stat-num">{$liberumCount}</div>
+                            <div class="stat-sub">线索池 <span><?php
+echo \think\facade\Db::name('crm_clue')->where('status', '=', 4)->count();
+?></span> 条</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-card layui-panel stat-card-green" layuimini-content-href="{:myurl('crm.customer/index')}?scope=1" data-title="我的客户">
+                    <div class="stat-card-body">
+                        <div class="stat-icon"><i class="layui-icon layui-icon-user"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-title">{:fy('My clients')}</div>
+                            <div class="stat-num">{$clientCount_month}</div>
+                            <div class="stat-sub">{:fy('Total clients')} <span>{$clientCount}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-card layui-panel stat-card-purple" layuimini-content-href="{:myurl('crm.business/index')}?scope=1" data-title="商机管理">
+                    <?php
+                        $business_total=\think\facade\Db::name('crm_business')->count();
+                        $business_my_total=\think\facade\Db::name('crm_business')->where('owner_admin_id','=',$admin['admin_id'])->count();
+                    ?>
+                    <div class="stat-card-body">
+                        <div class="stat-icon"><i class="layui-icon layui-icon-diamond"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-title">{:fy('My Business Opportunities')}</div>
+                            <div class="stat-num">{$business_my_total}</div>
+                            <div class="stat-sub">{:fy('Total opportunities')} <span>{$business_total}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-card layui-panel stat-card-red" layuimini-content-href="{:myurl('crm.contract/index')}?scope=1" data-title="合同管理">
                     <?php
                         //只记录审核通过的
                         $total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->count();
                         $my_total=\think\facade\Db::name('crm_contract')->where('check_status','=',3)->where('owner_admin_id','=',$admin['admin_id'])->count();
                     ?>
-                    <div class="layui-card-header">
-                        我的合同
-                    </div>
-                    <div class="layui-card-body layuiadmin-card-list">
-                        <p class="layuiadmin-big-font">{$my_total}</p>
-                        <p>
-                            总合同
-                            <span class="layuiadmin-span-color">{$total}</span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="layui-row layui-col-space15">
-               <!-- <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">{:fy('Performance Monthly Ranking')} <a href="javascript:;" style="float: right;" layuimini-content-href="{:myurl('crm.performance/analytics')}" data-title="{:fy('Performance statistics')}" data-icon="fa fa-university">{:fy('More')}>></a></div>
-                        <div class="layui-card-body" style="overflow-y: scroll;">
-                            <table class="layui-table" id="jxphb">
-                                <thead>
-                                <tr>
-                                    <th>月排名</th>
-                                    <th>{:fy('Salesman')}</th>
-                                    <th>订单排名</th>
-                                    <th>月订单目标</th>
-                                    <th>订单完成率</th>
-                                    <th>订单金额</th>
-                                    <th>合同排名</th>
-                                    <th>月合同目标</th>
-                                    <th>合同完成率</th>
-                                    <th>合同金额</th>
-                                    <th>回款排名</th>
-                                    <th>月回款目标</th>
-                                    <th>回款完成率</th>
-                                    <th>回款金额</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {volist name='userlist' id='vo' key="k" }
-                                <tr >
-                                    <td>{$k}</td>
-                                    <td>{$vo['username']}</td>
-                                    <td>{$vo['order_rank']}</td>
-                                    <td>{$vo['order_mubiao']}</td>
-                                    <td>{$vo['order_wanchenglv']}</td>
-                                    <td>{$vo['money_month']}</td>
-                                    <td>{$vo['ht_rank']}</td>
-                                    <td>{$vo['ht_mubiao']}</td>
-                                    <td>{$vo['ht_wanchenglv']}</td>
-                                    <td>{$vo['ht_money_month']}</td>
-                                    <td>{$vo['hk_rank']}</td>
-                                    <td>{$vo['hk_mubiao']}</td>
-                                    <td>{$vo['hk_wanchenglv']}</td>
-                                    <td>{$vo['hk_money_month']}</td>
-                                </tr>
-                                {/volist}
-                                </tbody>
-                            </table>
+                    <div class="stat-card-body">
+                        <div class="stat-icon"><i class="layui-icon layui-icon-form"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-title">我的合同</div>
+                            <div class="stat-num">{$my_total}</div>
+                            <div class="stat-sub">总合同 <span>{$total}</span></div>
                         </div>
                     </div>
-                </div>-->
-
-                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">{:fy('Reminder information')} <a href="javascript:;" style="float: right;" layuimini-content-href="{:myurl('process.audit/index')}" data-title="{:fy('Reminder information')}" data-icon="fa fa-commenting">{:fy('More')}>></a></div>
-                        <div class="layui-card-body">
-                            <?php
-$aid=$admin['admin_id'];
-
-$group_id=$admin['group_id'];
-$todoLst=\think\facade\Db::name('audit_management')->field('mess,event,auditor_group_ids,auditor_admin_ids,create_username,is_finish,url,id,title,result,createtime')->whereRaw('`create_admin_id` = :aid OR FIND_IN_SET(:group_id,`auditor_group_ids`) OR FIND_IN_SET(:admin_id,`auditor_admin_ids`)',['aid'=>$aid,'group_id'=>$group_id,'admin_id'=>$aid])->order(\think\facade\Db::raw("FIELD(`result`,'0','-1','1') ASC,createtime DESC"))->limit(10)->select();
-                            if(count($todoLst)>0){
-                            foreach($todoLst as $v){
-                            $v['title']=fy($v['title']);
-                                if(empty($v['mess'])){
-                                     $v['mess']=$v['create_username'].' '.fy($v['event']);
-                                }
-
-                            ?>
-                            <div class="layuimini-notice" <?php if((strpos(','.$v['auditor_group_ids'].',',','.$group_id.',')!==false || strpos(','.$v['auditor_admin_ids'].',',','.$aid.',')!==false) && $v['is_finish']==0){ ?>data-open="{$v['url']}&audit_management_id={$v['id']}" <?php } ?> data-title="{$v['title']}">
-                            <div class="layuimini-notice-title">【{$v['title']}】{$v['mess']} <span style="color: blue;">{:fy($v['result'])}</span></div>
-                            <div class="layuimini-notice-extra">{:date('Y-m-d H:i',$v['createtime'])}</div>
-                        </div>
-                        <?php } } else { ?>
-                            <div class="main-empty">暂无提醒信息</div>
-                        <?php } ?>
-
-                    </div>
-                </div>
-
-
-            </div>
-
-            <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
-                <div class="layui-card layui-panel">
-                    <div class="layui-card-header">{:fy('Dynamic')}</div>
-                    <div class="layui-card-body">
-                        {volist name='result' id='vo'}
-                        <dl class="layuiadmin-card-status">
-                            <dd>
-                                <div class="layui-status-img"><a href="javascript:;">
-                                    <img src="{$vo.avatar}"></a>
-                                </div>
-                                <div>
-                                    <p>{$vo.username} <em style="color: red;margin-right: 5px">{:fy('follow up')}</em>  <a href="javascript:;" data-open="crm.record/add?customer_id={$vo.id}" data-title="{:fy('Recent follow-up records')}" data-full="true" > {$vo.name}</a> </p>
-                                    <p><strong style="color: burlywood;margin-right: 5px">{:fy('Follow up on records')}: </strong>{$vo.content}</p>
-                                    <span>{:fy('Follow-up time')}：{$vo.create_time|date='Y-m-d H:i:s'}</span>
-                                </div>
-                            </dd>
-                        </dl>
-                        {/volist}
-                        {empty name='result'}
-                        <div class="main-empty">暂无跟进动态</div>
-                        {/empty}
-                    </div>
                 </div>
             </div>
-
-
-            </div>
-
         </div>
-
+        <!-- 中部三等分等高行：待办事项 / 业绩概况 / 跟进方式占比 -->
+        <div class="layui-col-md12">
+        <div class="layui-row layui-col-space15 main-mid-row">
+        <!-- 4. 待办事项 + 提醒信息 -->
         <div class="layui-col-md4">
-            <div class="layui-row layui-col-space15">
-
-                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">
-                            {:fy('Notice')}
+            <div class="layui-card layui-panel">
+                <div class="layui-card-header main-card-header">
+                    <span>{:fy('Need to be dealt with')}</span>
+                    <!-- 待办总角标（8项待办之和，与头部导航待办角标同源，由 index.js 轮询刷新控制显隐） -->
+                    <span class="header-badge" id="mainTodoBadge" style="display:none;">{$todo_total_count}</span>
+                </div>
+                <div class="layui-card-body layui-text">
+                    <div class="todo-grid">
+                        <div class="todo-card" layuimini-content-href="{:myurl('crm.clue/index')}?scope=10" data-title="待跟线索">
+                            <div class="todo-amount">{$pending_clue_count}</div>
+                            <div class="todo-name">待跟线索</div>
                         </div>
-                        <div class="layui-card-body layuiadmin-card-list">
-
-                            <p>
-                                {$system['notice']|raw}
-                            </p>
+                        <div class="todo-card" layuimini-content-href="{:myurl('crm.customer/index')}?scope=10" data-title="待跟客户">
+                            <div class="todo-amount">{$pending_customer_count}</div>
+                            <div class="todo-name">待跟客户</div>
+                        </div>
+                        <div class="todo-card" layuimini-content-href="{:myurl('crm.business/index')}?scope=10" data-title="待跟商机">
+                            <div class="todo-amount">{$pending_business_count}</div>
+                            <div class="todo-name">待跟商机</div>
+                        </div>
+                        <div class="todo-card" layuimini-content-href="{:myurl('crm.contract/index')}?scope=expiring" data-title="即将到期合同">
+                            <div class="todo-amount">{$expiring_contract_count}</div>
+                            <div class="todo-name">即将到期合同</div>
+                        </div>
+                        <div class="todo-card" layuimini-content-href="{:myurl('crm.contract_receivables_plan/index')}?scope=pending_payment" data-title="待回款">
+                            <div class="todo-amount">{$pending_receivables_count}</div>
+                            <div class="todo-name">待回款</div>
+                        </div>
+                        <div class="todo-card" layuimini-content-href="{$audit_contract_url}" data-title="待审合同">
+                            <div class="todo-amount">{$audit_contract_count}</div>
+                            <div class="todo-name">待审合同</div>
+                        </div>
+                        <div class="todo-card" layuimini-content-href="{$audit_receivables_url}" data-title="待审回款">
+                            <div class="todo-amount">{$audit_receivables_count}</div>
+                            <div class="todo-name">待审回款</div>
+                        </div>
+                        <div class="todo-card" layuimini-content-href="{$audit_order_url}" data-title="待审订单">
+                            <div class="todo-amount">{$audit_order_count}</div>
+                            <div class="todo-name">待审订单</div>
                         </div>
                     </div>
                 </div>
-
-
-                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">{:fy('Need to be dealt with')}
-                            <!--<span style="float:right;font-weight:normal;">客户跟进率：<strong style="color:#01AAED;">{$genjinlv}%</strong></span>-->
-                        </div>
-                        <div class="layui-card-body layui-text">
-                            <div class="todo-grid">
-                                <div class="todo-card" layuimini-content-href="{:myurl('crm.clue/index')}?scope=10" data-title="待跟线索">
-                                    <div class="todo-amount">{$pending_clue_count}</div>
-                                    <div class="todo-name">待跟线索</div>
-                                </div>
-                                <div class="todo-card" layuimini-content-href="{:myurl('crm.customer/index')}?scope=10" data-title="待跟客户">
-                                    <div class="todo-amount">{$pending_customer_count}</div>
-                                    <div class="todo-name">待跟客户</div>
-                                </div>
-                                <div class="todo-card" layuimini-content-href="{:myurl('crm.business/index')}?scope=10" data-title="待跟商机">
-                                    <div class="todo-amount">{$pending_business_count}</div>
-                                    <div class="todo-name">待跟商机</div>
-                                </div>
-                                <div class="todo-card" layuimini-content-href="{:myurl('crm.contract/index')}?scope=expiring" data-title="即将到期合同">
-                                    <div class="todo-amount">{$expiring_contract_count}</div>
-                                    <div class="todo-name">即将到期合同</div>
-                                </div>
-                                <div class="todo-card" layuimini-content-href="{:myurl('crm.contract_receivables_plan/index')}?scope=pending_payment" data-title="待回款">
-                                    <div class="todo-amount">{$pending_receivables_count}</div>
-                                    <div class="todo-name">待回款</div>
-                                </div>
-                                <div class="todo-card" layuimini-content-href="{:myurl('process.audit/index')}?scope=audit" data-title="待审合同">
-                                    <div class="todo-amount">{$audit_contract_count}</div>
-                                    <div class="todo-name">待审合同</div>
-                                </div>
-                                <div class="todo-card" layuimini-content-href="{:myurl('process.audit/index')}?scope=audit" data-title="待审回款">
-                                    <div class="todo-amount">{$audit_receivables_count}</div>
-                                    <div class="todo-name">待审回款</div>
-                                </div>
-                                <div class="todo-card" layuimini-content-href="{:myurl('process.audit/index')}?scope=audit" data-title="待审订单">
-                                    <div class="todo-amount">{$audit_order_count}</div>
-                                    <div class="todo-name">待审订单</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">{:fy('Clients to be followed')}</div>
-                        <div class="layui-card-body">
-                            <dl class="layuiadmin-card-status">
-                                {volist name='today_tiixng' id='vo'}
-                                <dd>
-                                    <div>
-                                        <p>{$vo.pr_user} <em style="color: red;margin-right: 5px">{:fy('Follow up')}</em>  <a href="javascript:;" data-open="crm.record/add?customer_id={$vo.id}" data-title="{:fy('Clients to be followed')}" data-full="true" > {$vo.name}</a> </p>
-                                        <span>{:fy('Follow-up time')}：{$vo.next_time|date='Y-m-d H:i:s'}</span>
-                                    </div>
-                                </dd>
-                                {/volist}
-                            </dl>
-                            {empty name='today_tiixng'}
-                            <div class="main-empty">暂无待跟进客户</div>
-                            {/empty}
-                        </div>
-                    </div>
-
-                    <div class="layui-card layui-panel">
-                        <div class="layui-card-header">{:fy('Wait for the opportunity to be followed up')}</div>
-                        <div class="layui-card-body">
-                            <dl class="layuiadmin-card-status">
-                                {volist name='today_business_tiixng' id='vo'}
-                                <dd>
-                                    <div>
-                                        <p>{$vo.owner_username} <em style="color: red;margin-right: 5px">{:fy('Follow up')}</em>  <a href="javascript:;" data-open="crm.business_record/add?business_id={$vo.id}&customer_id={$vo.customer_id}" data-title="{:fy('Wait for the opportunity to be followed up')}" data-full="true" > {$vo.name}</a> </p>
-                                        <span>{:fy('Follow-up time')}：{$vo.next_time|date='Y-m-d H:i:s'}</span>
-                                    </div>
-                                </dd>
-                                {/volist}
-                            </dl>
-                            <?php if(empty($today_business_tiixng)){ ?>
-                            <div class="main-empty">暂无待跟进商机</div>
-                            <?php } ?>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
 
+        <!-- 2.5 业绩概况 -->
+        <div class="layui-col-md4">
+            <div class="layui-card layui-panel">
+                <div class="layui-card-header main-card-header">
+                    <span>业绩概况</span>
+                    <span class="achievement-tip">切换业绩方式与时间，仪表盘展示对应完成率</span>
+                </div>
+                <div class="layui-card-body chart-body" style="padding-top:8px;">
+                    <div class="achievement-toolbar">
+                        <select id="achievement-config" class="achievement-select">
+                            <option value="1" selected>合同金额</option>
+                            <option value="2">回款金额</option>
+                            <option value="3">订单金额</option>
+                        </select>
+                        <input type="text" id="achievement-month" class="achievement-input" placeholder="月份（清空即全年）" autocomplete="off" readonly>
+                        <span class="card-tag achievement-tag">
+                        <span id="achievement-target-label">合同目标</span>：<span id="achievement-yeartarget">{$achievement.yeartarget}</span>
+                        &nbsp;|&nbsp;合同：<span id="achievement-contract">{$achievement.contract_money}</span>
+                        &nbsp;|&nbsp;回款：<span id="achievement-receivables">{$achievement.receivables_money}</span>
+                        &nbsp;|&nbsp;订单：<span id="achievement-order">{$achievement.order_money}</span>
+                    </span>
+                    </div>
+
+                    <div id="achievement-echart" class="chart-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2.6 跟进方式占比 -->
+        <div class="layui-col-md4">
+            <div class="layui-card layui-panel">
+                <div class="layui-card-header main-card-header">
+                    <span>跟进方式</span>
+                    <span class="card-tag">占比</span>
+                    <span class="achievement-tip">切换跟进来源与月份，环形图展示对应占比</span>
+                </div>
+                <div class="layui-card-body chart-body" style="padding-top:8px;">
+                    <div class="achievement-toolbar">
+                        <select id="follow-config" class="achievement-select">
+                            <option value="1" selected>线索跟进</option>
+                            <option value="2">客户跟进</option>
+                            <option value="3">商机跟进</option>
+                        </select>
+                        <input type="text" id="follow-month" class="achievement-input" placeholder="月份（清空即全年）" autocomplete="off" readonly>
+                       
+                    </div>
+
+                    <div id="main_record_type-echart" class="chart-fill"></div>
+                </div>
+            </div>
+        </div>
+        </div>
+        </div>
+
+        <!-- 2.7 合同|回款|订单 金额与数量趋势 -->
+        <div class="layui-col-md12">
+            <div class="layui-card layui-panel">
+                <div class="layui-card-header main-card-header">
+                    <span>合同|回款|订单</span>
+                    <span class="card-tag">金额与数量趋势</span>
+                </div>
+                <div class="layui-card-body chart-body" style="padding-top:8px;">
+                    <div class="achievement-toolbar">
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="last7Days">最近7天</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="last30Days">最近30天</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="lastMonth">上月</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="thisMonth">本月</a>
+                        <input type="text" id="trend-date" class="achievement-input" style="width:260px;" placeholder="指定日期" autocomplete="off" readonly>
+                    </div>
+                    <div id="trend-echart" style="height:300px;width:100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 客户量趋势（跟进方式占比已拆分为独立卡片，见 2.6） -->
+        <div class="layui-col-md12">
+            <div class="layui-card layui-panel">
+                <div class="layui-card-header main-card-header">
+                    <span>客户量趋势</span>
+                    <span class="card-tag" id="main-customer-tag">近30天</span>
+                </div>
+                <div class="layui-card-body chart-body" style="padding-top:8px;">
+                    <div class="achievement-toolbar">
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="last7Days">最近7天</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="last30Days">最近30天</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="lastMonth">上月</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="thisMonth">本月</a>
+                        <input type="text" id="main-customer-date" class="achievement-input" style="width:260px;" placeholder="指定日期" autocomplete="off" readonly>
+                    </div>
+                    <div id="main_customer-echart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 线索量趋势 -->
+        <div class="layui-col-md12">
+            <div class="layui-card layui-panel">
+                <div class="layui-card-header main-card-header">
+                    <span>线索量趋势</span>
+                    <span class="card-tag" id="main-clue-tag">近30天</span>
+                </div>
+                <div class="layui-card-body chart-body" style="padding-top:8px;">
+                    <div class="achievement-toolbar">
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="last7Days">最近7天</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="last30Days">最近30天</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="lastMonth">上月</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-success trend-btn" data-value="thisMonth">本月</a>
+                        <input type="text" id="main-clue-date" class="achievement-input" style="width:260px;" placeholder="指定日期" autocomplete="off" readonly>
+                    </div>
+                    <div id="main_clue_customer-echart"></div>
+                </div>
+            </div>
+        </div>
+
+</div>
 </div>
 </div>

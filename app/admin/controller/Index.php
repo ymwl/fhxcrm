@@ -155,23 +155,23 @@ class Index extends AdminController
 //        array_multisort(array_column($userlist,'money_month'),SORT_DESC,$userlist);
         View::assign('userlist', $userlist);
 
-        //本人跟进动态
-        //最近跟进动态
-        $result = Db::name('crm_customer')
-            ->alias('c')
-            ->join('crm_record r','r.customer_id = c.id')
-            ->join('admin a','r.admin_id = a.admin_id')
-            ->field('c.id,a.username,a.avatar,c.name,r.content,r.create_time')
-            ->order('r.id desc')
-            ->where(['c.pr_user'=> $this->admin['username']])
-            ->limit(10)->select();
-        View::assign('result', $result);
 
 
-      	$strTimeToString = "000111222334455556666667";
-        $strWenhou = array('夜深了，','凌晨了，','早上好！','上午好！','中午好！','下午好！','晚上好！','夜深了，');
-        //echo $strWenhou[(int)$strTimeToString[(int)date('G',time())]];
-        View::assign('wenhou', '尊敬的管理员'. $strWenhou[(int)$strTimeToString[(int)date('G',time())]]);
+
+        // 根据当前小时生成问候语
+        $hour = (int) date('G');
+        $greeting = match (true) {
+            $hour <= 2  => '夜深了，注意休息',
+            $hour <= 5  => '凌晨了，早点休息',
+            $hour <= 8  => '早上好',
+            $hour <= 10 => '上午好',
+            $hour <= 12 => '中午好',
+            $hour <= 17 => '下午好',
+            $hour <= 22 => '晚上好',
+            default     => '夜深了，注意休息',
+        };
+        $realname = $this->admin['realname'] ?? $this->admin['username'];
+        View::assign('wenhou', '尊敬的' . $realname . '，' . $greeting . '！');
 
 
 
@@ -182,36 +182,10 @@ class Index extends AdminController
         //今日已跟进客户*个，未跟进*个，跟进率*%
         //last_up_time
 
-        $wheretoday = [];
-        $wheretoday[] = ['pr_user','=',$this->admin['username']];
-        //$wheretoday['status'] = 1;
-        //$wheretoday['issuccess'] = -1;
-        $today_followed_count = Db::name('crm_customer')->where($wheretoday)->whereTime('last_up_time','today')->count();//今日已经跟进个数
-
-//        not followed
-
-        View::assign('today_followed_count', $today_followed_count);
-
-        // 提醒列表
-//        $today_tiixng = Db::name('crm_customer')->where($wheretoday)->whereTime('next_time','today')->select();
-//        没有跟进的列表
-        $today_tiixng = Db::name('crm_customer')->field('`id`,`pr_user`,`name`,`next_time`')->where($wheretoday)->whereNotNull('next_time')->where('next_time','<>',0)->whereTime('next_time','<=','tomorrow -1second')->order('next_time asc')->limit(10)->select()->toArray();
-//        待跟进数
-        $not_followed_count=Db::name('crm_customer')->where($wheretoday)->whereNotNull('next_time')->where('next_time','<>',0)->whereTime('next_time','<=','tomorrow -1second')->count();
-        View::assign('not_followed_count',$not_followed_count);
-        $all_count=($today_followed_count+$not_followed_count);
-        if ($all_count > 0) {
-            $genjinlv = ($today_followed_count/$all_count)*100;
-        }else{
-            $genjinlv = 0;
-        }
-        View::assign('genjinlv', round($genjinlv,2));
-        View::assign('today_tiixng', $today_tiixng);
-
-        // ========== 8项待办事项统计 ==========
+        // ========== 今日跟进统计（与列表页 scope=10/11 口径一致：按 owner_admin_id 过滤） ==========
         $admin_id = $this->admin['admin_id'];
-        $group_id = $this->admin['group_id'];
-
+        $wheretoday = [];
+        $wheretoday[] = ['owner_admin_id','=',$admin_id];
         // 待跟进时间窗口：系统设置 daigenjin（提前N天提醒），默认到明天
         if (isset($this->system['daigenjin']) && is_numeric($this->system['daigenjin'])) {
             $nextTimeEnd = strtotime("+{$this->system['daigenjin']} day 00:00:00");
@@ -219,10 +193,51 @@ class Index extends AdminController
             $nextTimeEnd = strtotime('tomorrow');
         }
 
+        // 客户：今日已跟进（与 crm.customer/index scope=11 条件一致）
+        $today_followed_count = Db::name('crm_customer')->where($wheretoday)->whereTime('last_up_time','today')->count();//今日已经跟进个数
+        View::assign('today_followed_count', $today_followed_count);
+
+
+        $not_followed_count=Db::name('crm_customer')->where($wheretoday)->whereNotNull('next_time')->where('next_time','<>',0)->where('next_time','<',$nextTimeEnd)->count();
+        View::assign('not_followed_count',$not_followed_count);
+
+        // 客户：跟进率
+        $all_count=($today_followed_count+$not_followed_count);
+        if ($all_count > 0) {
+            $genjinlv = ($today_followed_count/$all_count)*100;
+        }else{
+            $genjinlv = 0;
+        }
+        View::assign('genjinlv', round($genjinlv,2));
+
+        // 线索：今日已跟进（与 crm.clue/index scope=11 条件一致）
+        $today_followed_clue_count = Db::name('crm_clue')
+            ->where([
+                ['last_up_time', '>=', strtotime('today')],
+                ['last_up_time', '<', strtotime('tomorrow')],
+                ['owner_admin_id', '=', $admin_id],
+                ['to_customer_id', '=', 0],
+                ['status', '<>', 2],
+            ])->count();
+        View::assign('today_followed_clue_count', $today_followed_clue_count);
+
+        // 商机：今日已跟进（与 crm.business/index scope=11 条件一致）
+        $today_followed_business_count = Db::name('crm_business')
+            ->where([
+                ['last_up_time', '>=', strtotime('today')],
+                ['last_up_time', '<', strtotime('tomorrow')],
+                ['owner_admin_id', '=', $admin_id],
+            ])->count();
+        View::assign('today_followed_business_count', $today_followed_business_count);
+
+        // ========== 8项待办事项统计 ==========
+        $group_id = $this->admin['group_id'];
+
         // 1. 待跟线索（与 crm.clue/index scope=10 条件一致）
         $pending_clue_count = Db::name('crm_clue')
             ->where([
                 ['to_customer_id', '=', 0],
+                ['status', '<>', 2],
                 ['next_time', '>', 0],
                 ['next_time', '<', $nextTimeEnd],
                 ['owner_admin_id', '=', $admin_id]
@@ -240,6 +255,16 @@ class Index extends AdminController
                 ['owner_admin_id', '=', $admin_id]
             ])->count();
         View::assign('pending_business_count', $pending_business_count);
+
+        // 线索：跟进率（今日已跟进 / (今日已跟进+待跟进)）
+        $clue_all_count = $today_followed_clue_count + $pending_clue_count;
+        $clue_genjinlv = $clue_all_count > 0 ? round($today_followed_clue_count / $clue_all_count * 100, 2) : 0;
+        View::assign('clue_genjinlv', $clue_genjinlv);
+
+        // 商机：跟进率
+        $business_all_count = $today_followed_business_count + $pending_business_count;
+        $business_genjinlv = $business_all_count > 0 ? round($today_followed_business_count / $business_all_count * 100, 2) : 0;
+        View::assign('business_genjinlv', $business_genjinlv);
 
         // 4. 即将到期合同（与 crm.contract/index scope=expiring 条件一致）
         $expiring_contract_count = Db::name('crm_contract')
@@ -303,6 +328,10 @@ class Index extends AdminController
             })->count();
         View::assign('audit_order_count', $audit_order_count);
 
+        // 待办事项总数字角标（8项之和，与头部导航待办角标 backlog 口径一致）
+        // 注：pending_customer_count 与 not_followed_count 同值（见上方复用），故直接引用后者求和
+        View::assign('todo_total_count', $pending_clue_count + $not_followed_count + $pending_business_count + $expiring_contract_count + $pending_receivables_count + $audit_contract_count + $audit_receivables_count + $audit_order_count);
+
         // 审批类待办跳转URL（JSON参数含花括号，不能在模板标签内生成）
         View::assign('audit_contract_url', myurl('process.audit/index', ['scope' => 'audit', 'filter' => '{"title":"合同审核"}', 'op' => '{"title":"="}']));
         View::assign('audit_receivables_url', myurl('process.audit/index', ['scope' => 'audit', 'filter' => '{"title":"回款审核"}', 'op' => '{"title":"="}']));
@@ -315,21 +344,544 @@ class Index extends AdminController
             ->count('DISTINCT business_id');
         View::assign('today_business_record_count', $today_business_record_count);
 
-        // 待跟商机列表
-        $today_business_tiixng = Db::name('crm_business')
-            ->field('`id`,`owner_username`,`customer_id`,`name`,`next_time`')
-            ->where('is_end', '=', 0)
-            ->where('owner_admin_id', '=', $admin_id)
-            ->whereNotNull('next_time')
-            ->where('next_time', '<>', 0)
-            ->whereTime('next_time', '<=', 'tomorrow -1second')
-            ->order('next_time ASC')
-            ->limit(10)
-            ->select()
-            ->toArray();
-        View::assign('today_business_tiixng', $today_business_tiixng);
+
+
+        // ========== 首页图表数据统计 ==========
+        // 1. 客户量趋势：近30天客户增量(to_kh_time)与客户成交量(success_time)
+        $endtime = time();
+        $starttime = strtotime('-29 day');
+        $fmtResult = \tools\Hs::format_lx_time($starttime, $endtime);
+        $format = $fmtResult[0];
+        $column = $fmtResult[1];
+        $c_count = $d_count = array_fill_keys($column, 0);
+        $c_lists = Db::name('crm_customer')->where('to_kh_time', 'between time', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, DATE_FORMAT(FROM_UNIXTIME(to_kh_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        foreach ($c_lists as $v) {
+            $c_count[$v['add_date']] = $v['nums'];
+        }
+        $d_lists = Db::name('crm_customer')->where('success_time', 'between time', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, DATE_FORMAT(FROM_UNIXTIME(success_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        foreach ($d_lists as $v) {
+            $d_count[$v['add_date']] = $v['nums'];
+        }
+
+        // 2. 跟进方式占比（独立卡片：默认当前年·全年 + 线索跟进，与卡片默认下拉选项、月份留空口径一致）
+        $recordTypeData = $this->getRecordTypeData(date('Y') . '-01-01 - ' . date('Y') . '-12-31', 1);
+
+        // ========== 业绩概况（首页面板初始数据：默认当前年·当前月·合同金额） ==========
+        $achievement = $this->getAchievementData(1, (int)date('Y'), (int)date('n'));
+        View::assign('achievement', $achievement);
+        $this->assignconfig('achievement', $achievement);
+
+        $this->assignconfig('erchart', [
+            'main_customer' => [
+                'date' => array_keys($c_count),
+                'data' => [
+                    '客户增量' => array_values($c_count),
+                    '客户成交量' => array_values($d_count),
+                ],
+            ],
+            'main_clue_customer' => $this->getClueEchartData(),
+            'main_record_type' => $recordTypeData,
+            'trend' => $this->getTrendEchartData(),
+        ]);
 
         return $this->fetch();
+    }
+
+    /**
+     * 业绩概况接口（首页面板 AJAX 调用）
+     * 参数：row_config 业绩方式(1合同金额 2回款金额 3订单金额)，row_year 年份，row_month 月份(0=全年)
+     */
+    public function achievement()
+    {
+        if (!$this->request->isAjax()) {
+            $this->error(lang('Invalid request'));
+        }
+        $config = (int)input('row_config', 1);
+        $year = (int)input('row_year', date('Y'));
+        $month = (int)input('row_month', 0);
+        if (!in_array($config, [1, 2, 3])) {
+            $this->error(lang('参数有误'));
+        }
+        if ($year < 2000 || $year > 2100) {
+            $this->error(lang('年份有误'));
+        }
+        $this->success('success', '', $this->getAchievementData($config, $year, $month));
+    }
+
+    /**
+     * 合同|回款|订单 金额与数量趋势接口（首页面板 AJAX 调用）
+     * 参数：date_range 日期范围（形如 "2026-07-01 - 2026-07-31"，不传默认最近30天）
+     */
+    public function achievementEchart()
+    {
+        if (!$this->request->isAjax()) {
+            $this->error(lang('Invalid request'));
+        }
+        $dateRange = $this->request->param('date_range', '');
+        $this->success('success', '', [
+            'trend' => $this->getTrendEchartData($dateRange),
+        ]);
+    }
+
+    /**
+     * 客户量趋势接口（首页面板 AJAX 调用）
+     * 参数：date_range 日期范围（形如 "2026-07-01 - 2026-07-31"，不传默认最近30天）
+     */
+    public function customerEchart()
+    {
+        if (!$this->request->isAjax()) {
+            $this->error(lang('Invalid request'));
+        }
+        $dateRange = $this->request->param('date_range', '');
+        $this->success('success', '', [
+            'main_customer' => $this->getCustomerEchartData($dateRange),
+            'main_record_type' => $this->getRecordTypeData($dateRange),
+        ]);
+    }
+
+    /**
+     * 线索量趋势接口（首页面板 AJAX 调用）
+     * 参数：date_range 日期范围（形如 "2026-07-01 - 2026-07-31"，不传默认最近30天）
+     */
+    public function clueEchart()
+    {
+        if (!$this->request->isAjax()) {
+            $this->error(lang('Invalid request'));
+        }
+        $dateRange = $this->request->param('date_range', '');
+        $this->success('success', '', [
+            'main_clue_customer' => $this->getClueEchartData($dateRange),
+        ]);
+    }
+
+    /**
+     * 跟进方式占比统计（按时间段过滤跟进记录）
+     * @param string $dateRange 日期范围（"开始 - 结束"，空则默认最近30天）
+     * @param int    $source    跟进来源 1线索跟进(crm_clue_record) 2客户跟进(crm_record) 3商机跟进(crm_business_record)
+     * @return array [{name,value},...] 仅含有所选时间段内产生记录的跟进方式
+     */
+    private function getRecordTypeData($dateRange = '', $source = 2)
+    {
+        // 时间范围：解析 date_range；非法或为空时默认最近30天（含今天）
+        $starttime = $endtime = null;
+        if ($dateRange !== '' && strpos($dateRange, ' - ') !== false) {
+            list($startDate, $endDate) = explode(' - ', $dateRange, 2);
+            $starttime = strtotime($startDate);
+            $endtime = strtotime($endDate);
+            if ($starttime && $endtime) {
+                if ($starttime > $endtime) {
+                    list($starttime, $endtime) = [$endtime, $starttime];
+                }
+                // 结束日期不带时分秒时补到当天 23:59:59，避免漏掉当天数据
+                if (date('H:i:s', $endtime) == '00:00:00') {
+                    $endtime += 86399;
+                }
+            } else {
+                $starttime = $endtime = null;
+            }
+        }
+        if (empty($starttime) || empty($endtime)) {
+            $endtime = time();
+            $starttime = strtotime('-29 day');
+        }
+        // 来源表选择（默认客户跟进，保持 customerEchart 接口原有口径不变）
+        $recordTable = 'crm_record';
+        if ((int)$source === 1) {
+            $recordTable = 'crm_clue_record';
+        } elseif ((int)$source === 3) {
+            $recordTable = 'crm_business_record';
+        }
+        $recordTypeData = [];
+        $recordTypeList = Db::name('crm_record_type')->field('id,name')->where('status', '=', 1)->order('sort ASC')->select();
+        if ($recordTypeList) {
+            foreach ($recordTypeList as $v) {
+                $nums = Db::name($recordTable)->where('create_time', 'between time', [$starttime, $endtime])
+                    ->where('record_type', $v['name'])
+                    ->count();
+                if ($nums > 0) {
+                    $recordTypeData[] = ['name' => $v['name'], 'value' => $nums];
+                }
+            }
+        }
+        return $recordTypeData;
+    }
+
+    /**
+     * 跟进方式占比接口（首页面板 AJAX 调用）
+     * 参数：row_source 跟进来源(1线索跟进 2客户跟进 3商机跟进)，date_range 日期范围（空则默认最近30天）
+     */
+    public function recordTypeEchart()
+    {
+        if (!$this->request->isAjax()) {
+            $this->error(lang('Invalid request'));
+        }
+        $source = (int)input('row_source', 2);
+        if (!in_array($source, [1, 2, 3], true)) {
+            $this->error(lang('参数有误'));
+        }
+        $dateRange = $this->request->param('date_range', '');
+        $this->success('success', '', [
+            'main_record_type' => $this->getRecordTypeData($dateRange, $source),
+        ]);
+    }
+
+    /**
+     * 客户量趋势统计（客户增量 to_kh_time + 客户成交量 success_time）
+     * @param string $dateRange 日期范围（"开始 - 结束"，空则默认最近30天）
+     * @return array {date:[], data:{客户增量,客户成交量}}
+     */
+    private function getCustomerEchartData($dateRange = '')
+    {
+        // 时间范围：解析 date_range；非法或为空时默认最近30天（含今天）
+        $starttime = $endtime = null;
+        if ($dateRange !== '' && strpos($dateRange, ' - ') !== false) {
+            list($startDate, $endDate) = explode(' - ', $dateRange, 2);
+            $starttime = strtotime($startDate);
+            $endtime = strtotime($endDate);
+            if ($starttime && $endtime) {
+                if ($starttime > $endtime) {
+                    list($starttime, $endtime) = [$endtime, $starttime];
+                }
+                // 结束日期不带时分秒时补到当天 23:59:59，避免漏掉当天数据
+                if (date('H:i:s', $endtime) == '00:00:00') {
+                    $endtime += 86399;
+                }
+            } else {
+                $starttime = $endtime = null;
+            }
+        }
+        if (empty($starttime) || empty($endtime)) {
+            $endtime = time();
+            $starttime = strtotime('-29 day');
+        }
+        $totalseconds = $endtime - $starttime;
+        // 时间跨度决定分组粒度：>60天按月，>1天按天，否则按小时
+        if ($totalseconds > 86400 * 30 * 2) {
+            $format = '%Y-%m';
+        } elseif ($totalseconds > 86400) {
+            $format = '%Y-%m-%d';
+        } else {
+            $format = '%H:00';
+        }
+
+        // 生成连续时间轴（保证无数据的日期也出现在图中）
+        $column = [];
+        if ($totalseconds > 86400 * 30 * 2) {
+            $mStart = mktime(0, 0, 0, (int)date('n', $starttime), 1, (int)date('Y', $starttime));
+            $mEnd = mktime(0, 0, 0, (int)date('n', $endtime), 1, (int)date('Y', $endtime));
+            for ($t = $mStart; $t <= $mEnd; $t = strtotime('+1 month', $t)) {
+                $column[] = date('Y-m', $t);
+            }
+        } elseif ($totalseconds > 86400) {
+            for ($t = $starttime; $t <= $endtime; $t += 86400) {
+                $column[] = date('Y-m-d', $t);
+            }
+        } else {
+            for ($t = $starttime; $t <= $endtime; $t += 3600) {
+                $column[] = date('H:00', $t);
+            }
+        }
+
+        $c_count = $d_count = array_fill_keys($column, 0);
+        // 客户增量：按转客户时间(to_kh_time)
+        $c_lists = Db::name('crm_customer')->where('to_kh_time', 'between time', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, DATE_FORMAT(FROM_UNIXTIME(to_kh_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        foreach ($c_lists as $v) {
+            $c_count[$v['add_date']] = (int)$v['nums'];
+        }
+        // 客户成交量：按成交时间(success_time)
+        $d_lists = Db::name('crm_customer')->where('success_time', 'between time', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, DATE_FORMAT(FROM_UNIXTIME(success_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        foreach ($d_lists as $v) {
+            $d_count[$v['add_date']] = (int)$v['nums'];
+        }
+
+        return [
+            'date' => array_keys($c_count),
+            'data' => [
+                '客户增量' => array_values($c_count),
+                '客户成交量' => array_values($d_count),
+            ],
+        ];
+    }
+
+    /**
+     * 线索量趋势统计（线索增量 create_time + 线索转化量 to_customer_time）
+     * @param string $dateRange 日期范围（"开始 - 结束"，空则默认最近30天）
+     * @return array {date:[], data:{线索增量,线索转化量}}
+     */
+    private function getClueEchartData($dateRange = '')
+    {
+        // 时间范围：解析 date_range；非法或为空时默认最近30天（含今天）
+        $starttime = $endtime = null;
+        if ($dateRange !== '' && strpos($dateRange, ' - ') !== false) {
+            list($startDate, $endDate) = explode(' - ', $dateRange, 2);
+            $starttime = strtotime($startDate);
+            $endtime = strtotime($endDate);
+            if ($starttime && $endtime) {
+                if ($starttime > $endtime) {
+                    list($starttime, $endtime) = [$endtime, $starttime];
+                }
+                // 结束日期不带时分秒时补到当天 23:59:59，避免漏掉当天数据
+                if (date('H:i:s', $endtime) == '00:00:00') {
+                    $endtime += 86399;
+                }
+            } else {
+                $starttime = $endtime = null;
+            }
+        }
+        if (empty($starttime) || empty($endtime)) {
+            $endtime = time();
+            $starttime = strtotime('-29 day');
+        }
+        $totalseconds = $endtime - $starttime;
+        // 时间跨度决定分组粒度：>60天按月，>1天按天，否则按小时
+        if ($totalseconds > 86400 * 30 * 2) {
+            $format = '%Y-%m';
+        } elseif ($totalseconds > 86400) {
+            $format = '%Y-%m-%d';
+        } else {
+            $format = '%H:00';
+        }
+
+        // 生成连续时间轴（保证无数据的日期也出现在图中）
+        $column = [];
+        if ($totalseconds > 86400 * 30 * 2) {
+            $mStart = mktime(0, 0, 0, (int)date('n', $starttime), 1, (int)date('Y', $starttime));
+            $mEnd = mktime(0, 0, 0, (int)date('n', $endtime), 1, (int)date('Y', $endtime));
+            for ($t = $mStart; $t <= $mEnd; $t = strtotime('+1 month', $t)) {
+                $column[] = date('Y-m', $t);
+            }
+        } elseif ($totalseconds > 86400) {
+            for ($t = $starttime; $t <= $endtime; $t += 86400) {
+                $column[] = date('Y-m-d', $t);
+            }
+        } else {
+            for ($t = $starttime; $t <= $endtime; $t += 3600) {
+                $column[] = date('H:00', $t);
+            }
+        }
+
+        $c_count = $d_count = array_fill_keys($column, 0);
+        // 线索增量：按创建时间(create_time)
+        $c_lists = Db::name('crm_clue')->where('create_time', 'between time', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, DATE_FORMAT(FROM_UNIXTIME(create_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        foreach ($c_lists as $v) {
+            $c_count[$v['add_date']] = (int)$v['nums'];
+        }
+        // 线索转化量：按转客户时间(to_customer_time)
+        $d_lists = Db::name('crm_clue')->where('to_customer_time', 'between time', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, DATE_FORMAT(FROM_UNIXTIME(to_customer_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        foreach ($d_lists as $v) {
+            $d_count[$v['add_date']] = (int)$v['nums'];
+        }
+
+        return [
+            'date' => array_keys($c_count),
+            'data' => [
+                '线索增量' => array_values($c_count),
+                '线索转化量' => array_values($d_count),
+            ],
+        ];
+    }
+
+    /**
+     * 合同|回款|订单 金额与数量趋势统计（仅统计当前登录人自己的数据）
+     * @param string $dateRange 日期范围（"开始 - 结束"，空则默认最近30天）
+     * @return array {date:[], data:{合同数量,合同金额,回款金额,回款数量,订单数量,订单金额}}
+     */
+    private function getTrendEchartData($dateRange = '')
+    {
+        $admin_id = $this->admin['admin_id'];
+        // 时间范围：解析 date_range；非法或为空时默认最近30天（含今天）
+        $starttime = $endtime = null;
+        if ($dateRange !== '' && strpos($dateRange, ' - ') !== false) {
+            list($startDate, $endDate) = explode(' - ', $dateRange, 2);
+            $starttime = strtotime($startDate);
+            $endtime = strtotime($endDate);
+            if ($starttime && $endtime) {
+                if ($starttime > $endtime) {
+                    list($starttime, $endtime) = [$endtime, $starttime];
+                }
+                // 结束日期不带时分秒时补到当天 23:59:59，避免漏掉当天数据
+                if (date('H:i:s', $endtime) == '00:00:00') {
+                    $endtime += 86399;
+                }
+            } else {
+                $starttime = $endtime = null;
+            }
+        }
+        if (empty($starttime) || empty($endtime)) {
+            $endtime = time();
+            $starttime = strtotime('-29 day');
+        }
+        $totalseconds = $endtime - $starttime;
+        // 时间跨度决定分组粒度：>60天按月，>1天按天，否则按小时
+        if ($totalseconds > 86400 * 30 * 2) {
+            $format = '%Y-%m';
+        } elseif ($totalseconds > 86400) {
+            $format = '%Y-%m-%d';
+        } else {
+            $format = '%H:00';
+        }
+
+        // 合同：审核通过(check_status=3)，按签约时间(sign_time)
+        $contractList = Db::name('crm_contract')
+            ->where('check_status', 3)
+            ->where('owner_admin_id', $admin_id)
+            ->where('sign_time', 'between', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, SUM(money) AS money, DATE_FORMAT(FROM_UNIXTIME(sign_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        // 回款：审核通过(check_status=3)，按回款时间(return_time)
+        $receivablesList = Db::name('crm_contract_receivables')
+            ->where('check_status', 3)
+            ->where('owner_admin_id', $admin_id)
+            ->where('return_time', 'between', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, SUM(money) AS money, DATE_FORMAT(FROM_UNIXTIME(return_time), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+        // 订单：审核通过(status=1)，按下单时间(xiadanriqi)
+        $orderList = Db::name('crm_order')
+            ->where('status', 1)
+            ->where('owner_admin_id', $admin_id)
+            ->where('xiadanriqi', 'between', [$starttime, $endtime])
+            ->field('COUNT(*) AS nums, SUM(money) AS money, DATE_FORMAT(FROM_UNIXTIME(xiadanriqi), "' . $format . '") AS add_date')
+            ->group('add_date')
+            ->select();
+
+        // 生成连续时间轴（保证无数据的日期也出现在图中）
+        $column = [];
+        if ($totalseconds > 86400 * 30 * 2) {
+            $mStart = mktime(0, 0, 0, (int)date('n', $starttime), 1, (int)date('Y', $starttime));
+            $mEnd = mktime(0, 0, 0, (int)date('n', $endtime), 1, (int)date('Y', $endtime));
+            for ($t = $mStart; $t <= $mEnd; $t = strtotime('+1 month', $t)) {
+                $column[] = date('Y-m', $t);
+            }
+        } elseif ($totalseconds > 86400) {
+            for ($t = $starttime; $t <= $endtime; $t += 86400) {
+                $column[] = date('Y-m-d', $t);
+            }
+        } else {
+            for ($t = $starttime; $t <= $endtime; $t += 3600) {
+                $column[] = date('H:00', $t);
+            }
+        }
+
+        $c_count = $c_money = $r_count = $r_money = $o_count = $o_money = array_fill_keys($column, 0);
+        foreach ($contractList as $v) {
+            $c_count[$v['add_date']] = (int)$v['nums'];
+            $c_money[$v['add_date']] = (float)$v['money'];
+        }
+        foreach ($receivablesList as $v) {
+            $r_count[$v['add_date']] = (int)$v['nums'];
+            $r_money[$v['add_date']] = (float)$v['money'];
+        }
+        foreach ($orderList as $v) {
+            $o_count[$v['add_date']] = (int)$v['nums'];
+            $o_money[$v['add_date']] = (float)$v['money'];
+        }
+
+        return [
+            'date' => array_keys($c_count),
+            'data' => [
+                '合同数量' => array_values($c_count),
+                '合同金额' => array_values($c_money),
+                '回款金额' => array_values($r_money),
+                '回款数量' => array_values($r_count),
+                '订单数量' => array_values($o_count),
+                '订单金额' => array_values($o_money),
+            ],
+        ];
+    }
+
+    /**
+     * 业绩概况统计
+     * @param int $config 业绩方式 1合同金额 2回款金额 3订单金额
+     * @param int $year   年份
+     * @param int $month  月份 0=全年
+     * @return array
+     */
+    private function getAchievementData($config, $year, $month)
+    {
+        $config_arr = [1 => '合同金额', 2 => '回款金额', 3 => '订单金额'];
+        $month_arr = [0 => 'yeartarget', 1 => 'january', 2 => 'february', 3 => 'march', 4 => 'april', 5 => 'may', 6 => 'june', 7 => 'july', 8 => 'august', 9 => 'september', 10 => 'october', 11 => 'november', 12 => 'december'];
+        list($start_time, $end_time) = $this->mFristAndLast($year, $month);
+        $admin_id = $this->admin['admin_id'];
+
+        // 业绩目标（month=0 取全年目标 yeartarget，否则取对应月份字段）
+        $yeartarget = Db::name('crm_achievement')
+            ->where('admin_id', $admin_id)
+            ->where('config', $config)
+            ->where('year', $year)
+            ->value($month_arr[$month]);
+
+        // 合同金额：审核通过(check_status=3)，按签约日期(sign_time)
+        $contract_money = Db::name('crm_contract')
+            ->where('check_status', 3)
+            ->where('owner_admin_id', $admin_id)
+            ->where('sign_time', 'between', [$start_time, $end_time])
+            ->sum('money');
+
+        // 回款金额：审核通过(check_status=3)，按回款日期(return_time)
+        $receivables_money = Db::name('crm_contract_receivables')
+            ->where('check_status', 3)
+            ->where('owner_admin_id', $admin_id)
+            ->where('return_time', 'between', [$start_time, $end_time])
+            ->sum('money');
+
+        // 订单金额：审核通过(status=1)，按下单日期(xiadanriqi)
+        $order_money = Db::name('crm_order')
+            ->where('status', 1)
+            ->where('owner_admin_id', $admin_id)
+            ->where('xiadanriqi', 'between', [$start_time, $end_time])
+            ->sum('money');
+
+        $money_arr = [1 => $contract_money, 2 => $receivables_money, 3 => $order_money];
+        $complete_percent = $yeartarget > 0 ? round($money_arr[$config] / $yeartarget * 100, 2) : 0;
+
+        return [
+            'name' => $config_arr[$config],
+            'year' => $year,
+            'month' => $month,
+            'yeartarget' => $yeartarget ?: 0,
+            'contract_money' => $contract_money ?: 0,
+            'receivables_money' => $receivables_money ?: 0,
+            'order_money' => $order_money ?: 0,
+            'complete_percent' => $complete_percent,
+        ];
+    }
+
+    /**
+     * 获取某年某月的时间范围
+     * @param int $year  年份
+     * @param int $month 月份 0=全年
+     * @return array [开始时间戳, 结束时间戳]
+     */
+    private function mFristAndLast($year, $month)
+    {
+        if ($month > 0) {
+            $start_time = mktime(0, 0, 0, $month, 1, $year);
+            $end_time = mktime(23, 59, 59, $month, date('t', $start_time), $year);
+        } else {
+            $start_time = mktime(0, 0, 0, 1, 1, $year);
+            $end_time = mktime(23, 59, 59, 12, 31, $year);
+        }
+        return [$start_time, $end_time];
     }
 
 
