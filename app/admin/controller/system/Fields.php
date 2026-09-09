@@ -25,10 +25,10 @@ class Fields extends AdminController
     private $AllData;
 
     protected $allowModifyFields = [
-        'show',
+        'list',
         'require',
         'edit',
-        'edit',
+        'form',
         'search',
         'total',
         'export',
@@ -144,22 +144,14 @@ class Fields extends AdminController
             $post = $this->request->post();
             $post = $this->processPost($post);
 
-            $save = false;
-            try {
+
                 $bool = TablHandle::UpdateField($row->toArray(),$post);
 
                 if(!$bool){
-                    throw new \Exception('修改字段失败', 0);
+                    $this->error('修改字段失败');
                 }
                 $post = $this->generateTemplateFields($post);
                 $save = $row->save($post);
-            } catch (\Throwable $e) {
-                $msg=$e->getMessage();
-                if(strpos($msg,'Column already exists')!==false){
-                    $msg='字段已存在';
-                }
-                $this->error($msg);
-            }
 
             if($save){
                 Cache::clear();
@@ -289,6 +281,8 @@ class Fields extends AdminController
         unset($post['regex']);
         $post['is_key'] = (isset($post['is_key']) && $post['is_key']=='on') ? 1 : 0;
         $post['list_sort'] = (isset($post['list_sort']) && $post['list_sort']=='on') ? 1 : 0;
+        $post['list'] = (isset($post['list']) && $post['list']=='on') ? 1 : 0;
+        $post['form'] = (isset($post['form']) && $post['form']=='on') ? 1 : 0;
         return $post;
     }
 

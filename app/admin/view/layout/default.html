@@ -30,5 +30,10 @@ $l='';
 <script src="__MY_PUBLIC__/static/plugs/layui-v2.9/layui.min.js" charset="utf-8"></script>
 <script src="__MY_PUBLIC__/static/plugs/require-2.3.6/require.js" charset="utf-8"></script>
 <script src="__MY_PUBLIC__/static/config-admin.min.js" charset="utf-8"></script>
+<script>
+// 通用公共钩子 adminLayoutScripts：后台布局脚本注入点，由核心布局常驻提供（与插件生命周期无关）
+// 任何插件均可通过 Plugin 类同名 adminLayoutScripts() 方法注入 JS；插件未安装/禁用时 hook 输出为空，不影响页面
+{:hook('adminLayoutScripts')}
+</script>
 </body>
 </html>

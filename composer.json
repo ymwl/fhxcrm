@@ -29,7 +29,8 @@
         "zoujingli/wechat-developer": "^1.2",
         "phpmailer/phpmailer": "^7.0",
         "voku/anti-xss": "^4.1",
-        "ymwl/think8-addons": "^1.0"
+        "ymwl/think8-addons": "^1.0",
+        "workerman/workerman": "4.1.16"
     },
     "require-dev": {
         "symfony/var-dumper": "^4.2",

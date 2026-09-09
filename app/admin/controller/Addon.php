@@ -224,6 +224,9 @@ class Addon extends AdminController
                         if ($v['type'] == 'array') {
 
                             $v['value'] = is_array($params[$k]) ? $params[$k] :json_decode($params[$k],true);
+                        } else {
+                            // text/number 等类型：直接采用提交值（原逻辑漏掉该分支，导致普通配置保存无效）
+                            $v['value'] = $params[$k];
                         }
                     }
                 }

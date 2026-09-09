@@ -51,7 +51,7 @@ define(["jquery", "easy-admin",'xm-select', "treetable", "iconPickerFa", "autoco
                                 return ea.table.switch(data, option);
                             }
                         }},
-                    {field: 'form',width:100, title:fy('Form'), filter: "edit", search: false, templet:function (data, option){
+                    {field: 'form',width:100, title: '表单显示', filter: "form", search: false, templet:function (data, option){
                 if(data.status.indexOf("noedit")!==-1){
                     return '-';
                 }else{return ea.table.switch(data, option);

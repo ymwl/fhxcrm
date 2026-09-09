@@ -619,5 +619,6 @@ define(["jquery", "easy-admin", "miniAdmin", "miniTab"], function ($, ea, miniAd
             }, 200);
         },
     };
-    return Controller;
+
+return Controller;
 });

@@ -47,7 +47,6 @@ define(['webuploader'], function (webUploader)
 
     Class.prototype.createUploader=function(options,that,fileType,fileSize,chunkSize){
         this.options.elementHtml = $(options.elem).html();
-        console.log('that.buildFileType(fileType)=',that.buildFileType(fileType));
         this.uplaod = webUploader.create({
             // 不压缩image
             resize: false,

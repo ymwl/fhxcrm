@@ -24,7 +24,7 @@ return [
     // 服务器地址
             'hostname'          => Env::get('database.hostname', '127.0.0.1'),
     // 数据库名
-            'database'          => Env::get('database.database', 'crm_laikephp_cn'),
+            'database'          => Env::get('database.database', 'call_laikephp_cn'),
     // 用户名
             'username'          => Env::get('database.username', 'root'),
     // 密码
@@ -51,7 +51,7 @@ return [
     'fields_strict'   => true,
     // 自动写入时间戳字段
     // 是否需要断线重连
-    'break_reconnect' => true,
+    'break_reconnect' => false,
             // 监听SQL
             'trigger_sql'       => env('APP_DEBUG', false),
             // 开启字段缓存

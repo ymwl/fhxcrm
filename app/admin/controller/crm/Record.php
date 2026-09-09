@@ -98,22 +98,6 @@ class Record extends AdminController
         return $this->fetch();
     }
 
-    //写跟进
-    public function dialogue(){
-        /*$id=Request::param('id',0,'intval');
-        $result = (new \app\admin\model\CrmCustomer())->where(['id'=>$id])->find();
-        if (empty($result)){
-            $this->error(fy("Non-existent client information"));
-
-        }*/
-        /*
-        // 是否有查看手机号的权限
-        if ($this->admin['isphone'] == 0) {
-            $result['phone'] = mb_substr($result['phone'], 0, 3).'****'. mb_substr($result['phone'], 7, 11);
-        }*/
-
-    }
-
     protected function get_next_url($id){
         list($page, $limit, $where,$sort) = $this->buildTableParames();
         $scope=$this->request->get('scope', 1,'trim');
@@ -256,7 +240,15 @@ class Record extends AdminController
             }
         }else{
             $prefix=getDataBaseConfig('prefix');
-            $fields=Db::query('SELECT `editinput` FROM `'.$prefix.'system_field` WHERE (`form`=1 AND `table`="crm_customer" AND `editinput` is not null) OR `field`="pr_user" OR `field`="at_user" OR `field`="last_up_time" OR `field`="last_up_records" OR `field`="at_user" OR `field`="create_time" order BY `sort` ASC,id ASC');
+            $sql="SELECT `editinput`
+FROM `{$prefix}system_field`
+WHERE `table` = 'crm_customer'
+  AND (
+      (`form` = 1 AND `editinput` IS NOT NULL)
+      OR `field` IN ('pr_user', 'at_user', 'last_up_time', 'last_up_records', 'create_time')
+  )
+ORDER BY `sort` ASC, `id` ASC";
+            $fields=Db::query($sql);
             $fields_str='';
             foreach ($fields as $v){
                 $fields_str.=trim($v['editinput']);

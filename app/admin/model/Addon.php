@@ -17,7 +17,15 @@ class Addon extends TimeModel
 
         if($addons){
             $time=time();
+            // 过滤掉 info.json 中不属于 addon 表的字段（如 require_php 仅用于安装兼容性检查），避免 insertAll 报错
+            $tableFields = \think\facade\Db::name($this->name)->getTableFields();
+            foreach ($addons as &$addon) {
+                $addon = array_intersect_key($addon, array_flip($tableFields));
+            }
+            unset($addon);
             $this->duplicate(['scope'=>'local',
+                'title' => \think\facade\Db::raw('VALUES(title)'),
+                'description' => \think\facade\Db::raw('VALUES(description)'),
                 'status' => \think\facade\Db::raw('VALUES(status)'),
                 'is_set' => \think\facade\Db::raw('VALUES(is_set)'),
                 'version' => \think\facade\Db::raw('VALUES(version)'),

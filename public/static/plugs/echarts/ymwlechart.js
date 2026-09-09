@@ -1,5 +1,4 @@
 define(['echarts','echarts-theme'], function(Echarts, EchartsTheme){
-    console.log(Echarts.version);
     var Ymwlechart = {
         echart: {
             // 将数据加载到数据表中 date = ['1998-02-03','2000-04-04']  data = ['title' => data=[30,40], 'title' => data = ['10','20]]

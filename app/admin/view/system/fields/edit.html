@@ -163,10 +163,10 @@
         <div class="layui-form-item">
             <label class="layui-form-label required">{:fy('List display')}</label>
             <div class="layui-input-block">
-                {if $row.show==1}
-                <input type="checkbox" name="show" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                {if $row.list==1}
+                <input type="checkbox" name="list" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
                 {else}
-                <input type="checkbox" name="show" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                <input type="checkbox" name="list" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
                 {/if}
 
             </div>
@@ -174,10 +174,10 @@
         <div class="layui-form-item">
             <label class="layui-form-label required">{:fy('Form')}</label>
             <div class="layui-input-block">
-                {if $row.edit==1}
-                <input type="checkbox" name="edit" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                {if $row.form==1}
+                <input type="checkbox" name="form" checked lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
                 {else}
-                <input type="checkbox" name="edit" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
+                <input type="checkbox" name="form" lay-skin="switch" lay-text="{:fy('Open')}|{:fy('Close')}">
                 {/if}
             </div>
         </div>

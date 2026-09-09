@@ -48,6 +48,7 @@ return [
             // 是否实时写入
             'realtime_write' => false,
         ],
+
         // 其它日志通道配置
     ],
 

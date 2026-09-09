@@ -1000,7 +1000,7 @@ class TablHandle
                $str .= '</div>';
            }elseif ($value['formtype']=='editor'){
                 $str .= '<div class="layui-input-block">';
-                $str .= '<textarea '.$required.' name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="layui-textarea editor" style="height: 500px" placeholder="{:fy("Please enter")}'.$xsname.'">'.$value['default'].'</textarea>';
+                $str .= '<textarea '.$required.' name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="editor" style="height: 500px" placeholder="{:fy("Please enter")}'.$xsname.'">'.$value['default'].'</textarea>';
                 $str .= '</div>';
             }elseif ($value['formtype']=='password'){
                 $str .= '<div class="layui-input-block">';
@@ -1280,7 +1280,7 @@ class TablHandle
                 $str .= '</div>';
             }elseif ($value['formtype']=='editor'){
                 $str .= '<div class="layui-input-block">';
-                $str .= '<textarea '.$required.' name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="layui-textarea editor" style="height: 500px" placeholder="{:fy("Please enter")}'.$xsname.'">{$row.'.$value['field'].'|raw}</textarea>';
+                $str .= '<textarea '.$required.' name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="editor" style="height: 500px" placeholder="{:fy("Please enter")}'.$xsname.'">{$row.'.$value['field'].'|raw}</textarea>';
                 $str .= '</div>';
             }elseif ($value['formtype']=='password'){
                 $str .= '<div class="layui-input-block">';
@@ -1313,7 +1313,7 @@ class TablHandle
                 $str .= '</div>';
             }else{
                 $str .= '<div class="layui-input-block">';
-                $str .= '<input type="text" id="'.$value['field'].'" name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="layui-input" '.$required.'lay-reqtext="{:fy("Please enter")}'.$xsname.'" placeholder="{:fy("Please enter")}'.$xsname.'" value="{$row.'.$value['field'].'|default=\'\'}">';
+                $str .= '<input type="text" id="'.$value['field'].'" name="'.$value['field'].'" lay-filter="'.$value['field'].'" class="layui-input input-'.$value['formtype'].'" '.$required.'lay-reqtext="{:fy("Please enter")}'.$xsname.'" placeholder="{:fy("Please enter")}'.$xsname.'" value="{$row.'.$value['field'].'|default=\'\'}">';
                 if(!empty($value['describe'])) $str .= '<tip>'.fy($value['describe']).'</tip>';
                 $str .= '</div>';
             }

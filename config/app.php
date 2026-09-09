@@ -10,20 +10,22 @@
 // +----------------------------------------------------------------------
 
 // +----------------------------------------------------------------------
-// | 应用设置
+// | 应用设置66667777999996666651511212
 // +----------------------------------------------------------------------
 use think\facade\Env;
 
-define("SUPER_ADMIN_ID","1");
 define('IS_DEV', env('APP_DEV',0));
+
+// 部署密钥：优先读取 git 忽略的 config/secret.php（安装向导生成，PHP 执行，不易被静态下载），缺失时回退 .env
+$secret = require __DIR__ . '/secret.php';
+
 return [
     // 应用名称
     'app_name'               => '',
     // 应用地址
     'app_host'               => Env::get('app.host', ''),
-    // API JWT 签名密钥（Token 签发/验证），HS256 算法要求密钥长度至少 32 字节（256 位）
-    'app_key'                => Env::get('app.key', '369c13e0d8a36a4193b5b3a4ff6de9cc72625da1e4d7b36882f0b243b68eb2ea'),
-    // 应用调试模式
+    'app_key'                => $secret['app_key'] ,
+    'cookie_crypt_key'       => $secret['cookie_crypt_key'],
 
     // 是否启用路由
     'with_route'       => true,

@@ -196,7 +196,11 @@ define(["jquery", "easy-admin"], function ($, ea) {
         },
         add: function () {
             ea.listen();
+
+
         },
+
+
         edit: function () {
             ea.listen();
         },

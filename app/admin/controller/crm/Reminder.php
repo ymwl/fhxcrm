@@ -5,6 +5,7 @@ namespace app\admin\controller\crm;
 use app\common\controller\AdminController;
 use app\admin\service\ReminderService;
 use think\App;
+use think\facade\Cache;
 use think\facade\Db;
 
 /**
@@ -229,6 +230,7 @@ class Reminder extends AdminController
         $result = $service->markAsRead($id, $this->admin['admin_id']);
 
         if ($result) {
+            $this->clearUnreadCountCache();
             $this->success('标记成功');
         } else {
             $this->error('标记失败');
@@ -245,6 +247,7 @@ class Reminder extends AdminController
         $service = new ReminderService();
         $count = $service->markAllAsRead($this->admin['admin_id']);
 
+        $this->clearUnreadCountCache();
         $this->success("成功标记 {$count} 条提醒为已读");
     }
 
@@ -274,6 +277,7 @@ class Reminder extends AdminController
             ->delete();
 
         if ($count > 0) {
+            $this->clearUnreadCountCache();
             $this->success('删除成功');
         } else {
             $this->error('删除失败');
@@ -285,6 +289,14 @@ class Reminder extends AdminController
      */
     public function getUnreadCount()
     {
+        // 30秒短缓存：框架页与工作台页各自60秒轮询同一接口，按用户隔离缓存抵消重复统计；
+        // 标记已读/删除等写操作会主动清除缓存（见 clearUnreadCountCache），保证角标即时刷新不受影响
+        $cacheKey = 'reminder_unread_' . $this->admin['admin_id'];
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return json($cached);
+        }
+
         $service = new ReminderService();
         $count = $service->getPendingCount($this->admin['admin_id']);
 
@@ -294,12 +306,24 @@ class Reminder extends AdminController
         // 待办事项总数（我的所有待办事项的总和：待跟线索/客户/商机、即将到期合同、待回款、待审合同/回款/订单）
         $backlog = (int)array_sum($service->getBacklogCounts($this->admin['admin_id']));
 
-        return json([
+        $result = [
             'code' => 1,
             'count' => $count,
             'backlog' => $backlog,
             'data' => $list
-        ]);
+        ];
+
+        Cache::set($cacheKey, $result, 30);
+
+        return json($result);
+    }
+
+    /**
+     * 清除当前用户未读数量统计缓存（提醒状态变更后调用，避免角标延迟更新）
+     */
+    private function clearUnreadCountCache()
+    {
+        Cache::delete('reminder_unread_' . $this->admin['admin_id']);
     }
 
     /**
@@ -326,6 +350,7 @@ class Reminder extends AdminController
         if ($reminder['status'] == ReminderService::STATUS_PENDING) {
             $service = new ReminderService();
             $service->markAsRead($id, $this->admin['admin_id']);
+            $this->clearUnreadCountCache();
         }
 
         // 获取关联信息

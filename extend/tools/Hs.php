@@ -93,47 +93,37 @@ class Hs
      * @return string|false 返回完整命令路径或 false
      */
     public static function findCommand($cmd) {
-        // 1. 先尝试直接使用命令（PATH 中已存在）
+        $root  = app()->getRootPath();
+        $isWin = PHP_OS_FAMILY === 'Windows';
+        // Windows 下 npm 生成的是 .cmd/.bat 包装脚本；Unix/Linux/Mac 为无后缀可执行文件
+        $suffixes = $isWin ? ['.cmd', '.bat'] : [''];
+
+        // 1. 项目本地 node_modules/.bin 最优先：版本随 package.json 锁定、离线可用、最稳定
+        foreach ($suffixes as $suffix) {
+            $bin = $root . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . $cmd . $suffix;
+            if (is_file($bin)) {
+                return '"' . $bin . '"';
+            }
+        }
+
+        // 2. 系统 PATH 中的全局命令
         if (self::command_exists($cmd)) {
             return $cmd;
         }
 
-        // 2. 尝试 npx 方式
+        // 3. npm 全局 bin 目录兜底（Windows 下 PATH 未正确覆盖时）
+        if ($isWin && ($appData = getenv('APPDATA'))) {
+            foreach ($suffixes as $suffix) {
+                $bin = $appData . '\\npm\\' . $cmd . $suffix;
+                if (is_file($bin)) {
+                    return '"' . $bin . '"';
+                }
+            }
+        }
+
+        // 4. npx 最后兜底：--yes 自动确认、-- 终止 npx 参数解析，避免首次下载时交互卡死
         if (self::command_exists('npx')) {
-            return 'npx ' . $cmd;
-        }
-
-        // 3. Windows 下查找 npm 全局目录
-        if (PHP_OS_FAMILY === 'Windows') {
-            $npmGlobalPaths = [
-                getenv('APPDATA') . '\\npm',
-                getenv('LOCALAPPDATA') . '\\npm',
-                'C:\\Users\\' . getenv('USERNAME') . '\\AppData\\Roaming\\npm',
-            ];
-
-            foreach ($npmGlobalPaths as $path) {
-                $cmdPath = $path . '\\' . $cmd . '.cmd';
-                if (file_exists($cmdPath)) {
-                    return '"' . $cmdPath . '"';
-                }
-                // 尝试不带 .cmd 后缀
-                $cmdPath = $path . '\\' . $cmd;
-                if (file_exists($cmdPath)) {
-                    return '"' . $cmdPath . '"';
-                }
-            }
-        }
-
-        // 4. 查找项目本地 node_modules
-        $localPaths = [
-            app()->getRootPath() . 'node_modules/.bin/' . $cmd,
-            app()->getRootPath() . 'node_modules/.bin/' . $cmd . '.cmd',
-        ];
-
-        foreach ($localPaths as $path) {
-            if (file_exists($path)) {
-                return '"' . $path . '"';
-            }
+            return 'npx --yes -- ' . $cmd;
         }
 
         return false;

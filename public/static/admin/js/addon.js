@@ -115,10 +115,10 @@ define(["jquery", "easy-admin"], function ($, ea) {
                                 class: 'layui-btn layui-btn-normal layui-btn-sm addon-upgrade',
                                 auth: 'upgrade',
                                 hidden:function (data) {
-                                    if (data.version!=data.net_version && data.install==1 && !data.build){
+                                    if (data.net_version && data.version!=data.net_version && data.install==1 && !data.build){
                                         return false;
                                     }
-                                    if (data.version!=data.net_version && data.install==1 && data.net_build>data.build){
+                                    if (data.net_version && data.version!=data.net_version && data.install==1 && data.net_build>data.build){
                                         return false;
                                     }
                                     return  true;

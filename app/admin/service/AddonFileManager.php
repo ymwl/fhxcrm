@@ -21,19 +21,21 @@ class AddonFileManager
      * Recursively move all files from $source to $target.
      *
      * Files are renamed (moved) from the source directory to the target directory.
-     * If any target file already exists, the entire operation is aborted and already-moved
-     * files are moved back.
+     * If any target file already exists and $overwrite is false, the entire operation is
+     * aborted and already-moved files are moved back. When $overwrite is true, existing
+     * target files are overwritten (deleted first, since rename() cannot overwrite on Windows).
      *
      * Empty directories remaining in the source after move are cleaned up.
      *
      * @param string $source Source directory (addon directory, e.g. addons/xxx/app).
      * @param string $target Target directory (project directory, e.g. app).
+     * @param bool $overwrite Whether to overwrite existing target files instead of failing.
      * @return array Contains:
      *               - files: list of moved files with source/target absolute paths
      *               - map: associative array of relative_path => relative_path for file_map.json
      * @throws Exception
      */
-    public function move(string $source, string $target): array
+    public function move(string $source, string $target, bool $overwrite = false): array
     {
         $source = rtrim(realpath($source), '/\\');
         $target = rtrim($target, '/\\');
@@ -53,7 +55,7 @@ class AddonFileManager
                 $conflicts[] = $targetFile;
             }
         }
-        if (!empty($conflicts)) {
+        if (!empty($conflicts) && !$overwrite) {
             throw new Exception('File conflict detected: ' . implode(', ', $conflicts));
         }
 
@@ -66,6 +68,13 @@ class AddonFileManager
                 $targetFile = $target . DIRECTORY_SEPARATOR . $relativePath;
 
                 $this->ensureDir(dirname($targetFile));
+
+                // 覆盖模式：目标文件已存在时先删除（Windows 下 rename() 无法覆盖已存在文件）
+                if ($overwrite && is_file($targetFile)) {
+                    if (!unlink($targetFile)) {
+                        throw new Exception("Failed to overwrite: {$targetFile}");
+                    }
+                }
 
                 if (!rename($sourceFile, $targetFile)) {
                     throw new Exception("Failed to move: {$sourceFile}");
@@ -96,6 +105,59 @@ class AddonFileManager
     }
 
     /**
+     * 原子地移动多个目录对（安装场景）。
+     *
+     * 将多个 source→target 目录对作为一个整体事务处理：任一段移动失败，
+     * 回滚此前所有已成功移动的文件（move() 内部已回滚当前失败段自身），
+     * 保证「要么全部移到项目目录，要么全部留在插件目录」，不会出现半迁移状态。
+     *
+     * @param array $plans 移动计划列表，每项包含：
+     *               - source: 源目录绝对路径
+     *               - target: 目标目录绝对路径
+     *               - overwrite: 是否覆盖已存在目标文件（默认 false）
+     *               - srcPrefix: file_map.json 中源路径前辍（可选）
+     *               - dstPrefix: file_map.json 中目标路径前辍（可选）
+     * @return array 包含:
+     *               - files: 全部已移动文件（每条含 source/target 绝对路径）
+     *               - map: file_map.json 所需映射（srcPrefix+相对路径 => dstPrefix+相对路径）
+     * @throws Exception 任一段失败时抛出（抛出前已完成整体回滚）
+     */
+    public function moveBatch(array $plans): array
+    {
+        $allMoved = [];
+        $map      = [];
+
+        try {
+            foreach ($plans as $plan) {
+                $source    = $plan['source'];
+                $target    = $plan['target'];
+                $overwrite = $plan['overwrite'] ?? false;
+                $srcPrefix = $plan['srcPrefix'] ?? '';
+                $dstPrefix = $plan['dstPrefix'] ?? '';
+
+                $result = $this->move($source, $target, $overwrite);
+
+                $allMoved = array_merge($allMoved, $result['files']);
+
+                foreach ($result['map'] as $rel => $_) {
+                    $map[$srcPrefix . $rel] = $dstPrefix . $rel;
+                }
+            }
+        } catch (\Throwable $e) {
+            // 逆序回滚此前所有已成功移动的文件，恢复到初始状态
+            foreach (array_reverse($allMoved) as $file) {
+                if (is_file($file['target'])) {
+                    $this->ensureDir(dirname($file['source']));
+                    rename($file['target'], $file['source']);
+                }
+            }
+            throw $e;
+        }
+
+        return ['files' => $allMoved, 'map' => $map];
+    }
+
+    /**
      * Move files from target back to source based on a file map (uninstall scenario).
      *
      * @param array $fileMap Associative array of relativePath => relativePath from file_map.json.
@@ -110,31 +172,78 @@ class AddonFileManager
         $sourceBase = rtrim($sourceBase, '/\\');
         $moved = [];
 
-        foreach ($fileMap as $relSource => $relTarget) {
-            // 规范化相对路径中的混合分隔符（file_map.json 可能存在 / 和 \ 混用）
-            $relSource = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relSource);
-            $relTarget = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relTarget);
+        try {
+            foreach ($fileMap as $relSource => $relTarget) {
+                // 规范化相对路径中的混合分隔符（file_map.json 可能存在 / 和 \ 混用）
+                $relSource = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relSource);
+                $relTarget = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relTarget);
 
-            $targetFile = $targetBase . DIRECTORY_SEPARATOR . $relTarget;
-            $sourceFile = $sourceBase . DIRECTORY_SEPARATOR . $relSource;
+                $targetFile = $targetBase . DIRECTORY_SEPARATOR . $relTarget;
+                $sourceFile = $sourceBase . DIRECTORY_SEPARATOR . $relSource;
 
-            if (!is_file($targetFile)) {
-                continue;
+                if (!is_file($targetFile)) {
+                    continue;
+                }
+
+                $this->ensureDir(dirname($sourceFile));
+
+                if (!rename($targetFile, $sourceFile)) {
+                    throw new Exception("Failed to move back: {$targetFile}");
+                }
+
+                $moved[] = [
+                    'source' => $sourceFile,
+                    'target' => $targetFile,
+                ];
             }
-
-            $this->ensureDir(dirname($sourceFile));
-
-            if (!rename($targetFile, $sourceFile)) {
-                throw new Exception("Failed to move back: {$targetFile}");
+        } catch (\Throwable $e) {
+            // 回滚：将已移回插件的文件再移回项目目录，保证「要么全部移回、要么全部保持原样」
+            foreach (array_reverse($moved) as $file) {
+                if (is_file($file['source'])) {
+                    $this->ensureDir(dirname($file['target']));
+                    rename($file['source'], $file['target']);
+                }
             }
-
-            $moved[] = [
-                'source' => $sourceFile,
-                'target' => $targetFile,
-            ];
+            throw $e;
         }
 
+        // 清理因文件移回而变空的项目子目录，避免卸载后残留大量空文件夹
+        $this->cleanupEmptiedDirs($moved, $targetBase);
+
         return $moved;
+    }
+
+    /**
+     * 清理因文件被移走而变空的项目子目录（自下而上，遇非空目录即停）。
+     *
+     * 仅处理本次移回文件所在的目录链，且只在目录确认为空时才删除；
+     * 项目根目录及与本次移回无关的目录绝不受影响。
+     *
+     * @param array $moved 本次移回的文件列表（每条含 target 绝对路径）
+     * @param string $base 项目根目录绝对路径
+     * @return void
+     */
+    private function cleanupEmptiedDirs(array $moved, string $base): void
+    {
+        $base = rtrim($base, '/\\');
+        $dirsToCheck = [];
+
+        foreach ($moved as $file) {
+            $dir = dirname($file['target']);
+            while ($dir !== $base && strpos($dir, $base . DIRECTORY_SEPARATOR) === 0) {
+                $dirsToCheck[$dir] = true;
+                $dir = dirname($dir);
+            }
+        }
+
+        $dirs = array_keys($dirsToCheck);
+        usort($dirs, function ($a, $b) {
+            return strlen($b) <=> strlen($a);
+        });
+
+        foreach ($dirs as $dir) {
+            $this->removeDirIfEmpty($dir);
+        }
     }
 
     /**

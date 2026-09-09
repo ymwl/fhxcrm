@@ -518,3 +518,4 @@ ul.sp_element_box{padding-top: 6px!important;}
 
 .between input{width: 46% !important;display: inline-block;}
 .layui-form-mid{padding: 0!important; }
+input[data-toggle="city-picker"] { height: 37px; }

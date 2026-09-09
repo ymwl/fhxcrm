@@ -18,7 +18,7 @@
         return $root;
     }
 
-function sp_testwrite($d)
+function fhy_testwrite($d)
 {
     $tfile = "_test.txt";
     $fp = @fopen($d . "/" . $tfile, "w");
@@ -33,12 +33,12 @@ function sp_testwrite($d)
     return false;
 }
 
-function sp_dir_create($path, $mode = 0777)
+function fhy_dir_create($path, $mode = 0777)
 {
     if (is_dir($path))
         return true;
     $ftp_enable = 0;
-    $path = sp_dir_path($path);
+    $path = fhy_dir_path($path);
     $temp = explode('/', $path);
     $cur_dir = '';
     $max = count($temp) - 1;
@@ -52,7 +52,7 @@ function sp_dir_create($path, $mode = 0777)
     return is_dir($path);
 }
 
-function sp_dir_path($path)
+function fhy_dir_path($path)
 {
     $path = str_replace('\\', '/', $path);
     if (substr($path, -1) != '/')
@@ -60,7 +60,7 @@ function sp_dir_path($path)
     return $path;
 }
 
-function sp_execute_sql($db, $sql)
+function fhy_execute_sql($db, $sql)
 {
     $sql = trim($sql);
     preg_match('/CREATE TABLE .+ `([^ ]*)`/', $sql, $matches);
@@ -102,7 +102,7 @@ function sp_execute_sql($db, $sql)
  * 显示提示信息
  * @param string $msg 提示信息
  */
-function sp_show_msg($msg, $class = '')
+function fhy_show_msg($msg, $class = '')
 {
     echo "<script type=\"text/javascript\">showmsg(\"{$msg}\", \"{$class}\")</script>";
     flush();
@@ -124,7 +124,7 @@ function web_is_installed()
 
 
 
-function sp_create_db_config($config)
+function fhy_create_db_config($config)
 {
     if (is_array($config)) {
         //读取配置内容
@@ -150,9 +150,7 @@ function sp_create_db_config($config)
             if (function_exists('opcache_invalidate')) {
                 @opcache_invalidate($confDir . 'database.php', true);
             }
-           $conf = file_get_contents($confDir . 'version.php');
-           $conf = str_replace("#secret#", rand_string(18), $conf);
-            file_put_contents($confDir . 'version.php', $conf);
+           fhy_update_secret('cookie_crypt_key', rand_string(18));
         } catch (\Exception $e) {
 
             return false;
@@ -165,13 +163,31 @@ function sp_create_db_config($config)
 }
 
 /**
+
  * 更新或追加根目录 .env 文件中的某个配置项
  * 用于安装时为当前部署生成独立的密钥（如 APP_KEY）
  * @param string $key   环境变量名（如 APP_KEY）
  * @param string $value 值
  * @return bool 是否写入成功
  */
-function sp_update_env_value($key, $value)
+function fhy_update_secret($key, $value)
+{
+    $secretFile = app()->getRootPath() . 'config/secret.php';
+    try {
+        $data = is_file($secretFile) ? (array)(include $secretFile) : [];
+        $data[$key] = $value;
+        $content = "<?php\n\n// 部署专用密钥（由安装向导自动生成，勿提交版本库、勿泄露）\nreturn " . var_export($data, true) . ";\n";
+        $result = file_put_contents($secretFile, $content);
+        if ($result !== false && function_exists('opcache_invalidate')) {
+            @opcache_invalidate($secretFile, true);
+        }
+        return $result !== false;
+    } catch (\Throwable $e) {
+        return false;
+    }
+}
+
+function fhy_update_env_value($key, $value)
 {
     $envFile = app()->getRootPath() . '.env';
     try {

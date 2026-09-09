@@ -448,7 +448,7 @@ class Customer extends AdminController
     public function add()
     {
         $prefix=getDataBaseConfig('prefix');
-        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`addinput` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
+        $fields=Db::query('SELECT `name`,`xsname`,`rule`,`msg`,`field`,`addinput`,`formtype` FROM `'.$prefix.'system_field` WHERE `form`=1 AND `table`="crm_customer" order BY `sort` ASC,id ASC');
         if ($this->request->isPost()) {
             $allowCustomersNum=$this->model->allowCustomersNum($this->admin);
             if($allowCustomersNum['max_customers_num']>0){

@@ -69,7 +69,7 @@ class Login extends BaseController
                     cookie('password','');
                 }else{
                     cookie('username',$data['username'],315360000);
-                    cookie('password',cpEncode($data['password'],config('version.secret'),315360000),315360000);
+                    cookie('password',cpEncode($data['password'],config('app.cookie_crypt_key'),315360000),315360000);
                 }
 
                 session('referer',null);

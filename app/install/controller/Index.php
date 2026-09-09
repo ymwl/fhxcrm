@@ -37,9 +37,7 @@ class Index extends BaseController
 
     public function step2()
     {
-//        if (file_exists_case('data/conf/config.php')) {
-//            @unlink('data/conf/config.php');
-//        }
+
         $data = [];
         $data['phpversion'] = @phpversion();
         $data['os'] = PHP_OS;
@@ -142,8 +140,8 @@ class Index extends BaseController
         $newFolders = [];
         foreach ($folders as $dir) {
             $testDir = $dir;
-            sp_dir_create($testDir);
-            if (sp_testwrite($testDir)) {
+            fhy_dir_create($testDir);
+            if (fhy_testwrite($testDir)) {
                 $newFolders[$dir]['w'] = true;
             } else {
                 $newFolders[$dir]['w'] = false;
@@ -273,7 +271,7 @@ class Index extends BaseController
     {
         $dbConfig = session('install.db_config');
 
-        $result = sp_create_db_config($dbConfig);
+        $result = fhy_create_db_config($dbConfig);
 
         if ($result) {
             $this->success("数据配置文件写入成功!");
@@ -314,9 +312,9 @@ class Index extends BaseController
             $bytes[8] = chr(ord($bytes[8]) & 0x3f | 0x80);
             $installId = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
             \think\facade\Db::name('system_config')->where('field','=','install_id')->update(['value'=>$installId, 'update_time'=>time()]);
-            // 为当前部署生成独立的 JWT 签名密钥(APP_KEY),写入 .env,避免所有站点共用相同密钥
+            // 为当前部署生成独立的 JWT 签名密钥(app_key),写入 config/secret.php,避免所有站点共用相同密钥
             // HS256 要求密钥至少 32 字节,这里生成 64 位十六进制(256 位)
-            sp_update_env_value('APP_KEY', bin2hex(random_bytes(32)));
+            fhy_update_secret('app_key', bin2hex(random_bytes(32)));
         } catch (\Exception $e) {
             $this->error("网站创建失败!" . $e->getMessage());
         }

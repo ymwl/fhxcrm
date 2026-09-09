@@ -35,9 +35,31 @@ class Auth
 
     public function handle($request, \Closure $next)
     {
-        $controller = strtolower($request->controller());
-        $action = strtolower($request->action());
-        $path = $controller . '/' . $action;
+        // 中间件在路由调度之前执行,此时 request 尚未解析 controller/action,需从 pathinfo 手动解析
+        $controller = strtolower((string) $request->controller());
+        $action     = strtolower((string) $request->action());
+        if ('' === $controller || '' === $action) {
+            // 参考框架 Route::path() 先去除 URL 后缀,再按分隔符解析
+            $pathinfo = trim((string) $request->pathinfo(), '/');
+            $suffix   = config('route.url_html_suffix');
+            if (false === $suffix) {
+                // 禁止伪静态访问
+            } elseif ($suffix) {
+                // 去除正常的 URL 后缀
+                $pathinfo = preg_replace('/\.(' . ltrim((string) $suffix, '.') . ')$/i', '', $pathinfo);
+            } else {
+                // 允许任何后缀访问
+                $pathinfo = preg_replace('/\.' . $request->ext() . '$/i', '', $pathinfo);
+            }
+            $pathArr    = array_values(array_filter(explode('/', (string) $pathinfo)));
+            // 保留 URL 原始大小写写入 request(与框架 Route 解析一致:框架 setAction 同样保留原始大小写,
+            // assignViewConfig 依赖它注入 CONFIG.ACTION,必须与前端 JS 方法名大小写一致,如 adminRule)
+            $controller = $pathArr[0] ?? 'index';
+            $action     = $pathArr[1] ?? 'index';
+            $request->setController($controller)->setAction($action);
+        }
+        // 白名单/权限匹配统一转小写(兼容 URL 大写形式,如 Login/verify)
+        $path = strtolower($controller) . '/' . strtolower($action);
 
         // 判断是否无需登录
         if (in_array($path, $this->noLogin)) {
@@ -45,7 +67,7 @@ class Auth
         }
 
         // 授权软禁用拦截：存在禁用标记时拦截CRM功能（放行授权页crm.license与system.config以便重验解锁）
-        if (strpos($controller, 'crm.') === 0 && $controller !== 'crm.license'
+        if (strpos(strtolower($controller), 'crm.') === 0 && strtolower($controller) !== 'crm.license'
             && is_file(app()->getRuntimePath() . 'license.lock')) {
             if ($request->isAjax()) {
                 return json([
@@ -92,7 +114,8 @@ class Auth
         $request->adminInfo = $admin;
 
         // 判断是否需要权限验证
-        if (!in_array($path, $this->noAuth) && $groupId != 1 && $hrefId) {
+        $adminRules = [];
+        if (!in_array($path, array_map('strtolower', $this->noAuth)) && $groupId != 1 && $hrefId) {
             // 获取当前管理员权限
             $prefix = getDataBaseConfig('prefix');
             $rules = Db::name('admin')
@@ -116,6 +139,9 @@ class Auth
             }
         }
 
+        // 权限规则列表注入 request,供控制器使用(如 Ajax::getMenu 菜单过滤)
+        $request->adminRules = $adminRules;
+
         // 加载系统配置
         $system = cache('System');
         if (empty($system)) {
@@ -132,10 +158,7 @@ class Auth
         // 注入 JS 配置变量
         $this->assignViewConfig($request, $admin, $system);
 
-        // 记录操作日志
-        if ($hrefId && $request->isPost()) {
-            \app\common\model\AdminLog::record($admin, $path, $hrefId);
-        }
+        // 操作日志记录已移至 Common 控制器(保留 $auto_record_log 开关),避免双写
 
         return $next($request);
     }
@@ -174,17 +197,14 @@ class Auth
         foreach ($controllerArr as $vo) {
             empty($jsPath) ? $jsPath = parse_name($vo) : $jsPath .= '/' . parse_name($vo);
         }
-
         $data = [
             'ADMIN'               => $admin,
             'MODULE'              => $module,
             'CONTROLLER'          => parse_name($controller),
             'JSPATH'              => $jsPath,
             'ACTION'              => $action,
-            'thisRequest'         => parse_name("{$module}/{$controller}/{$action}"),
             'CONTROLLER_JS_PATH'  => "{$module}/js/{$jsPath}.js",
             'AUTOLOAD_JS'         => true,
-            'IS_SUPER_ADMIN'      => $admin['admin_id'] == SUPER_ADMIN_ID,
             'IS_DEV'              => IS_DEV,
             'LANG'                => Lang::getLangSet(),
             'VERSION'             => env('APP_DEBUG') ? time() : config('version.version'),
@@ -194,7 +214,6 @@ class Auth
             'CSRF_TOKEN'          => token(),
             'ADMINPAGESIZE'       => $system['admin_pagesize'] ?? 15,
             'MY_PUBLIC'           => __MY_PUBLIC__,
-            'LICENSE'             => @file_get_contents(app()->getRootPath() . 'config/license.key'),
             'MODULEURL'           => rtrim((string) url("/", [], false), '/'),
         ];
 

@@ -248,9 +248,6 @@ define(["jquery", "lang"], function ($,Lang) {
             head.appendChild(link)
         },
         checkAuth: function (node, elem) {
-            if (CONFIG.IS_SUPER_ADMIN) {
-                return true;
-            }
             if ($(elem).attr('data-auth-' + node) === '1') {
                 return true;
             } else {
@@ -485,13 +482,25 @@ define(["jquery", "lang"], function ($,Lang) {
                 element.on('tab(nav-tabs-index)', function(data){
                     var tableId = $(data.elem).attr('nav-tabs-index');
                     var field = $(this).data("field");
-                    value=$(this).data("value");
+                    var value = $(this).data("value");
+                    if (field === undefined || value === undefined) return;
                     init.where[field]=value;
                     admin.init.where[field]=value;
                     if (tableId === undefined || tableId === '' || tableId == null) {
                         tableId = init.table_render_id;
                     }
-                    $('[lay-filter="'+tableId+'_filter"]').click()
+                    var $searchBtn = $('[lay-filter="'+tableId+'_filter"]');
+                    if ($searchBtn.length > 0) {
+                        // 存在搜索表单时，模拟点击提交按钮触发重载（原有逻辑）
+                        $searchBtn.click();
+                    } else {
+                        // 兜底：表格列未配置 search 时，搜索提交按钮不会生成，直接重载表格，
+                        // 避免切换 tab 后既不刷新表格也不发请求（如 call/call_task）
+                        table.reload(tableId, {
+                            page: {curr: 1},
+                            where: admin.init.where
+                        });
+                    }
                 });
                 // 新增排序
                 if(!options.autoSort){
@@ -1125,15 +1134,7 @@ define(["jquery", "lang"], function ($,Lang) {
                 option=data.LAY_COL;
                 var field = option.field, value = '';
                 value = getFieldValue(data, field);
-                // 判断是否有* 有*则直接输出
-                if (value.indexOf('*')>-1){
-                //     找到*
-                }else if (value){
-                    value = '<a  target="_top" href="tel:'+escapeHtml(value)+'">'+escapeHtml(value)+' </a>';
-                }else{
-                    value = '';
-                }
-                return '<span>' + value + '</span>';
+                return '<span class="cell-tel" data-id="'+getFieldValue(data, 'id')+'">' + value + '</span>';
             },
             select: function (data) {
                 option=data.LAY_COL;
@@ -1344,11 +1345,12 @@ define(["jquery", "lang"], function ($,Lang) {
                     ,where: admin.init.where
                 });
             });
-            form.render('checkbox');
             //     渲染高亮排序字段
             $('[lay-table-id="'+table_render_id+'"]').find('[data-field="'+admin.init.where['sort_by']+'"]').each(function (index) {
                 $(this).find('.layui-table-sort').attr('lay-sort',admin.init.where['sort_order']);
             });
+            form.render('checkbox');
+
 
         },
         //关闭窗口并回传数据

@@ -7231,7 +7231,6 @@ var fillCharReg = new RegExp(domUtils.fillChar, 'g');
          * ```
          */
         getContent: function (cmd, fn,notSetCursor,ignoreBlank,formatter) {
-            console.log('getContent')
             var me = this;
             if (cmd && utils.isFunction(cmd)) {
                 fn = cmd;
@@ -7342,7 +7341,6 @@ var fillCharReg = new RegExp(domUtils.fillChar, 'g');
          * ```
          */
         setContent: function (html, isAppendTo, notFireSelectionchange) {
-            console.log('setContent')
             var me = this;
 
             me.fireEvent('beforesetcontent', html);
