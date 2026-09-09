@@ -1,5 +1,10 @@
+#各种ai编辑器
+.qoder
+.reasonix
+.codeartsdoer
+
 # ThinkPHP 运行时
-/runtime/*
+/runtime/
 
 # Composer 依赖
 /vendor/
@@ -12,6 +17,8 @@
 /license.php
 config/license.dat
 config/install.lock
+config/secret.php
+public/fhxcrm/
 
 # IDE 配置
 .idea/
