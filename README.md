@@ -119,7 +119,7 @@ public/upload/   # 附件上传目录
 
 ```bash
 # 方式一：Git 克隆
-git clone <仓库地址> crm
+git clone <仓库地址> fhxcrm
 cd crm
 
 # 方式二：下载源码压缩包后解压到站点目录
