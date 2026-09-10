@@ -12,7 +12,7 @@ class Cron extends BaseController
      * 计划任务入口 - 提醒检查 + 合同到期处理
      * 
      * 访问方式：
-     * 1. 宝塔计划任务 → 访问URL → http://域名/index.php/cron/index?token=your_secure_token_here_2026
+     * 1. 宝塔计划任务 → 访问URL → http://域名/index.php/cron/index?token=your_cron_token_here_2026
      * 2. 在线cron服务 → https://cron-job.org 等
      * 
      * 安全机制：需要 token 验证
@@ -20,7 +20,7 @@ class Cron extends BaseController
     public function index()
     {
         // ========== 安全配置 上线后建议修改==========
-        $cronToken = config('app.cron_token', 'your_secure_token_here_2026');
+        $cronToken = config('app.cron_token', 'your_cron_token_here_2026');
         
         // Token验证
         $inputToken = $this->request->param('token', '');

@@ -17,7 +17,7 @@
 /license.php
 config/license.dat
 config/install.lock
-config/secret.php
+
 public/fhxcrm/
 
 # IDE 配置

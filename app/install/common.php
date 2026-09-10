@@ -150,7 +150,7 @@ function fhy_create_db_config($config)
             if (function_exists('opcache_invalidate')) {
                 @opcache_invalidate($confDir . 'database.php', true);
             }
-           fhy_update_secret('cookie_crypt_key', rand_string(18));
+           fhy_update_env_value('COOKIE_CRYPT_KEY', rand_string(18));
         } catch (\Exception $e) {
 
             return false;
@@ -163,30 +163,12 @@ function fhy_create_db_config($config)
 }
 
 /**
-
  * 更新或追加根目录 .env 文件中的某个配置项
  * 用于安装时为当前部署生成独立的密钥（如 APP_KEY）
  * @param string $key   环境变量名（如 APP_KEY）
  * @param string $value 值
  * @return bool 是否写入成功
  */
-function fhy_update_secret($key, $value)
-{
-    $secretFile = app()->getRootPath() . 'config/secret.php';
-    try {
-        $data = is_file($secretFile) ? (array)(include $secretFile) : [];
-        $data[$key] = $value;
-        $content = "<?php\n\n// 部署专用密钥（由安装向导自动生成，勿提交版本库、勿泄露）\nreturn " . var_export($data, true) . ";\n";
-        $result = file_put_contents($secretFile, $content);
-        if ($result !== false && function_exists('opcache_invalidate')) {
-            @opcache_invalidate($secretFile, true);
-        }
-        return $result !== false;
-    } catch (\Throwable $e) {
-        return false;
-    }
-}
-
 function fhy_update_env_value($key, $value)
 {
     $envFile = app()->getRootPath() . '.env';

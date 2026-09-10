@@ -66,7 +66,7 @@ think\App (框架)
 ```
 
 - `Authority.php`：从Header读取Token → 单点登录校验（JWT解析 + `admin_token` 表存在性验证）→ 查询admin表 → 权限验证
-- JWT签发（`app/api/common.php` 的 `getToken()`）与验证（`app/api/controller/Common.php` 的 `parseToken()`）均使用 `config('app.app_key')` 作为 HS256 密钥；该密钥优先取 `.env` 中的 `APP_KEY`，未配置时回退 `config/app.php` 默认值（php-jwt 7.0 要求密钥长度 >= 32 字节）
+- JWT签发（`app/api/common.php` 的 `getToken()`）与验证（`app/api/controller/Common.php` 的 `parseToken()`）均使用 `config('app.app_key')` 作为 HS256 密钥；该密钥取自 `.env` 中的 `APP_KEY`（php-jwt 7.0 要求密钥长度 >= 32 字节）
 - 单点登录校验统一走 `Common::verifyTokenDb()`（`parseToken()` + `admin_token` 表存在性验证），供 `Authority`（HTTP 鉴权）、`Login::checkLogin()`、WSS 握手（`CallWss::auth()`）复用；校验结果经 share 通道缓存 60s（命中与未命中均缓存，避免高频请求打 DB），签发/续签/注销侧通过 `clearSsoTokenCache()` 同步维护缓存；`issueLoginToken()`/`revokeTokenByTokenId()` 位于 `app/api/common.php`
 - API控制器复用admin模块的Model类，返回统一JSON格式
 

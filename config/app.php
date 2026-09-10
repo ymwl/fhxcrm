@@ -16,16 +16,16 @@ use think\facade\Env;
 
 define('IS_DEV', env('APP_DEV',0));
 
-// 部署密钥：优先读取 git 忽略的 config/secret.php（安装向导生成，PHP 执行，不易被静态下载），缺失时回退 .env
-$secret = require __DIR__ . '/secret.php';
-
 return [
     // 应用名称
     'app_name'               => '',
+    
     // 应用地址
     'app_host'               => Env::get('app.host', ''),
-    'app_key'                => $secret['app_key'] ,
-    'cookie_crypt_key'       => $secret['cookie_crypt_key'],
+    // JWT 签名密钥与 Cookie 加解密密钥：统一从 .env 读取，由安装向导自动生成并写入
+    'app_key'                => Env::get('APP_KEY', ''),
+    'cookie_crypt_key'       => Env::get('COOKIE_CRYPT_KEY', ''),
+    'cron_token' => 'your_cron_token_here_2026',#计划任务需要用的token
 
     // 是否启用路由
     'with_route'       => true,
